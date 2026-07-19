@@ -1,0 +1,90 @@
+<?php
+
+return [
+    // Navigation / groups
+    'group_fleet' => 'Fleet',
+    'group_operations' => 'Operations',
+    'group_admin' => 'Administration',
+    'group_management' => 'Management',
+    'machines' => 'Machines',
+    'machine' => 'Machine',
+
+    // Sections
+    'identification' => 'Identification',
+    'status_service' => 'Status & Service',
+    'technical' => 'Technical spec sheet',
+    'images' => 'Images',
+    'data_control' => 'Data control',
+
+    // Fields
+    'id_code' => 'ID',
+    'category' => 'Category',
+    'make' => 'Make',
+    'model' => 'Model',
+    'serial' => 'Serial / PIN',
+    'serial_type' => 'Serial type',
+    'year' => 'Year',
+    'location' => 'Location',
+    'description' => 'Description',
+    'status' => 'Status',
+    'hourmeter_status' => 'Hour-meter',
+    'hours_adjustment' => 'Hours adjustment',
+    'current_hours' => 'Current hours',
+    'current_hours_date' => 'Reading date',
+    'service_interval' => 'Service interval',
+    'last_service_hours' => 'Last service (h)',
+    'last_service_date' => 'Last service date',
+    'remaining_hours' => 'Remaining',
+    'remaining_help' => 'Hours left to the next service (snapshot from PM report).',
+    'engine_model' => 'Engine model',
+    'engine_serial' => 'Engine serial',
+    'electrical' => 'Electrical system',
+    'tires' => 'Tires',
+    'oil_capacity' => 'Oil capacity',
+    'spec_sheet' => 'Spec sheet (Machinery Info Book)',
+    'spec_sheet_help' => 'Full verbatim text as it appears in the Info Book; do not edit except to correct data.',
+    'image' => 'Main image',
+    'gallery' => 'Gallery',
+    'needs_review' => 'Needs review',
+    'review' => 'Review',
+    'review_note' => 'Review note',
+    'notes' => 'Notes',
+
+    // Data verification (verify_data permission)
+    'approve_data' => 'Approve data',
+    'approve_confirm' => 'This machine will be marked as verified and it will be logged in the audit trail. Confirm?',
+    'approved_ok' => 'Data verified and approved.',
+    'approve_bulk' => 'Approve selected',
+    'approved_bulk_ok' => ':count machine(s) approved.',
+
+    // Statuses
+    'status_active' => 'Active',
+    'status_not_in_service' => 'Not in service',
+    'status_down' => 'Down',
+    'status_inactive' => 'Inactive',
+    'status_unknown' => 'Unknown',
+    'hm_broken' => 'Broken',
+    'hm_no_info' => 'No info',
+    'hm_replaced' => 'Replaced',
+    'due_soon' => 'Due soon (<= 100 h)',
+
+    // Parts
+    'parts_catalog' => 'Parts catalog',
+    'part' => 'Part',
+    'part_category' => 'Type',
+    'change_interval' => 'Change interval',
+    'detail' => 'Detail',
+
+    // Readings
+    'horometer_history' => 'Hour-meter history',
+    'hours' => 'Hours',
+    'read_at' => 'Date',
+    'source' => 'Source',
+    'gallons' => 'Gallons',
+    'verified' => 'Verified',
+    'note' => 'Note',
+    'src_fuel' => 'Fuel truck',
+    'src_maintenance' => 'Maintenance',
+    'src_workshop' => 'Shop',
+    'src_manual' => 'Manual',
+];

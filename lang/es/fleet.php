@@ -1,0 +1,90 @@
+<?php
+
+return [
+    // Navegación / grupos
+    'group_fleet' => 'Flota',
+    'group_operations' => 'Operaciones',
+    'group_admin' => 'Administración',
+    'group_management' => 'Gerencia',
+    'machines' => 'Máquinas',
+    'machine' => 'Máquina',
+
+    // Secciones
+    'identification' => 'Identificación',
+    'status_service' => 'Estado y servicio',
+    'technical' => 'Ficha técnica',
+    'images' => 'Imágenes',
+    'data_control' => 'Control de datos',
+
+    // Campos
+    'id_code' => 'ID',
+    'category' => 'Categoría',
+    'make' => 'Marca',
+    'model' => 'Modelo',
+    'serial' => 'Serie / PIN',
+    'serial_type' => 'Tipo de serie',
+    'year' => 'Año',
+    'location' => 'Ubicación',
+    'description' => 'Descripción',
+    'status' => 'Estado',
+    'hourmeter_status' => 'Horómetro',
+    'hours_adjustment' => 'Ajuste de horas',
+    'current_hours' => 'Horas actuales',
+    'current_hours_date' => 'Fecha de lectura',
+    'service_interval' => 'Intervalo de servicio',
+    'last_service_hours' => 'Último servicio (h)',
+    'last_service_date' => 'Fecha último servicio',
+    'remaining_hours' => 'Restantes',
+    'remaining_help' => 'Horas para el próximo servicio (referencia del PM report).',
+    'engine_model' => 'Modelo de motor',
+    'engine_serial' => 'Serie de motor',
+    'electrical' => 'Sistema eléctrico',
+    'tires' => 'Neumáticos',
+    'oil_capacity' => 'Capacidad de aceite',
+    'spec_sheet' => 'Ficha técnica (Machinery Info Book)',
+    'spec_sheet_help' => 'Texto íntegro tal cual figura en el Info Book, no editar salvo corrección de datos.',
+    'image' => 'Imagen principal',
+    'gallery' => 'Galería',
+    'needs_review' => 'Requiere revisión',
+    'review' => 'Revisión',
+    'review_note' => 'Nota de revisión',
+    'notes' => 'Notas',
+
+    // Verificación de datos (permiso verify_data)
+    'approve_data' => 'Aprobar datos',
+    'approve_confirm' => 'Se marcará esta máquina como verificada y quedará registrado en la bitácora. ¿Confirmas?',
+    'approved_ok' => 'Datos verificados y aprobados.',
+    'approve_bulk' => 'Aprobar seleccionadas',
+    'approved_bulk_ok' => 'Se aprobaron :count máquina(s).',
+
+    // Estados
+    'status_active' => 'Activa',
+    'status_not_in_service' => 'Fuera de servicio',
+    'status_down' => 'Averiada',
+    'status_inactive' => 'Inactiva',
+    'status_unknown' => 'Desconocido',
+    'hm_broken' => 'Roto',
+    'hm_no_info' => 'Sin info',
+    'hm_replaced' => 'Reemplazado',
+    'due_soon' => 'Próximo a servicio (<= 100 h)',
+
+    // Partes
+    'parts_catalog' => 'Catálogo de partes',
+    'part' => 'Parte',
+    'part_category' => 'Tipo',
+    'change_interval' => 'Intervalo de cambio',
+    'detail' => 'Detalle',
+
+    // Lecturas
+    'horometer_history' => 'Historial de horómetro',
+    'hours' => 'Horas',
+    'read_at' => 'Fecha',
+    'source' => 'Origen',
+    'gallons' => 'Galones',
+    'verified' => 'Verificado',
+    'note' => 'Nota',
+    'src_fuel' => 'Cisterna',
+    'src_maintenance' => 'Mantenimiento',
+    'src_workshop' => 'Taller',
+    'src_manual' => 'Manual',
+];

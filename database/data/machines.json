@@ -1,0 +1,1760 @@
+[
+  {
+    "id_code": "3038E",
+    "category": "Tractor",
+    "description": "3038E JOHN DEERE AGRICULTURAL TRACTOR PIN: 1LV3038EJSS150528",
+    "serial": "1LV3038EJSS150528",
+    "serial_type": "PIN",
+    "location_raw": "Broadview",
+    "not_in_service": false,
+    "last_service": {
+      "hrs": 10,
+      "date": "6/05/26",
+      "raw": "010 Hrs 6/05/26",
+      "note": null
+    },
+    "latest_reading": {
+      "hrs": 18,
+      "date": "7/02/26",
+      "raw": "018 Hrs 7/02/26",
+      "note": null
+    },
+    "remaining_hrs": 492,
+    "remaining_raw": "492 Hrs",
+    "source_row": 123,
+    "needs_review": "ID no estándar — confirmar con cliente"
+  },
+  {
+    "id_code": "BT002",
+    "category": "Broom Tractor",
+    "description": "BT002 LAYMOR BROOM TRACTOR 8HC S/N: 28945-006",
+    "serial": "28945-006",
+    "serial_type": "SN",
+    "location_raw": "Broadview",
+    "not_in_service": false,
+    "last_service": {
+      "hrs": 2508,
+      "date": "8/01/23",
+      "raw": "2508 Hrs 8/01/23",
+      "note": null
+    },
+    "latest_reading": {
+      "hrs": 2567,
+      "date": "7/09/26",
+      "raw": "2567 Hrs 7/09/26",
+      "note": null
+    },
+    "remaining_hrs": 441,
+    "remaining_raw": "441 Hrs",
+    "source_row": 84,
+    "needs_review": false
+  },
+  {
+    "id_code": "CR001",
+    "category": "Crusher",
+    "description": "CR001 COBRA 230R PIN #TRXEQ461TOMR14250",
+    "serial": "TRXEQ461TOMR14250",
+    "serial_type": "PIN",
+    "location_raw": "(Machine Down) Alta Const Eng. repair 1/05/26",
+    "not_in_service": true,
+    "last_service": {
+      "hrs": 1607,
+      "date": "1/06/26",
+      "raw": "1607 Hrs 1/06/26",
+      "note": null
+    },
+    "latest_reading": {
+      "hrs": 1607,
+      "date": "1/06/26",
+      "raw": "1607 Hrs 1/06/26",
+      "note": null
+    },
+    "remaining_hrs": 500,
+    "remaining_raw": "500 Hrs",
+    "source_row": 150,
+    "needs_review": false
+  },
+  {
+    "id_code": "DZ003",
+    "category": "Dozer",
+    "description": "DZ003 CRAWLER DOZER KOMATSU D39PX-24 S/N; 100125",
+    "serial": null,
+    "serial_type": null,
+    "location_raw": "Blount Rd.",
+    "not_in_service": false,
+    "last_service": {
+      "hrs": 1708,
+      "date": "1/07/26",
+      "raw": "1708 Hrs 1/07/26",
+      "note": null
+    },
+    "latest_reading": {
+      "hrs": 2019,
+      "date": "6/19/26",
+      "raw": "2019 Hrs 6/19/26",
+      "note": null
+    },
+    "remaining_hrs": 189,
+    "remaining_raw": "189 Hrs",
+    "source_row": 86,
+    "needs_review": false
+  },
+  {
+    "id_code": "EX002",
+    "category": "Excavator",
+    "description": "EX002 EXCAVATOR KOBELKO SK330LC S/N: YC06U-40447",
+    "serial": "YC06U-40447",
+    "serial_type": "SN",
+    "location_raw": "Not in Service WPB YD.",
+    "not_in_service": true,
+    "last_service": {
+      "hrs": 12055,
+      "date": "3/28/24",
+      "raw": "12055 Hrs 3/28/24",
+      "note": null
+    },
+    "latest_reading": {
+      "hrs": 12055,
+      "date": "7/10/26",
+      "raw": "12055 Hrs 7/10/26",
+      "note": null
+    },
+    "remaining_hrs": 500,
+    "remaining_raw": "500 Hrs",
+    "source_row": 7,
+    "needs_review": false
+  },
+  {
+    "id_code": "EX010",
+    "category": "Excavator",
+    "description": "EX010 EXCAVATOR CAT 335FLCR S/N: KNE00310",
+    "serial": "KNE00310",
+    "serial_type": "SN",
+    "location_raw": "Broadview yd.",
+    "not_in_service": false,
+    "last_service": {
+      "hrs": 9708,
+      "date": "5/04/26",
+      "raw": "9708 Hrs 5/04/26",
+      "note": null
+    },
+    "latest_reading": {
+      "hrs": 9785,
+      "date": "7/10/26",
+      "raw": "9785 Hrs 7/10/26",
+      "note": null
+    },
+    "remaining_hrs": 423,
+    "remaining_raw": "423 Hrs",
+    "source_row": 9,
+    "needs_review": false
+  },
+  {
+    "id_code": "EX011",
+    "category": "Excavator",
+    "description": "EX011 EXCAVATOR CAT 308 E2CRSB S/N: FJX04551",
+    "serial": "FJX04551",
+    "serial_type": "SN",
+    "location_raw": "Pompano Bch",
+    "not_in_service": false,
+    "last_service": {
+      "hrs": 7687,
+      "date": "7/11/25",
+      "raw": "7687 Hrs 7/11/25",
+      "note": null
+    },
+    "latest_reading": {
+      "hrs": 7962,
+      "date": "6/02/26",
+      "raw": "7962 Hrs 6/02/26",
+      "note": null
+    },
+    "remaining_hrs": 225,
+    "remaining_raw": "225 Hrs",
+    "source_row": 11,
+    "needs_review": false
+  },
+  {
+    "id_code": "EX012",
+    "category": "Excavator",
+    "description": "EX012 EXCAVATOR CAT 325FL S/N: XAX00227",
+    "serial": "XAX00227",
+    "serial_type": "SN",
+    "location_raw": "Broadview yd.",
+    "not_in_service": false,
+    "last_service": {
+      "hrs": 8890,
+      "date": "3/04/26",
+      "raw": "8890 Hrs 3/04/26",
+      "note": null
+    },
+    "latest_reading": {
+      "hrs": 9087,
+      "date": "7/10/26",
+      "raw": "9087 Hrs 7/10/26",
+      "note": null
+    },
+    "remaining_hrs": 314,
+    "remaining_raw": "314 Hrs",
+    "source_row": 13,
+    "needs_review": false
+  },
+  {
+    "id_code": "EX013",
+    "category": "Excavator",
+    "description": "EX013 EXCAVATOR CAT 307E2 S/N: KC900521",
+    "serial": "KC900521",
+    "serial_type": "SN",
+    "location_raw": "WPB Yd. (Add 5714 to current hrs)",
+    "not_in_service": false,
+    "last_service": {
+      "hrs": 5542,
+      "date": "3/21/25",
+      "raw": "5542 Hrs 3/21/25",
+      "note": null
+    },
+    "latest_reading": {
+      "hrs": 5808,
+      "date": "6/29/26",
+      "raw": "5808 Hrs 6/29/26",
+      "note": null
+    },
+    "remaining_hrs": 234,
+    "remaining_raw": "234 Hrs",
+    "source_row": 15,
+    "needs_review": false
+  },
+  {
+    "id_code": "EX014",
+    "category": "Excavator",
+    "description": "EX014 EXCAVATOR KOMATSU PC138 S/N: 52026",
+    "serial": "52026",
+    "serial_type": "SN",
+    "location_raw": "Broadview yd.",
+    "not_in_service": false,
+    "last_service": {
+      "hrs": 5148,
+      "date": "2/27/26",
+      "raw": "5148 Hrs 2/27/26",
+      "note": null
+    },
+    "latest_reading": {
+      "hrs": 5325,
+      "date": "6/29/26",
+      "raw": "5325 Hrs 6/29/26",
+      "note": null
+    },
+    "remaining_hrs": 323,
+    "remaining_raw": "323 Hrs",
+    "source_row": 17,
+    "needs_review": false
+  },
+  {
+    "id_code": "EX016",
+    "category": "Excavator",
+    "description": "EX016 EXCAVATOR CAT 335FL S/N: SGJ20466",
+    "serial": "SGJ20466",
+    "serial_type": "SN",
+    "location_raw": "Blount Rd.",
+    "not_in_service": false,
+    "last_service": {
+      "hrs": 5547,
+      "date": "1/13/26",
+      "raw": "5547 Hrs 1/13/26",
+      "note": null
+    },
+    "latest_reading": {
+      "hrs": 5903,
+      "date": "6/19/26",
+      "raw": "5903 Hrs 6/19/26",
+      "note": null
+    },
+    "remaining_hrs": 144,
+    "remaining_raw": "144 Hrs",
+    "source_row": 19,
+    "needs_review": false
+  },
+  {
+    "id_code": "EX017",
+    "category": "Excavator",
+    "description": "EX017 EXCAVATOR KOMATSU PC240LC-11 S/N: A22142",
+    "serial": "A22142",
+    "serial_type": "SN",
+    "location_raw": "Blount rd.",
+    "not_in_service": false,
+    "last_service": {
+      "hrs": 8784,
+      "date": "7/02/26",
+      "raw": "8784 Hrs 7/02/26",
+      "note": null
+    },
+    "latest_reading": {
+      "hrs": 8804,
+      "date": "7/06/26",
+      "raw": "8804 Hrs 7/06/26",
+      "note": null
+    },
+    "remaining_hrs": 480,
+    "remaining_raw": "480 Hrs",
+    "source_row": 21,
+    "needs_review": false
+  },
+  {
+    "id_code": "EX019",
+    "category": "Excavator",
+    "description": "EX019 EXCAVATOR JD 470G PIN: 1FF470GXJEE471025",
+    "serial": "1FF470GXJEE471025",
+    "serial_type": "PIN",
+    "location_raw": "Blount rd.",
+    "not_in_service": false,
+    "last_service": {
+      "hrs": 11778,
+      "date": "5/21/26",
+      "raw": "11778 Hrs 5/21/26",
+      "note": null
+    },
+    "latest_reading": {
+      "hrs": 11838,
+      "date": "6/19/26",
+      "raw": "11838 Hrs 6/19/26",
+      "note": null
+    },
+    "remaining_hrs": 440,
+    "remaining_raw": "440 Hrs",
+    "source_row": 23,
+    "needs_review": false
+  },
+  {
+    "id_code": "EX020",
+    "category": "Excavator",
+    "description": "EX020 EXCAVATOR JD 85G PIN:1FF085GXHNJ023787",
+    "serial": "1FF085GXHNJ023787",
+    "serial_type": "PIN",
+    "location_raw": "Douglas Rd.",
+    "not_in_service": false,
+    "last_service": {
+      "hrs": 2955,
+      "date": "6/05/26",
+      "raw": "2955 Hrs 6/05/26",
+      "note": null
+    },
+    "latest_reading": {
+      "hrs": 3039,
+      "date": "7/09/26",
+      "raw": "3039 Hrs 7/09/26",
+      "note": null
+    },
+    "remaining_hrs": 416,
+    "remaining_raw": "416 Hrs",
+    "source_row": 25,
+    "needs_review": false
+  },
+  {
+    "id_code": "EX021",
+    "category": "Excavator",
+    "description": "EX021 EXCAVATOR CASE MIDI CX80C PIN: DAC080K6NPS6B3096",
+    "serial": "DAC080K6NPS6B3096",
+    "serial_type": "PIN",
+    "location_raw": "974 hrs 12/05/24 Broadview",
+    "not_in_service": false,
+    "last_service": {
+      "hrs": 1485,
+      "date": "5/02/26",
+      "raw": "1485 Hrs 5/02/26",
+      "note": null
+    },
+    "latest_reading": {
+      "hrs": 1636,
+      "date": "7/08/26",
+      "raw": "1636 Hrs 7/08/26",
+      "note": null
+    },
+    "remaining_hrs": 349,
+    "remaining_raw": "349 Hrs",
+    "source_row": 27,
+    "needs_review": false
+  },
+  {
+    "id_code": "EX022",
+    "category": "Excavator",
+    "description": "EX022 EXCAVATOR CASE CX145D PIN: DAC145K7NPS7E2713",
+    "serial": "DAC145K7NPS7E2713",
+    "serial_type": "PIN",
+    "location_raw": "WPB Yd.",
+    "not_in_service": false,
+    "last_service": {
+      "hrs": 1456,
+      "date": "6/05/26",
+      "raw": "1456 Hrs 6/05/26",
+      "note": null
+    },
+    "latest_reading": {
+      "hrs": 1468,
+      "date": "7/10/26",
+      "raw": "1468 Hrs 7/10/26",
+      "note": null
+    },
+    "remaining_hrs": 488,
+    "remaining_raw": "488 Hrs",
+    "source_row": 30,
+    "needs_review": false
+  },
+  {
+    "id_code": "EX023",
+    "category": "Excavator",
+    "description": "EX023 EXCAVATOR CASE CX245D PIN: DAC245K7NPS7K1584",
+    "serial": "DAC245K7NPS7K1584",
+    "serial_type": "PIN",
+    "location_raw": "Davie Yd.",
+    "not_in_service": false,
+    "last_service": {
+      "hrs": 2073,
+      "date": "6/12/26",
+      "raw": "2073 Hrs 6/12/26",
+      "note": null
+    },
+    "latest_reading": {
+      "hrs": 2139,
+      "date": "7/10/26",
+      "raw": "2139 Hrs 7/10/26",
+      "note": null
+    },
+    "remaining_hrs": 434,
+    "remaining_raw": "434 Hrs",
+    "source_row": 32,
+    "needs_review": false
+  },
+  {
+    "id_code": "EX024",
+    "category": "Excavator",
+    "description": "EX024 EXCAVATOR CASE CX57C PIN: HHKHMC11EE0001937",
+    "serial": "HHKHMC11EE0001937",
+    "serial_type": "PIN",
+    "location_raw": "WPB yd",
+    "not_in_service": false,
+    "last_service": {
+      "hrs": 1124,
+      "date": "5/02/26",
+      "raw": "1124 Hrs 5/02/26",
+      "note": null
+    },
+    "latest_reading": {
+      "hrs": 1181,
+      "date": "7/10/26",
+      "raw": "1181 Hrs 7/10/26",
+      "note": null
+    },
+    "remaining_hrs": 443,
+    "remaining_raw": "443 Hrs",
+    "source_row": 34,
+    "needs_review": false
+  },
+  {
+    "id_code": "EX025",
+    "category": "Excavator",
+    "description": "EX025 EXCAVATOR CASE CX57C PIN: HHKHMC11JE0002089",
+    "serial": "HHKHMC11JE0002089",
+    "serial_type": "PIN",
+    "location_raw": "Atlantic",
+    "not_in_service": false,
+    "last_service": {
+      "hrs": 1080,
+      "date": "5/29/26",
+      "raw": "1080 Hrs 5/29/26",
+      "note": null
+    },
+    "latest_reading": {
+      "hrs": 1239,
+      "date": "7/09/26",
+      "raw": "1239 Hrs 7/09/26",
+      "note": null
+    },
+    "remaining_hrs": 341,
+    "remaining_raw": "341 Hrs",
+    "source_row": 36,
+    "needs_review": false
+  },
+  {
+    "id_code": "EX026",
+    "category": "Excavator",
+    "description": "EX026 CASE Mini Excavator CX42D PIN: SMP1C241CZGN00321",
+    "serial": "SMP1C241CZGN00321",
+    "serial_type": "PIN",
+    "location_raw": "Broadview yd. Black Display repaired 7/01/26",
+    "not_in_service": false,
+    "last_service": {
+      "hrs": 232,
+      "date": "10/14/25",
+      "raw": "232 Hrs 10/14/25",
+      "note": null
+    },
+    "latest_reading": {
+      "hrs": 494,
+      "date": "7/09/26",
+      "raw": "494 Hrs 7/09/26",
+      "note": null
+    },
+    "remaining_hrs": 238,
+    "remaining_raw": "238 Hrs",
+    "source_row": 38,
+    "needs_review": false
+  },
+  {
+    "id_code": "EX027",
+    "category": "Excavator",
+    "description": "EX027 EXCAVATOR CAT 335J S/N: XBE40635",
+    "serial": "XBE40635",
+    "serial_type": "SN",
+    "location_raw": "Taken engine oil sample nd dropped off @ Kelly Davie 6/08/26",
+    "not_in_service": false,
+    "last_service": {
+      "hrs": 79,
+      "date": "3/12/2026",
+      "raw": "0079 Hrs 3/12/2026",
+      "note": null
+    },
+    "latest_reading": {
+      "hrs": 341,
+      "date": "7/02/26",
+      "raw": "0341 Hrs 7/02/26",
+      "note": null
+    },
+    "remaining_hrs": 238,
+    "remaining_raw": "238 Hrs",
+    "source_row": 40,
+    "needs_review": "Aparece duplicado en el Excel — se conservó la lectura más reciente",
+    "duplicate_of_rows": [
+      40,
+      152
+    ]
+  },
+  {
+    "id_code": "GR001",
+    "category": "Grader",
+    "description": "GR001 GRADER LEEBOY 685 S/N: 685-131",
+    "serial": "685-131",
+    "serial_type": "SN",
+    "location_raw": "Blount rd.",
+    "not_in_service": false,
+    "last_service": {
+      "hrs": null,
+      "date": null,
+      "raw": "45211",
+      "note": "excel_date_serial"
+    },
+    "latest_reading": {
+      "hrs": null,
+      "date": null,
+      "raw": "46154",
+      "note": "excel_date_serial"
+    },
+    "remaining_hrs": null,
+    "remaining_raw": "",
+    "source_row": 88,
+    "needs_review": false
+  },
+  {
+    "id_code": "GR002",
+    "category": "Grader",
+    "description": "GR002 GRADER CAT 12H S/N: AMZ01273",
+    "serial": "AMZ01273",
+    "serial_type": "SN",
+    "location_raw": "Atlantic - Changed all filters @7787Hrs",
+    "not_in_service": false,
+    "last_service": {
+      "hrs": 7787,
+      "date": "6/26/26",
+      "raw": "7787 Hrs 6/26/26",
+      "note": null
+    },
+    "latest_reading": {
+      "hrs": 7787,
+      "date": "7/01/26",
+      "raw": "7787 Hrs 7/01/26",
+      "note": null
+    },
+    "remaining_hrs": 500,
+    "remaining_raw": "500 Hrs",
+    "source_row": 90,
+    "needs_review": false
+  },
+  {
+    "id_code": "GR003",
+    "category": "Grader",
+    "description": "GR003 GRADER CAT 140M2 S/N: M9D01316",
+    "serial": "M9D01316",
+    "serial_type": "SN",
+    "location_raw": "Atlantic Yd.",
+    "not_in_service": false,
+    "last_service": {
+      "hrs": 5775,
+      "date": "6/01/23",
+      "raw": "5775 Hrs 6/01/23",
+      "note": null
+    },
+    "latest_reading": {
+      "hrs": 5988,
+      "date": "7/01/26",
+      "raw": "5988 Hrs 7/01/26",
+      "note": null
+    },
+    "remaining_hrs": 287,
+    "remaining_raw": "287 Hrs",
+    "source_row": 92,
+    "needs_review": false
+  },
+  {
+    "id_code": "LD009",
+    "category": "Wheel Loader",
+    "description": "LD009 WHEEL LOADER JD 544K PIN: 1DW544KZAFE6668497",
+    "serial": "1DW544KZAFE6668497",
+    "serial_type": "PIN",
+    "location_raw": "Blount Rd.",
+    "not_in_service": false,
+    "last_service": {
+      "hrs": 9080,
+      "date": "6/04/26",
+      "raw": "9080 Hrs 6/04/26",
+      "note": null
+    },
+    "latest_reading": {
+      "hrs": 9208,
+      "date": "7/08/26",
+      "raw": "9208 Hrs 7/08/26",
+      "note": null
+    },
+    "remaining_hrs": 372,
+    "remaining_raw": "372 Hrs",
+    "source_row": 42,
+    "needs_review": false
+  },
+  {
+    "id_code": "LD010",
+    "category": "Wheel Loader",
+    "description": "LD010 WHEEL LOADER KOMATSU WA320-8 S/N: 036656",
+    "serial": "036656",
+    "serial_type": "SN",
+    "location_raw": "At WPB Yd. Eng. performance issues since 7/22/2025",
+    "not_in_service": false,
+    "last_service": {
+      "hrs": 7792,
+      "date": "9/20/24",
+      "raw": "7792 Hrs 9/20/24",
+      "note": null
+    },
+    "latest_reading": {
+      "hrs": 8096,
+      "date": "7/08/26",
+      "raw": "8096 Hrs 7/08/26",
+      "note": null
+    },
+    "remaining_hrs": 196,
+    "remaining_raw": "196 Hrs",
+    "source_row": 44,
+    "needs_review": false
+  },
+  {
+    "id_code": "LD012",
+    "category": "Wheel Loader",
+    "description": "LD012 WHEEL LOADER CAT 938M S/N: J3R00700",
+    "serial": "J3R00700",
+    "serial_type": "SN",
+    "location_raw": "WPB yd for paint",
+    "not_in_service": false,
+    "last_service": {
+      "hrs": 10760,
+      "date": "5/12/26",
+      "raw": "10760 Hrs 5/12/26",
+      "note": null
+    },
+    "latest_reading": {
+      "hrs": 10780,
+      "date": "7/06/26",
+      "raw": "10780 Hrs 7/06/26",
+      "note": null
+    },
+    "remaining_hrs": 480,
+    "remaining_raw": "480 Hrs",
+    "source_row": 46,
+    "needs_review": false
+  },
+  {
+    "id_code": "LD013",
+    "category": "Wheel Loader",
+    "description": "LD013 WHEEL LOADER CAT 938M S/N: J3R02196",
+    "serial": "J3R02196",
+    "serial_type": "SN",
+    "location_raw": "Blount Rd",
+    "not_in_service": false,
+    "last_service": {
+      "hrs": 13196,
+      "date": "6/04/26",
+      "raw": "13196 Hrs 6/04/26",
+      "note": null
+    },
+    "latest_reading": {
+      "hrs": 13370,
+      "date": "7/08/26",
+      "raw": "13370 Hrs 7/08/26",
+      "note": null
+    },
+    "remaining_hrs": 326,
+    "remaining_raw": "326 Hrs",
+    "source_row": 48,
+    "needs_review": false
+  },
+  {
+    "id_code": "LD015",
+    "category": "Wheel Loader",
+    "description": "LD015 WHEEL LOADER CAT 938M S/N: J3R01764",
+    "serial": "J3R01764",
+    "serial_type": "SN",
+    "location_raw": "Douglas Rd.",
+    "not_in_service": false,
+    "last_service": {
+      "hrs": 10561,
+      "date": "9/02/25",
+      "raw": "10561 Hrs 9/02/25",
+      "note": null
+    },
+    "latest_reading": {
+      "hrs": 10931,
+      "date": "6/29/26",
+      "raw": "10931 Hrs 6/29/26",
+      "note": null
+    },
+    "remaining_hrs": 130,
+    "remaining_raw": "130 Hrs",
+    "source_row": 50,
+    "needs_review": false
+  },
+  {
+    "id_code": "LD019",
+    "category": "Wheel Loader",
+    "description": "LD019 WHEEL LOADER JD 544K PIN: 1DW544KZTHF684834",
+    "serial": "1DW544KZTHF684834",
+    "serial_type": "PIN",
+    "location_raw": "Blount Rd.",
+    "not_in_service": false,
+    "last_service": {
+      "hrs": 9061,
+      "date": "6/08/26",
+      "raw": "9061 Hrs 6/08/26",
+      "note": null
+    },
+    "latest_reading": {
+      "hrs": 9188,
+      "date": "7/08/26",
+      "raw": "9188 Hrs 7/08/26",
+      "note": null
+    },
+    "remaining_hrs": 373,
+    "remaining_raw": "373 Hrs",
+    "source_row": 52,
+    "needs_review": false
+  },
+  {
+    "id_code": "LD020",
+    "category": "Wheel Loader",
+    "description": "LD020 WHEEL LOADER KOMATSU WA320-8 S/N: 038451",
+    "serial": "038451",
+    "serial_type": "SN",
+    "location_raw": "Mc.Nab Rd",
+    "not_in_service": false,
+    "last_service": {
+      "hrs": 11181,
+      "date": "6/01/26",
+      "raw": "11181 Hrs 6/01/26",
+      "note": null
+    },
+    "latest_reading": {
+      "hrs": 11283,
+      "date": "6/19/26",
+      "raw": "11283 Hrs 6/19/26",
+      "note": null
+    },
+    "remaining_hrs": 398,
+    "remaining_raw": "398 Hrs",
+    "source_row": 54,
+    "needs_review": false
+  },
+  {
+    "id_code": "LD021",
+    "category": "Skid Steer",
+    "description": "LD021 SKID STEER CAT 289D S/N: CAT0289DVTAW10725",
+    "serial": "CAT0289DVTAW10725",
+    "serial_type": "SN",
+    "location_raw": "Nacho",
+    "not_in_service": false,
+    "last_service": {
+      "hrs": 5041,
+      "date": "9/22/25",
+      "raw": "5041 Hrs 9/22/25",
+      "note": null
+    },
+    "latest_reading": {
+      "hrs": 5399,
+      "date": "4/17/26",
+      "raw": "5399 Hrs 4/17/26",
+      "note": null
+    },
+    "remaining_hrs": 142,
+    "remaining_raw": "142 Hrs",
+    "source_row": 57,
+    "needs_review": false
+  },
+  {
+    "id_code": "LD022",
+    "category": "Wheel Loader",
+    "description": "LD022 WHEEL LOADER KOMATSU WA320-8 S/N: A38528",
+    "serial": "A38528",
+    "serial_type": "SN",
+    "location_raw": "Douglas Rd.",
+    "not_in_service": false,
+    "last_service": {
+      "hrs": 8518,
+      "date": "1/23/26",
+      "raw": "8518 Hrs 1/23/26",
+      "note": null
+    },
+    "latest_reading": {
+      "hrs": 8645,
+      "date": "7/09/26",
+      "raw": "8645 Hrs 7/09/26",
+      "note": null
+    },
+    "remaining_hrs": 370,
+    "remaining_raw": "370 Hrs",
+    "source_row": 59,
+    "needs_review": false
+  },
+  {
+    "id_code": "LD023",
+    "category": "Wheel Loader",
+    "description": "LD023 WHEEL LOADER KOMATSU WA320-8 S/N: A39202",
+    "serial": "A39202",
+    "serial_type": "SN",
+    "location_raw": "Broadview",
+    "not_in_service": false,
+    "last_service": {
+      "hrs": 8215,
+      "date": "5/10/26",
+      "raw": "8215 Hrs 5/10/26",
+      "note": null
+    },
+    "latest_reading": {
+      "hrs": 8674,
+      "date": "7/10/26",
+      "raw": "8674 Hrs 7/10/26",
+      "note": null
+    },
+    "remaining_hrs": 41,
+    "remaining_raw": "41 Hrs",
+    "source_row": 61,
+    "needs_review": false
+  },
+  {
+    "id_code": "LD024",
+    "category": "Wheel Loader",
+    "description": "LD024 WHEEL LOADER KOMATSU WA320-8 S/N: A38511",
+    "serial": "A38511",
+    "serial_type": "SN",
+    "location_raw": "Atlantic yd.",
+    "not_in_service": false,
+    "last_service": {
+      "hrs": 9113,
+      "date": "5/10/26",
+      "raw": "9113 Hrs 5/10/26",
+      "note": null
+    },
+    "latest_reading": {
+      "hrs": 9264,
+      "date": "7/01/26",
+      "raw": "9264 Hrs 7/01/26",
+      "note": null
+    },
+    "remaining_hrs": 349,
+    "remaining_raw": "349 Hrs",
+    "source_row": 63,
+    "needs_review": false
+  },
+  {
+    "id_code": "LD025",
+    "category": "Skid Steer",
+    "description": "LD025 SKID STEER CAT 262D3 S/N: ZB2022282",
+    "serial": "ZB2022282",
+    "serial_type": "SN",
+    "location_raw": "Douglas Rd.",
+    "not_in_service": false,
+    "last_service": {
+      "hrs": 4058,
+      "date": "5/28/26",
+      "raw": "4058 Hrs 5/28/26",
+      "note": null
+    },
+    "latest_reading": {
+      "hrs": 4171,
+      "date": "7/09/26",
+      "raw": "4171 Hrs 7/09/26",
+      "note": null
+    },
+    "remaining_hrs": 387,
+    "remaining_raw": "387 Hrs",
+    "source_row": 65,
+    "needs_review": false
+  },
+  {
+    "id_code": "LD027",
+    "category": "Wheel Loader",
+    "description": "LD027 WHEEL LOADER KOMATSU WA320-8 S/N: A39433",
+    "serial": "A39433",
+    "serial_type": "SN",
+    "location_raw": "Turnpike",
+    "not_in_service": false,
+    "last_service": {
+      "hrs": 7237,
+      "date": "4/06/26",
+      "raw": "7237 Hrs 4/06/26",
+      "note": null
+    },
+    "latest_reading": {
+      "hrs": 7674,
+      "date": "7/09/26",
+      "raw": "7674 Hrs 7/09/26",
+      "note": null
+    },
+    "remaining_hrs": 63,
+    "remaining_raw": "63 Hrs",
+    "source_row": 67,
+    "needs_review": false
+  },
+  {
+    "id_code": "LD028",
+    "category": "Skid Steer",
+    "description": "LD028 SKID STEER JD 333G PIN: 1T0333GMTPF438535",
+    "serial": "1T0333GMTPF438535",
+    "serial_type": "PIN",
+    "location_raw": "McNab Jobsite",
+    "not_in_service": false,
+    "last_service": {
+      "hrs": 1930,
+      "date": "8/13/25",
+      "raw": "1930 Hrs 8/13/25",
+      "note": null
+    },
+    "latest_reading": {
+      "hrs": 2103,
+      "date": "6/30/26",
+      "raw": "2103 Hrs 6/30/26",
+      "note": null
+    },
+    "remaining_hrs": 327,
+    "remaining_raw": "327 Hrs",
+    "source_row": 69,
+    "needs_review": false
+  },
+  {
+    "id_code": "LD030",
+    "category": "Skid Steer",
+    "description": "LD030 Case Skid Steer TV370B PIN: JAFTV370JPM432693",
+    "serial": "JAFTV370JPM432693",
+    "serial_type": "PIN",
+    "location_raw": "Broadview",
+    "not_in_service": false,
+    "last_service": {
+      "hrs": 1006,
+      "date": "9/30/25",
+      "raw": "1006 Hrs 9/30/25",
+      "note": null
+    },
+    "latest_reading": {
+      "hrs": 1292,
+      "date": "7/10/26",
+      "raw": "1292 Hrs 7/10/26",
+      "note": null
+    },
+    "remaining_hrs": 214,
+    "remaining_raw": "214 Hrs",
+    "source_row": 71,
+    "needs_review": false
+  },
+  {
+    "id_code": "LD031",
+    "category": "Skid Steer",
+    "description": "LD031 Case TV450B skid steer PIN: JAFTV450EPM431870",
+    "serial": "JAFTV450EPM431870",
+    "serial_type": "PIN",
+    "location_raw": "",
+    "not_in_service": false,
+    "last_service": {
+      "hrs": 1423,
+      "date": "6/12/26",
+      "raw": "1423 Hrs 6/12/26",
+      "note": null
+    },
+    "latest_reading": {
+      "hrs": 1435,
+      "date": "6/18/26",
+      "raw": "1435 Hrs 6/18/26",
+      "note": null
+    },
+    "remaining_hrs": 488,
+    "remaining_raw": "488 Hrs",
+    "source_row": 73,
+    "needs_review": false
+  },
+  {
+    "id_code": "LD032",
+    "category": "Skid Steer",
+    "description": "LD032 Skid Steer JD 333G PIN: 1T0333GMVPF445749",
+    "serial": "1T0333GMVPF445749",
+    "serial_type": "PIN",
+    "location_raw": "Broadview  (Hrs changed 1289 Hrs now 7/10/26",
+    "not_in_service": false,
+    "last_service": {
+      "hrs": 1969,
+      "date": "5/28/26",
+      "raw": "1969 Hrs 5/28/26",
+      "note": null
+    },
+    "latest_reading": {
+      "hrs": 2025,
+      "date": "7/10/26",
+      "raw": "2025 Hrs 7/10/26",
+      "note": null
+    },
+    "remaining_hrs": 444,
+    "remaining_raw": "444 Hrs",
+    "source_row": 75,
+    "needs_review": false
+  },
+  {
+    "id_code": "LD033",
+    "category": "Other",
+    "description": "LD033 John Deere 524P  Final Tier PIN: 1DW524PACPLX20617",
+    "serial": "1DW524PACPLX20617",
+    "serial_type": "PIN",
+    "location_raw": "Davie",
+    "not_in_service": false,
+    "last_service": {
+      "hrs": 3395,
+      "date": "6/15/26",
+      "raw": "3395 Hrs. 6/15/26",
+      "note": null
+    },
+    "latest_reading": {
+      "hrs": 3573,
+      "date": "7/10/26",
+      "raw": "3573 Hrs. 7/10/26",
+      "note": null
+    },
+    "remaining_hrs": 322,
+    "remaining_raw": "322 Hrs",
+    "source_row": 77,
+    "needs_review": false
+  },
+  {
+    "id_code": "LD034",
+    "category": "Skid Steer",
+    "description": "LD034 Case TV370B Skid Steer PIN: JAFTV370PPM447322",
+    "serial": "JAFTV370PPM447322",
+    "serial_type": "PIN",
+    "location_raw": "",
+    "not_in_service": false,
+    "last_service": {
+      "hrs": 1181,
+      "date": "2/02/26",
+      "raw": "1181 Hrs. 2/02/26",
+      "note": null
+    },
+    "latest_reading": {
+      "hrs": 1657,
+      "date": "7/10/26",
+      "raw": "1657 Hrs. 7/10/26",
+      "note": null
+    },
+    "remaining_hrs": 24,
+    "remaining_raw": "24 Hrs",
+    "source_row": 79,
+    "needs_review": false
+  },
+  {
+    "id_code": "LD035",
+    "category": "Skid Steer",
+    "description": "LD035 Case TV370B Skid Steer PIN: JAFTV370ARM462851",
+    "serial": "JAFTV370ARM462851",
+    "serial_type": "PIN",
+    "location_raw": "Blount Rd. A/C not working properly",
+    "not_in_service": false,
+    "last_service": {
+      "hrs": 542,
+      "date": "5/12/26",
+      "raw": "0542 Hrs 5/12/26",
+      "note": null
+    },
+    "latest_reading": {
+      "hrs": 709,
+      "date": "7/10/26",
+      "raw": "709 Hrs 7/10/26",
+      "note": null
+    },
+    "remaining_hrs": 420,
+    "remaining_raw": "420 Hrs",
+    "source_row": 81,
+    "needs_review": false
+  },
+  {
+    "id_code": "MS-TEMP-01",
+    "category": "Light Tower",
+    "description": "MSXXX Terex Light Tower 4KW AL4000 S/N: AL408-529",
+    "serial": "AL408-529",
+    "serial_type": "SN",
+    "location_raw": "Painted Blu - No ID - Atlantic Yd. Rplcd Hourmeter",
+    "not_in_service": false,
+    "last_service": {
+      "hrs": 2800,
+      "date": "7/01/25",
+      "raw": "2800 Hrs 7/01/25",
+      "note": null
+    },
+    "latest_reading": {
+      "hrs": 1,
+      "date": "10/23/25",
+      "raw": "0001 Hrs 10/23/25",
+      "note": null
+    },
+    "remaining_hrs": 500,
+    "remaining_raw": "500 Hrs",
+    "source_row": 142,
+    "needs_review": "ID temporal — el cliente debe asignar N° oficial"
+  },
+  {
+    "id_code": "MS-TEMP-02",
+    "category": "Light Tower",
+    "description": "MSXXX Generac Light Tower MLT3060 S/N: 1502993",
+    "serial": "1502993",
+    "serial_type": "SN",
+    "location_raw": "Painted White No ID - Mc Nab Yd.",
+    "not_in_service": false,
+    "last_service": {
+      "hrs": 7530,
+      "date": "7/01/25",
+      "raw": "7530 Hrs 7/01/25",
+      "note": null
+    },
+    "latest_reading": {
+      "hrs": 7544,
+      "date": "1/08/26",
+      "raw": "7544 Hrs 1/08/26",
+      "note": null
+    },
+    "remaining_hrs": 486,
+    "remaining_raw": "486 Hrs",
+    "source_row": 144,
+    "needs_review": "ID temporal — el cliente debe asignar N° oficial"
+  },
+  {
+    "id_code": "MS003",
+    "category": "Cold Planer",
+    "description": "MS003 COLD PLANER CAT PC210 S/N: GDR00516",
+    "serial": "GDR00516",
+    "serial_type": "SN",
+    "location_raw": "Rapid Milling nd Paving",
+    "not_in_service": false,
+    "last_service": {
+      "hrs": null,
+      "date": null,
+      "raw": "No Info Available",
+      "note": "no_info"
+    },
+    "latest_reading": {
+      "hrs": null,
+      "date": null,
+      "raw": "No Info Available",
+      "note": "no_info"
+    },
+    "remaining_hrs": null,
+    "remaining_raw": "N/A",
+    "source_row": 94,
+    "needs_review": false
+  },
+  {
+    "id_code": "MS010",
+    "category": "Light Tower",
+    "description": "MS010 Magnum Light Tower 6KW MLT3060K S/N: 1109482",
+    "serial": "1109482",
+    "serial_type": "SN",
+    "location_raw": "Painted Blu - No ID - WPB Yd",
+    "not_in_service": false,
+    "last_service": {
+      "hrs": 2400,
+      "date": "11/24/23",
+      "raw": "2400 Hrs 11/24/23",
+      "note": null
+    },
+    "latest_reading": {
+      "hrs": 2706,
+      "date": "11/04/25",
+      "raw": "2706 Hrs 11/04/25",
+      "note": null
+    },
+    "remaining_hrs": 194,
+    "remaining_raw": "194 Hrs",
+    "source_row": 138,
+    "needs_review": false
+  },
+  {
+    "id_code": "MS011",
+    "category": "Light Tower",
+    "description": "MS011 Magnum Light Tower 6KW MLT3060K S/N: 1113985",
+    "serial": "1113985",
+    "serial_type": "SN",
+    "location_raw": "Blount Rd",
+    "not_in_service": false,
+    "last_service": {
+      "hrs": 4061,
+      "date": "7/02/25",
+      "raw": "4061 Hrs 7/02/25",
+      "note": null
+    },
+    "latest_reading": {
+      "hrs": 4161,
+      "date": "5/27/26",
+      "raw": "4161 Hrs 5/27/26",
+      "note": null
+    },
+    "remaining_hrs": 400,
+    "remaining_raw": "400 Hrs",
+    "source_row": 140,
+    "needs_review": false
+  },
+  {
+    "id_code": "PJ001",
+    "category": "Pump",
+    "description": "PJ001 THOMPSON JET PUMP",
+    "serial": null,
+    "serial_type": null,
+    "location_raw": "Blount Rd. / Hrmeter Broken 5/20/26",
+    "not_in_service": false,
+    "last_service": {
+      "hrs": 10455,
+      "date": "3/10/25",
+      "raw": "10455 Hrs 3/10/25",
+      "note": null
+    },
+    "latest_reading": {
+      "hrs": 4901,
+      "date": "6/20/26",
+      "raw": "4901 Hrs 6/20/26",
+      "note": null
+    },
+    "remaining_hrs": null,
+    "remaining_raw": "",
+    "source_row": 125,
+    "needs_review": false
+  },
+  {
+    "id_code": "PV002",
+    "category": "Paver",
+    "description": "PV002 2019 LEEBOY ASPHALT PAVER 1000G S/N: 216926",
+    "serial": "216926",
+    "serial_type": "SN",
+    "location_raw": "McNab Jobsite",
+    "not_in_service": false,
+    "last_service": {
+      "hrs": 1018,
+      "date": "8/06/24",
+      "raw": "1018 hrs 8/06/24",
+      "note": null
+    },
+    "latest_reading": {
+      "hrs": 1085,
+      "date": "5/14/26",
+      "raw": "1085 Hrs 5/14/26",
+      "note": null
+    },
+    "remaining_hrs": 433,
+    "remaining_raw": "433 Hrs",
+    "source_row": 121,
+    "needs_review": false
+  },
+  {
+    "id_code": "PW-MERSINO-01",
+    "category": "Other",
+    "description": "MERSINO ST6-11801 VIN: 1T9PH1414PP634794",
+    "serial": "1T9PH1414PP634794",
+    "serial_type": "VIN",
+    "location_raw": "Blount Rd",
+    "not_in_service": false,
+    "last_service": {
+      "hrs": 7,
+      "date": null,
+      "raw": "007 Hrs",
+      "note": null
+    },
+    "latest_reading": {
+      "hrs": 281,
+      "date": "6/30/26",
+      "raw": "0281 Hrs 6/30/26",
+      "note": null
+    },
+    "remaining_hrs": 226,
+    "remaining_raw": "226 Hrs",
+    "source_row": 133,
+    "needs_review": "ID temporal — el cliente debe asignar N° oficial"
+  },
+  {
+    "id_code": "PW-MERSINO-02",
+    "category": "Other",
+    "description": "MERSINO ST6-11801 VIN: 1T9PH1418PP634538",
+    "serial": "1T9PH1418PP634538",
+    "serial_type": "VIN",
+    "location_raw": "Davie",
+    "not_in_service": false,
+    "last_service": {
+      "hrs": 7,
+      "date": null,
+      "raw": "007 Hrs",
+      "note": null
+    },
+    "latest_reading": {
+      "hrs": 278,
+      "date": null,
+      "raw": "0278 Hrs",
+      "note": null
+    },
+    "remaining_hrs": 229,
+    "remaining_raw": "229 Hrs",
+    "source_row": 135,
+    "needs_review": "ID temporal — el cliente debe asignar N° oficial"
+  },
+  {
+    "id_code": "PW-PIONEER",
+    "category": "Pump",
+    "description": "PIONEER 6 Inch VAC ASSISTANCE PUMP",
+    "serial": null,
+    "serial_type": null,
+    "location_raw": "Atlantic Yd.",
+    "not_in_service": false,
+    "last_service": {
+      "hrs": 12040,
+      "date": "7/02/25",
+      "raw": "12040 Hrs 7/02/25",
+      "note": null
+    },
+    "latest_reading": {
+      "hrs": 12103,
+      "date": "5/27/26",
+      "raw": "12103 Hrs 5/27/26",
+      "note": null
+    },
+    "remaining_hrs": 437,
+    "remaining_raw": "437 Hrs",
+    "source_row": 127,
+    "needs_review": "ID no estándar — confirmar con cliente"
+  },
+  {
+    "id_code": "PW008",
+    "category": "Pump",
+    "description": "PW008 MWI PUMP RWP012 S/N: 14211",
+    "serial": "14211",
+    "serial_type": "SN",
+    "location_raw": "Davie",
+    "not_in_service": false,
+    "last_service": {
+      "hrs": 13723,
+      "date": "5/27/26",
+      "raw": "13723 Hrs 5/27/26",
+      "note": null
+    },
+    "latest_reading": {
+      "hrs": 13806,
+      "date": "6/17/26",
+      "raw": "13806 Hrs 6/17/26",
+      "note": null
+    },
+    "remaining_hrs": 417,
+    "remaining_raw": "417 Hrs",
+    "source_row": 129,
+    "needs_review": false
+  },
+  {
+    "id_code": "PW009",
+    "category": "Pump",
+    "description": "PW009 MWI PUMP EL1550 S/N: 17014574",
+    "serial": "17014574",
+    "serial_type": "SN",
+    "location_raw": "Broadview Yd.",
+    "not_in_service": false,
+    "last_service": {
+      "hrs": 14549,
+      "date": "5/26/26",
+      "raw": "14549 Hrs 5/26/26",
+      "note": null
+    },
+    "latest_reading": {
+      "hrs": 14929,
+      "date": "6/19/26",
+      "raw": "14929 Hrs 6/19/26",
+      "note": null
+    },
+    "remaining_hrs": 202,
+    "remaining_raw": "202 Hrs",
+    "source_row": 131,
+    "needs_review": false
+  },
+  {
+    "id_code": "RL002",
+    "category": "Roller",
+    "description": "RL002 ROLLER INGRAM AS315 S/N: UT2600122",
+    "serial": "UT2600122",
+    "serial_type": "SN",
+    "location_raw": "Inactive at WPB Yd.",
+    "not_in_service": true,
+    "last_service": {
+      "hrs": 7335,
+      "date": "4/19/23",
+      "raw": "7335 Hrs. 4/19/23",
+      "note": null
+    },
+    "latest_reading": {
+      "hrs": 7629,
+      "date": "1/06/26",
+      "raw": "7629 Hrs. 1/06/26",
+      "note": null
+    },
+    "remaining_hrs": 206,
+    "remaining_raw": "206 Hrs",
+    "source_row": 96,
+    "needs_review": false
+  },
+  {
+    "id_code": "RL005",
+    "category": "Roller",
+    "description": "RL005 WHEEL ROLLER BOMAG BW120-AD4 S/N: 861880182169",
+    "serial": "861880182169",
+    "serial_type": "SN",
+    "location_raw": "McNab Yd. Installed repaired drv motor 7/10/26.",
+    "not_in_service": false,
+    "last_service": {
+      "hrs": 2670,
+      "date": "3/03/25",
+      "raw": "2670 Hrs 3/03/25",
+      "note": null
+    },
+    "latest_reading": {
+      "hrs": 2790,
+      "date": "7/10/26",
+      "raw": "2790 Hrs 7/10/26",
+      "note": null
+    },
+    "remaining_hrs": 380,
+    "remaining_raw": "380 Hrs",
+    "source_row": 98,
+    "needs_review": false
+  },
+  {
+    "id_code": "RL006",
+    "category": "Roller",
+    "description": "RL006 ROLLER COMPACTOR CAT CB34 S/N: 34500146",
+    "serial": "34500146",
+    "serial_type": "SN",
+    "location_raw": "Broadview Yd.",
+    "not_in_service": false,
+    "last_service": {
+      "hrs": 3364,
+      "date": "11/20/24",
+      "raw": "3364 Hrs 11/20/24",
+      "note": null
+    },
+    "latest_reading": {
+      "hrs": 3605,
+      "date": "6/16/26",
+      "raw": "3605 Hrs 6/16/26",
+      "note": null
+    },
+    "remaining_hrs": 259,
+    "remaining_raw": "259 Hrs",
+    "source_row": 100,
+    "needs_review": false
+  },
+  {
+    "id_code": "RL008",
+    "category": "Roller",
+    "description": "RL008 ROLLER COMPACTOR CAT CS54B S/N: CS500237",
+    "serial": "CS500237",
+    "serial_type": "SN",
+    "location_raw": "Atlantic yd.",
+    "not_in_service": false,
+    "last_service": {
+      "hrs": 2291,
+      "date": "6/08/26",
+      "raw": "2291 Hrs 6/08/26",
+      "note": null
+    },
+    "latest_reading": {
+      "hrs": 2291,
+      "date": "7/01/26",
+      "raw": "2291 Hrs 7/01/26",
+      "note": null
+    },
+    "remaining_hrs": 500,
+    "remaining_raw": "500 Hrs",
+    "source_row": 102,
+    "needs_review": false
+  },
+  {
+    "id_code": "RL009",
+    "category": "Roller",
+    "description": "RL009 ROLLER INGRAM #### S/N: 598830EB16",
+    "serial": "598830EB16",
+    "serial_type": "SN",
+    "location_raw": "NOT IN SERVICE - At WPB yd.",
+    "not_in_service": true,
+    "last_service": {
+      "hrs": null,
+      "date": null,
+      "raw": "",
+      "note": null
+    },
+    "latest_reading": {
+      "hrs": null,
+      "date": null,
+      "raw": "",
+      "note": null
+    },
+    "remaining_hrs": null,
+    "remaining_raw": "",
+    "source_row": 104,
+    "needs_review": false
+  },
+  {
+    "id_code": "RL010",
+    "category": "Roller",
+    "description": "RL010 WHEEL ROLLER INGRAM #### S/N: ######",
+    "serial": null,
+    "serial_type": null,
+    "location_raw": "NOT IN SERVICE - At WPB yd.",
+    "not_in_service": true,
+    "last_service": {
+      "hrs": null,
+      "date": null,
+      "raw": "",
+      "note": null
+    },
+    "latest_reading": {
+      "hrs": null,
+      "date": null,
+      "raw": "",
+      "note": null
+    },
+    "remaining_hrs": null,
+    "remaining_raw": "",
+    "source_row": 106,
+    "needs_review": false
+  },
+  {
+    "id_code": "RL011",
+    "category": "Roller",
+    "description": "RL011 WHEEL ROLLER 1974 INGRAM #### S/N: ######",
+    "serial": null,
+    "serial_type": null,
+    "location_raw": "NOT IN SERVICE - At WPB yd.",
+    "not_in_service": true,
+    "last_service": {
+      "hrs": null,
+      "date": null,
+      "raw": "",
+      "note": null
+    },
+    "latest_reading": {
+      "hrs": null,
+      "date": null,
+      "raw": "",
+      "note": null
+    },
+    "remaining_hrs": null,
+    "remaining_raw": "",
+    "source_row": 108,
+    "needs_review": false
+  },
+  {
+    "id_code": "RL012",
+    "category": "Roller",
+    "description": "RL012 ROLLER COMPACTOR CAT CB34B S/N: XB400511",
+    "serial": "XB400511",
+    "serial_type": "SN",
+    "location_raw": "",
+    "not_in_service": false,
+    "last_service": {
+      "hrs": 2511,
+      "date": "9/24/25",
+      "raw": "2511 Hrs 9/24/25",
+      "note": null
+    },
+    "latest_reading": {
+      "hrs": 2644,
+      "date": "7/10/26",
+      "raw": "2644 Hrs 7/10/26",
+      "note": null
+    },
+    "remaining_hrs": 367,
+    "remaining_raw": "367 Hrs",
+    "source_row": 111,
+    "needs_review": false
+  },
+  {
+    "id_code": "RL013",
+    "category": "Roller",
+    "description": "RL013 WHEEL ROLLER BOMAG BW124DH-5 S/N: 861586571016",
+    "serial": "861586571016",
+    "serial_type": "SN",
+    "location_raw": "McNab Jobsite",
+    "not_in_service": false,
+    "last_service": {
+      "hrs": 513,
+      "date": "1/20/21",
+      "raw": "513 Hrs 1/20/21",
+      "note": null
+    },
+    "latest_reading": {
+      "hrs": 759,
+      "date": "7/10/26",
+      "raw": "759 Hrs 7/10/26",
+      "note": null
+    },
+    "remaining_hrs": 254,
+    "remaining_raw": "254 Hrs",
+    "source_row": 113,
+    "needs_review": false
+  },
+  {
+    "id_code": "RL014",
+    "category": "Roller",
+    "description": "RL014 WHEEL ROLLER BOMAG BW124DH-5 S/N: 861586571014",
+    "serial": "861586571014",
+    "serial_type": "SN",
+    "location_raw": "Broadview Yd.",
+    "not_in_service": false,
+    "last_service": {
+      "hrs": 690,
+      "date": "9/19/23",
+      "raw": "690 Hrs 9/19/23",
+      "note": null
+    },
+    "latest_reading": {
+      "hrs": 804,
+      "date": "6/25/26",
+      "raw": "804 Hrs 6/25/26",
+      "note": null
+    },
+    "remaining_hrs": 386,
+    "remaining_raw": "386 Hrs",
+    "source_row": 115,
+    "needs_review": false
+  },
+  {
+    "id_code": "RL016",
+    "category": "Roller",
+    "description": "RL016 ROLLER INGRAM 12-TON S/N: 598956EB17",
+    "serial": "598956EB17",
+    "serial_type": "SN",
+    "location_raw": "Broadview yd",
+    "not_in_service": false,
+    "last_service": {
+      "hrs": 1,
+      "date": "4/01/26",
+      "raw": "001 Hrs 4/01/26",
+      "note": null
+    },
+    "latest_reading": {
+      "hrs": 26,
+      "date": "5/28/26",
+      "raw": "026 Hrs 5/28/26",
+      "note": null
+    },
+    "remaining_hrs": 475,
+    "remaining_raw": "475 Hrs",
+    "source_row": 117,
+    "needs_review": "Aparece duplicado en el Excel — se conservó la lectura más reciente",
+    "duplicate_of_rows": [
+      117,
+      154
+    ]
+  },
+  {
+    "id_code": "RL017",
+    "category": "Roller",
+    "description": "RL017 ROLLER WACKER NEUSON RD12A S/N: 24303551",
+    "serial": "24303551",
+    "serial_type": "SN",
+    "location_raw": "Atlantic yd.",
+    "not_in_service": false,
+    "last_service": {
+      "hrs": 788,
+      "date": "5/14/24",
+      "raw": "788 Hrs 5/14/24",
+      "note": null
+    },
+    "latest_reading": {
+      "hrs": null,
+      "date": null,
+      "raw": "46204",
+      "note": "excel_date_serial"
+    },
+    "remaining_hrs": 500,
+    "remaining_raw": "500 Hrs",
+    "source_row": 119,
+    "needs_review": false
+  },
+  {
+    "id_code": "SC001",
+    "category": "Screen/Plant",
+    "description": "SC001 TITAN 600 PIN #PIDTS036HHRN27819",
+    "serial": "PIDTS036HHRN27819",
+    "serial_type": "PIN",
+    "location_raw": "Broadview",
+    "not_in_service": false,
+    "last_service": {
+      "hrs": 3195,
+      "date": "5/15/26",
+      "raw": "3195 Hrs 5/15/26",
+      "note": null
+    },
+    "latest_reading": {
+      "hrs": 3195,
+      "date": "5/15/26",
+      "raw": "3195 Hrs 5/15/26",
+      "note": null
+    },
+    "remaining_hrs": 500,
+    "remaining_raw": "500 Hrs",
+    "source_row": 146,
+    "needs_review": false
+  },
+  {
+    "id_code": "SC002",
+    "category": "Screen/Plant",
+    "description": "SC002 SC001 TITAN 600 PIN #TRXTS012JDGN88915",
+    "serial": "TRXTS012JDGN88915",
+    "serial_type": "PIN",
+    "location_raw": "",
+    "not_in_service": false,
+    "last_service": {
+      "hrs": null,
+      "date": null,
+      "raw": "",
+      "note": null
+    },
+    "latest_reading": {
+      "hrs": 1724,
+      "date": "7/02/26",
+      "raw": "1724 Hrs 7/02/26",
+      "note": null
+    },
+    "remaining_hrs": null,
+    "remaining_raw": "",
+    "source_row": 148,
+    "needs_review": false
+  }
+]

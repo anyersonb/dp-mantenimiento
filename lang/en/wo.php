@@ -1,0 +1,64 @@
+<?php
+
+return [
+    'work_orders' => 'Work orders',
+    'work_order' => 'Work order',
+    'code' => 'Order #',
+    'type' => 'Type',
+    'preventive' => 'Preventive',
+    'corrective' => 'Corrective',
+    'inspection' => 'Inspection',
+    'service_tier' => 'Service tier',
+    'open' => 'Open',
+    'assigned' => 'Assigned',
+    'in_progress' => 'In progress',
+    'completed' => 'Completed',
+    'cancelled' => 'Cancelled',
+    'priority' => 'Priority',
+    'low' => 'Low',
+    'normal' => 'Normal',
+    'high' => 'High',
+    'urgent' => 'Urgent',
+    'assigned_to' => 'Assigned to (shop)',
+    'opened_at' => 'Opened',
+    'completed_at' => 'Completed',
+    'execution' => 'Execution & cost',
+    'labor_hours' => 'Labor hours',
+    'parts_cost' => 'Parts cost',
+    'cost_help' => 'Only visible to Shop, Admin and Management.',
+    'resolution' => 'Resolution',
+    'empty_heading' => 'No work orders yet',
+    'empty_desc' => 'Work orders open automatically when a machine is due for service, or you can create one manually.',
+
+    // Checklist
+    'preload_checklist' => 'Preload checklist',
+    'preload_checklist_confirm' => 'This will load every item from the active checklist template that is not already on this work order.',
+
+    // Parts
+    'parts_used' => 'Parts used',
+    'catalog_part' => 'Catalog part',
+    'catalog_part_help' => 'Optional: pick a part from this machine\'s catalog to auto-fill the part number.',
+    'part_number' => 'Part #',
+    'quantity' => 'Qty',
+    'unit_cost' => 'Unit cost',
+    'subtotal' => 'Subtotal',
+    'parts_empty_heading' => 'No parts logged yet',
+    'parts_empty_desc' => 'Log parts and their cost to compare prices across suppliers.',
+
+    // Attachments
+    'attachments' => 'Photos & invoices',
+    'attachment_type' => 'Type',
+    'photo' => 'Photo',
+    'invoice' => 'Invoice',
+    'file' => 'File',
+    'download' => 'Download',
+    'add_part' => 'Add part',
+    'attachments_empty_heading' => 'No attachments yet',
+    'attachments_empty_desc' => 'Upload photos of the repair or supplier invoices (images or PDF).',
+
+    // Completion
+    'complete' => 'Complete',
+    'complete_confirm' => 'This closes the work order. If it is preventive, the machine\'s service cycle will reset and its open service alert will be resolved.',
+    'service_reset_note' => 'Service reset on completion of :code',
+    'alert_detail_required' => 'The alert detail is required when the checklist result is "Alert".',
+];

@@ -1,0 +1,64 @@
+<?php
+
+return [
+    'work_orders' => 'Órdenes de trabajo',
+    'work_order' => 'Orden de trabajo',
+    'code' => 'N° de orden',
+    'type' => 'Tipo',
+    'preventive' => 'Preventiva',
+    'corrective' => 'Correctiva',
+    'inspection' => 'Inspección',
+    'service_tier' => 'Nivel de servicio',
+    'open' => 'Abierta',
+    'assigned' => 'Asignada',
+    'in_progress' => 'En proceso',
+    'completed' => 'Completada',
+    'cancelled' => 'Cancelada',
+    'priority' => 'Prioridad',
+    'low' => 'Baja',
+    'normal' => 'Normal',
+    'high' => 'Alta',
+    'urgent' => 'Urgente',
+    'assigned_to' => 'Asignada a (taller)',
+    'opened_at' => 'Abierta el',
+    'completed_at' => 'Completada el',
+    'execution' => 'Ejecución y costo',
+    'labor_hours' => 'Horas de mano de obra',
+    'parts_cost' => 'Costo de repuestos',
+    'cost_help' => 'Solo visible para Taller, Administrador y Gerencia.',
+    'resolution' => 'Resolución',
+    'empty_heading' => 'Aún no hay órdenes de trabajo',
+    'empty_desc' => 'Las órdenes se abren automáticamente cuando una máquina necesita servicio, o puedes crear una manualmente.',
+
+    // Checklist
+    'preload_checklist' => 'Precargar checklist',
+    'preload_checklist_confirm' => 'Esto cargará todos los ítems de la plantilla de checklist activa que aún no estén en esta orden de trabajo.',
+
+    // Partes
+    'parts_used' => 'Partes usadas',
+    'catalog_part' => 'Parte del catálogo',
+    'catalog_part_help' => 'Opcional: elige una parte del catálogo de esta máquina para autocompletar el N° de parte.',
+    'part_number' => 'N° de parte',
+    'quantity' => 'Cant.',
+    'unit_cost' => 'Costo unitario',
+    'subtotal' => 'Subtotal',
+    'parts_empty_heading' => 'Aún no hay partes registradas',
+    'parts_empty_desc' => 'Registra las partes usadas y su costo para comparar precios entre proveedores.',
+
+    // Adjuntos
+    'attachments' => 'Fotos y facturas',
+    'attachment_type' => 'Tipo',
+    'photo' => 'Foto',
+    'invoice' => 'Factura',
+    'file' => 'Archivo',
+    'download' => 'Descargar',
+    'add_part' => 'Agregar parte',
+    'attachments_empty_heading' => 'Aún no hay adjuntos',
+    'attachments_empty_desc' => 'Sube fotos de la reparación o facturas de proveedores (imágenes o PDF).',
+
+    // Cierre
+    'complete' => 'Completar',
+    'complete_confirm' => 'Esto cierra la orden de trabajo. Si es preventiva, se reiniciará el ciclo de servicio de la máquina y se resolverá su alerta de servicio abierta.',
+    'service_reset_note' => 'Servicio reiniciado al completar :code',
+    'alert_detail_required' => 'El detalle de la alerta es obligatorio cuando el resultado del checklist es "Alerta".',
+];
