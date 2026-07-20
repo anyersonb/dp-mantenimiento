@@ -60,10 +60,13 @@ class WorkOrderResource extends Resource
                     'completed' => __('wo.completed'), 'cancelled' => __('wo.cancelled'),
                 ])->default('open')->required(),
                 Forms\Components\Select::make('priority')->label(__('wo.priority'))->options([
-                    'low' => __('wo.low'), 'normal' => __('wo.normal'), 'high' => __('wo.high'), 'urgent' => __('wo.urgent'),
-                ])->default('normal'),
+                    'normal' => __('wo.normal'), 'high' => __('wo.high'), 'urgent' => __('wo.urgent'),
+                ])->default('normal')->required(),
                 Forms\Components\Select::make('assigned_to')->label(__('wo.assigned_to'))
                     ->relationship('assignee', 'name')->searchable()->preload(),
+                Forms\Components\Radio::make('execution_mode')->label(__('wo.execution_mode'))->options([
+                    'workshop' => __('wo.workshop'), 'onsite' => __('wo.onsite'),
+                ])->default('workshop')->inline()->inlineLabel(false),
                 Forms\Components\DatePicker::make('opened_at')->label(__('wo.opened_at'))->default(now()),
                 Forms\Components\DatePicker::make('completed_at')->label(__('wo.completed_at')),
             ]),
@@ -74,7 +77,8 @@ class WorkOrderResource extends Resource
                     ->disabled()
                     ->dehydrated(false)
                     ->visible(fn () => Auth::user()?->can('view_costs') ?? false),
-                Forms\Components\Textarea::make('description')->label(__('fleet.description'))->columnSpanFull(),
+                Forms\Components\Textarea::make('description')->label(__('fleet.description'))
+                    ->helperText(__('wo.description_help'))->columnSpanFull(),
                 Forms\Components\Textarea::make('resolution')->label(__('wo.resolution'))->columnSpanFull(),
             ]),
         ]);
@@ -99,6 +103,9 @@ class WorkOrderResource extends Resource
                     ->color(fn ($state) => match ($state) {
                         'urgent' => 'danger', 'high' => 'warning', default => 'gray',
                     }),
+                Tables\Columns\TextColumn::make('execution_mode')->label(__('wo.execution_mode'))->badge()
+                    ->formatStateUsing(fn ($state) => $state ? __('wo.'.$state) : '—')
+                    ->color(fn ($state) => $state === 'onsite' ? 'info' : 'gray'),
                 Tables\Columns\TextColumn::make('assignee.name')->label(__('wo.assigned_to'))->placeholder('—'),
                 Tables\Columns\TextColumn::make('opened_at')->label(__('wo.opened_at'))->date()->sortable(),
             ])
