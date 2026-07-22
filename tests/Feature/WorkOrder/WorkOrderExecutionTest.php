@@ -73,7 +73,7 @@ class WorkOrderExecutionTest extends TestCase
                 'pageClass' => EditWorkOrder::class,
             ])
             ->callTableAction('create', data: [
-                'label' => 'Engine oil level & condition',
+                'label' => 'Brakes - Service',
                 'result' => 'alert',
                 'alert_detail' => null,
             ])
@@ -94,9 +94,9 @@ class WorkOrderExecutionTest extends TestCase
                 'pageClass' => EditWorkOrder::class,
             ])
             ->callTableAction('create', data: [
-                'label' => 'Coolant level & condition',
+                'label' => 'Brakes - Parking',
                 'result' => 'alert',
-                'alert_detail' => 'Coolant below minimum, needs topping up.',
+                'alert_detail' => 'Parking brake does not hold on incline.',
             ])
             ->assertHasNoTableActionErrors();
 
@@ -124,7 +124,7 @@ class WorkOrderExecutionTest extends TestCase
                 'pageClass' => EditWorkOrder::class,
             ])
             ->callTableAction('create', data: [
-                'label' => 'Belts tension & wear',
+                'label' => 'Belts and Hoses',
                 'result' => 'ok',
                 'alert_detail' => null,
             ])

@@ -14,6 +14,7 @@ use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Auth;
 
 class MachineResource extends Resource
@@ -42,6 +43,41 @@ class MachineResource extends Resource
     public static function getNavigationGroup(): ?string
     {
         return __('fleet.group_fleet');
+    }
+
+    /*
+     * Permisos: TODOS los roles del panel ven la flota (view_fleet), pero solo
+     * quienes tienen manage_machines (administrador + responsable_mantenimiento)
+     * pueden crear/editar/borrar. Taller y Gerencia son de solo lectura aquí.
+     */
+    public static function canViewAny(): bool
+    {
+        return Auth::user()?->can('view_fleet') ?? false;
+    }
+
+    public static function canView(Model $record): bool
+    {
+        return Auth::user()?->can('view_fleet') ?? false;
+    }
+
+    public static function canCreate(): bool
+    {
+        return Auth::user()?->can('manage_machines') ?? false;
+    }
+
+    public static function canEdit(Model $record): bool
+    {
+        return Auth::user()?->can('manage_machines') ?? false;
+    }
+
+    public static function canDelete(Model $record): bool
+    {
+        return Auth::user()?->can('manage_machines') ?? false;
+    }
+
+    public static function canDeleteAny(): bool
+    {
+        return Auth::user()?->can('manage_machines') ?? false;
     }
 
     public static function getNavigationBadge(): ?string

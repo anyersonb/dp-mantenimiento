@@ -33,6 +33,8 @@ return [
     'event_created' => 'Created',
     'event_updated' => 'Updated',
     'event_deleted' => 'Deleted',
+    'event_approved' => 'Approved',
+    'event_imported' => 'Imported',
 
     // Quotes
     'quotes' => 'Quotes',
@@ -59,6 +61,18 @@ return [
     'export_excel' => 'Export Excel',
     'fleet_report_title' => 'Fleet Status Report',
     'generated_at' => 'Generated at',
+
+    // PM Service Report importer
+    'import_pm_report' => 'Import PM Service Report',
+    'import_pm_report_modal_heading' => 'Import PM Service Report',
+    'import_pm_report_modal_description' => 'Upload the PM Service Report Excel to update hours and readings for machines that already exist in the system. Machines in the report that don\'t match an existing one are NOT created: they are listed as "unmatched" for manual review.',
+    'import_pm_report_submit' => 'Import',
+    'import_pm_report_file_label' => 'Excel file (.xlsx)',
+    'import_pm_report_file_help' => '"PM Service Report" format (Sheet1, 2 rows per machine).',
+    'import_pm_report_notif_title' => 'PM Service Report import',
+    'import_pm_report_summary' => ':updated updated · :unmatched unmatched · :warnings warnings',
+    'import_pm_report_unmatched_list' => 'Unmatched: :ids',
+    'import_pm_report_log' => 'PM Service Report import: :updated updated, :unmatched unmatched',
 
     // Fleet map
     'fleet_map' => 'Fleet map',

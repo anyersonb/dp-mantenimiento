@@ -33,6 +33,8 @@ return [
     'event_created' => 'Creado',
     'event_updated' => 'Actualizado',
     'event_deleted' => 'Eliminado',
+    'event_approved' => 'Aprobado',
+    'event_imported' => 'Importado',
 
     // Cotizaciones
     'quotes' => 'Cotizaciones',
@@ -59,6 +61,18 @@ return [
     'export_excel' => 'Exportar Excel',
     'fleet_report_title' => 'Reporte de Estado de Flota',
     'generated_at' => 'Generado el',
+
+    // Importador del PM Service Report
+    'import_pm_report' => 'Importar PM Service Report',
+    'import_pm_report_modal_heading' => 'Importar PM Service Report',
+    'import_pm_report_modal_description' => 'Sube el Excel del PM Service Report para actualizar horas y lecturas de las máquinas que ya existen en el sistema. Las máquinas del reporte que no coincidan con ninguna existente NO se crean: quedan listadas como "sin coincidencia" para revisión manual.',
+    'import_pm_report_submit' => 'Importar',
+    'import_pm_report_file_label' => 'Archivo Excel (.xlsx)',
+    'import_pm_report_file_help' => 'Formato "PM Service Report" (hoja Sheet1, 2 filas por máquina).',
+    'import_pm_report_notif_title' => 'Importación del PM Service Report',
+    'import_pm_report_summary' => ':updated actualizadas · :unmatched sin coincidencia · :warnings avisos',
+    'import_pm_report_unmatched_list' => 'Sin coincidencia: :ids',
+    'import_pm_report_log' => 'Importación de PM Service Report: :updated actualizadas, :unmatched sin coincidencia',
 
     // Mapa de flota
     'fleet_map' => 'Mapa de flota',

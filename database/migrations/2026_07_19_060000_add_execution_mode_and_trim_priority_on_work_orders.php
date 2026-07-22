@@ -19,12 +19,20 @@ return new class extends Migration
 
         // Prioridad pasa de 4 a 3 niveles: se elimina 'low' (Baja).
         DB::statement("UPDATE work_orders SET priority = 'normal' WHERE priority = 'low'");
-        DB::statement("ALTER TABLE work_orders MODIFY priority ENUM('normal', 'high', 'urgent') NOT NULL DEFAULT 'normal'");
+
+        // El ALTER ... MODIFY con ENUM es sintaxis propia de MySQL. SQLite (usado en
+        // testing, ver phpunit.xml) no la soporta y tampoco impone el CHECK del enum
+        // de forma estricta, así que en ese driver basta con el UPDATE anterior.
+        if (DB::getDriverName() === 'mysql') {
+            DB::statement("ALTER TABLE work_orders MODIFY priority ENUM('normal', 'high', 'urgent') NOT NULL DEFAULT 'normal'");
+        }
     }
 
     public function down(): void
     {
-        DB::statement("ALTER TABLE work_orders MODIFY priority ENUM('low', 'normal', 'high', 'urgent') NOT NULL DEFAULT 'normal'");
+        if (DB::getDriverName() === 'mysql') {
+            DB::statement("ALTER TABLE work_orders MODIFY priority ENUM('low', 'normal', 'high', 'urgent') NOT NULL DEFAULT 'normal'");
+        }
 
         Schema::table('work_orders', function (Blueprint $table) {
             $table->dropColumn('execution_mode');

@@ -9,6 +9,8 @@ use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
 
 class MachineCategoryResource extends Resource
@@ -37,6 +39,37 @@ class MachineCategoryResource extends Resource
     public static function getNavigationGroup(): ?string
     {
         return __('fleet.group_admin');
+    }
+
+    /* Solo lectura para todos los del panel (view_fleet); gestión solo con manage_machines. */
+    public static function canViewAny(): bool
+    {
+        return Auth::user()?->can('view_fleet') ?? false;
+    }
+
+    public static function canView(Model $record): bool
+    {
+        return Auth::user()?->can('view_fleet') ?? false;
+    }
+
+    public static function canCreate(): bool
+    {
+        return Auth::user()?->can('manage_machines') ?? false;
+    }
+
+    public static function canEdit(Model $record): bool
+    {
+        return Auth::user()?->can('manage_machines') ?? false;
+    }
+
+    public static function canDelete(Model $record): bool
+    {
+        return Auth::user()?->can('manage_machines') ?? false;
+    }
+
+    public static function canDeleteAny(): bool
+    {
+        return Auth::user()?->can('manage_machines') ?? false;
     }
 
     public static function form(Form $form): Form
