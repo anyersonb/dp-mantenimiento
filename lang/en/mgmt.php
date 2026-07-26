@@ -36,6 +36,8 @@ return [
     'event_approved' => 'Approved',
     'event_imported' => 'Imported',
     'event_hourmeter_replaced' => 'Hourmeter replacement',
+    'event_location_moved' => 'Machine moved',
+    'event_location_confirmed' => 'Location confirmed',
 
     // Quotes
     'quotes' => 'Quotes',

@@ -36,6 +36,8 @@ return [
     'event_approved' => 'Aprobado',
     'event_imported' => 'Importado',
     'event_hourmeter_replaced' => 'Reemplazo de horómetro',
+    'event_location_moved' => 'Máquina movida',
+    'event_location_confirmed' => 'Ubicación confirmada',
 
     // Cotizaciones
     'quotes' => 'Cotizaciones',
