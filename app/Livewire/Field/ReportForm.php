@@ -36,7 +36,10 @@ class ReportForm extends Component
 
     public function mount(): void
     {
-        abort_unless(Auth::user()->hasRole('personal_mantenimiento'), 403);
+        // Hallazgo A1/C3 (Etapa 05): autoriza por PERMISO (field_report), no por
+        // nombre de rol. Antes exigía hasRole('personal_mantenimiento') y por
+        // eso foreman —que sí tiene field_report en la matriz— recibía 403.
+        abort_unless(Auth::user()->can('field_report'), 403);
     }
 
     public function updatedSearch(): void

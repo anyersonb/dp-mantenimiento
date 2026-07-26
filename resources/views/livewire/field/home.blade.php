@@ -4,19 +4,22 @@
         <h2 style="margin:.25rem 0 0;">{{ __('field.home_greeting', ['name' => $user->name]) }}</h2>
     </div>
 
-    @if ($user->hasRole('operador_cisterna'))
+    {{-- Hallazgo A1 (Etapa 05): el menú se arma por PERMISO, no por nombre de
+         rol, para que el editor de roles del panel gobierne también lo que
+         se ve acá. --}}
+    @if ($user->can('log_fuel'))
         <a href="{{ route('field.fuel') }}" class="btn btn-primary" style="margin-bottom:.75rem;">
             ⛽ {{ __('field.home_go_fuel') }}
         </a>
     @endif
 
-    @if ($user->hasRole('personal_mantenimiento'))
+    @if ($user->can('field_report'))
         <a href="{{ route('field.report') }}" class="btn btn-primary" style="margin-bottom:.75rem;">
             📋 {{ __('field.home_go_report') }}
         </a>
     @endif
 
-    @if ($user->hasRole('foreman'))
+    @if ($user->can('confirm_location') || $user->can('move_fleet'))
         <a href="{{ route('field.foreman') }}" class="btn btn-primary" style="margin-bottom:.75rem;">
             📍 {{ __('field.home_go_foreman') }}
         </a>
@@ -28,7 +31,7 @@
         </a>
     @endif
 
-    @unless ($user->hasAnyRole(['operador_cisterna', 'personal_mantenimiento', 'foreman']) || $canAccessAdmin)
+    @unless ($user->can('log_fuel') || $user->can('field_report') || $user->can('confirm_location') || $user->can('move_fleet') || $canAccessAdmin)
         <div class="field-card muted">{{ __('field.home_no_access') }}</div>
     @endunless
 </div>

@@ -33,7 +33,10 @@ class FuelLog extends Component
 
     public function mount(): void
     {
-        abort_unless(Auth::user()->hasRole('operador_cisterna'), 403);
+        // Hallazgo A1 (Etapa 05): autoriza por PERMISO (log_fuel), no por
+        // nombre de rol, para que el editor de roles del panel gobierne
+        // realmente este módulo de campo.
+        abort_unless(Auth::user()->can('log_fuel'), 403);
     }
 
     public function updatedSearch(): void
