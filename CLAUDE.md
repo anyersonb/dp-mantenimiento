@@ -147,6 +147,54 @@ test que la haga visible** —aunque el test solo afirme el estado actual— o s
 declara de nuevo en el cierre de la etapa siguiente. Si no tiene test, no está
 aceptada: está olvidada con estilo.
 
+## Definición de N1: solo cuenta si se verificó en BASE DE DATOS
+
+La escala N1-N0 mide cobertura de verificación. Una celda es **N1** cuando se
+cumplen las cinco condiciones, no cuatro:
+
+1. Con el **rol real** que hace esa tarea.
+2. Por **pantalla**, no por tinker ni por test.
+3. **Navegando desde el menú**, no por URL directa.
+4. En el **idioma y el dispositivo** que le corresponden a ese rol.
+5. **Con el resultado confirmado en la base de datos.**
+
+La quinta se agregó después de la Sesión 1 de la Etapa 06, y no es formalismo:
+
+- La automatización de esa sesión **informó éxito tres veces sin que pasara
+  nada**. El pie del modal invierte el orden según la acción (crear:
+  `[Guardar, Cancelar]`; borrar: `[Cancelar, Borrar]`), así que un `.first()`
+  ciego cancelaba el borrado y el script reportaba que había borrado.
+- El propio sistema tiene un caso igual: el `"✅ Updated"` del tablero del
+  capataz **sale idéntico con horómetro y sin horómetro**, así que un capataz que
+  se olvidó de poner las horas se va convencido de haberlas reportado.
+
+**El mensaje de éxito de la UI no es evidencia de nada.** Es una aserción del
+front sobre lo que cree que pasó. Lo que se afirma en un informe se lee de la
+tabla. Lo mismo vale para los tests: `assertDatabaseHas`, no `assertSee`.
+
+## Arrancar el entorno local
+
+```
+php -d xdebug.mode=off artisan serve --host=127.0.0.1 --port=8099
+```
+
+**`-d xdebug.mode=off` no es opcional.** Con Xdebug en modo `develop` y
+`log_level=7` cada request tarda más de 60 s y el servidor parece colgado —
+se perdió una sesión entera diagnosticando eso. Va como flag de la línea de
+comandos y no como cambio en el `php.ini`, para no tocar la configuración
+global de la máquina.
+
+El puerto **8099** es el de este proyecto por convención (el 8000 suele estar
+tomado por otro de los proyectos). Correr la suite con el mismo flag:
+
+```
+php -d xdebug.mode=off vendor/bin/phpunit
+```
+
+El binario de PHP tiene que ser **8.2**, no el 8.1 que Laragon deja por
+defecto en el PATH: PHPUnit 11 exige >= 8.2 y falla con un mensaje que no
+menciona la versión del binario que estás usando.
+
 ## Lección de método: un componente rinde distinto según dónde se monta
 
 De A8, y aplica a toda verificación futura de este panel.

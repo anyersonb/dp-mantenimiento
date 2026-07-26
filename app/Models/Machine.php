@@ -5,12 +5,22 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Spatie\Activitylog\LogOptions;
 use Spatie\Activitylog\Traits\LogsActivity;
 
 class Machine extends Model
 {
-    use LogsActivity;
+    /**
+     * SoftDeletes desde el hallazgo E6-05 (crítico): el borrado duro destruía
+     * en cascada las OT, las lecturas, las alertas, las partes y —con las OT—
+     * los costos históricos de la máquina. Con `deleted_at` la fila sobrevive y
+     * la cascada de la base no se dispara, porque no hay DELETE.
+     *
+     * El camino real de baja NO es borrar: es `status = 'inactive'`, o la
+     * acción "descartar" para las máquinas en revisión.
+     */
+    use LogsActivity, SoftDeletes;
 
     // $guarded = [] ya deja todas las columnas (incluidas oil_capacity/image/gallery)
     // asignables en masa; no se define $fillable aparte para no restringir el resto
@@ -33,6 +43,25 @@ class Machine extends Model
 
     // Umbral de alerta: faltan <= 100 h para el próximo servicio
     public const ALERT_THRESHOLD = 100;
+
+    /**
+     * Recuento de lo que se destruiría si esta máquina se borrara de verdad.
+     *
+     * Alimenta el diálogo de confirmación (hallazgo E6-05): todas las FK que
+     * apuntan a `machines` son ON DELETE CASCADE, así que un borrado duro se
+     * lleva la historia entera y el diálogo anterior no lo decía.
+     *
+     * @return array<string, int>
+     */
+    public function destructionSummary(): array
+    {
+        return [
+            'work_orders' => $this->workOrders()->count(),
+            'readings' => $this->readings()->count(),
+            'alerts' => $this->alerts()->count(),
+            'parts' => $this->parts()->count(),
+        ];
+    }
 
     public function getActivitylogOptions(): LogOptions
     {

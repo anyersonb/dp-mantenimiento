@@ -177,7 +177,11 @@ class QaCleanup extends Command
         }
 
         foreach ($records as $record) {
-            $record->delete();
+            // forceDelete cuando el modelo usa SoftDeletes (Machine, desde
+            // E6-05): un dato de prueba tiene que desaparecer de verdad, no
+            // quedar como fila con `deleted_at` inflando la tabla y
+            // descuadrando los contadores de la próxima corrida.
+            method_exists($record, 'forceDelete') ? $record->forceDelete() : $record->delete();
         }
 
         $this->line("  {$label}: {$count} fila(s) borradas.");

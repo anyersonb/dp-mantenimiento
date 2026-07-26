@@ -72,14 +72,41 @@ class MachineResource extends Resource
         return Auth::user()?->can('manage_machines') ?? false;
     }
 
+    /**
+     * Hallazgo E6-05 (crítico): borrar una máquina se lleva en cascada sus
+     * órdenes de trabajo, lecturas, alertas, partes y costos históricos. Con
+     * `manage_machines` lo podía hacer también el responsable, y el diálogo no
+     * advertía nada.
+     *
+     * Queda restringido a **administrador**, y aun así es un borrado suave
+     * (`SoftDeletes`). El camino normal de baja es `status = 'inactive'` o la
+     * acción "descartar" de las máquinas en revisión, que conservan la historia.
+     */
     public static function canDelete(Model $record): bool
     {
-        return Auth::user()?->can('manage_machines') ?? false;
+        return Auth::user()?->hasRole('administrador') ?? false;
     }
 
     public static function canDeleteAny(): bool
     {
-        return Auth::user()?->can('manage_machines') ?? false;
+        return Auth::user()?->hasRole('administrador') ?? false;
+    }
+
+    /**
+     * Texto del diálogo de borrado, con los conteos REALES de lo que se lleva
+     * por delante. Antes decía únicamente "¿Seguro que querés hacer esto?".
+     */
+    public static function deletionWarning(Machine $record): string
+    {
+        $resumen = $record->destructionSummary();
+
+        return __('fleet.delete_warning', [
+            'machine' => $record->id_code,
+            'work_orders' => $resumen['work_orders'],
+            'readings' => $resumen['readings'],
+            'alerts' => $resumen['alerts'],
+            'parts' => $resumen['parts'],
+        ]);
     }
 
     public static function getNavigationBadge(): ?string
@@ -337,6 +364,41 @@ class MachineResource extends Resource
                             ->log('Datos verificados y aprobados');
 
                         Notification::make()->success()->title(__('fleet.approved_ok'))->send();
+                    }),
+                Tables\Actions\Action::make('discard')
+                    ->label(__('fleet.discard_data'))
+                    ->icon('heroicon-o-archive-box-x-mark')
+                    ->color('warning')
+                    // Simétrica de "aprobar": mismo permiso, mismo alcance (solo
+                    // máquinas en revisión). Nace del hallazgo E6-05 — el cliente
+                    // tenía que poder descartar las máquinas del Info Book que no
+                    // existen, y la única vía disponible era borrarlas, que
+                    // destruía su historia.
+                    ->visible(fn (Machine $record) => $record->needs_review && (Auth::user()?->can('verify_data') ?? false))
+                    ->authorize(fn () => Auth::user()?->can('verify_data') ?? false)
+                    ->requiresConfirmation()
+                    ->modalDescription(__('fleet.discard_confirm'))
+                    ->form([
+                        Forms\Components\Textarea::make('reason')
+                            ->label(__('fleet.discard_reason'))
+                            ->rows(2)
+                            ->required(),
+                    ])
+                    ->action(function (Machine $record, array $data) {
+                        // NO borra: la baja de una máquina conserva su historia.
+                        $record->update([
+                            'status' => 'inactive',
+                            'needs_review' => false,
+                        ]);
+
+                        activity()
+                            ->performedOn($record)
+                            ->causedBy(Auth::user())
+                            ->event('discarded')
+                            ->withProperties(['reason' => $data['reason']])
+                            ->log(__('mgmt.machine_discarded_log', ['machine' => $record->id_code]));
+
+                        Notification::make()->success()->title(__('fleet.discarded_ok'))->send();
                     }),
                 Tables\Actions\Action::make('move')
                     ->label(__('mgmt.move_machine'))

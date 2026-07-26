@@ -95,4 +95,11 @@ return [
     'src_maintenance' => 'Mantenimiento',
     'src_workshop' => 'Taller',
     'src_manual' => 'Manual',
+    'discard_data' => 'Descartar',
+    'discard_confirm' => 'La maquina queda inactiva y sale de la lista de revision. Su historial (ordenes de trabajo, lecturas y costos) se conserva completo.',
+    'discard_reason' => 'Motivo del descarte',
+    'discarded_ok' => 'Maquina descartada. Su historial se conservo.',
+    'delete_heading' => 'Borrar la maquina :machine',
+    'delete_warning' => 'ATENCION: esto NO es dar de baja. Borrar :machine elimina tambien, en cascada: :work_orders orden(es) de trabajo con sus costos, :readings lectura(s) de horometro, :alerts alerta(s) y :parts parte(s) del catalogo. Para dar de baja una maquina usa el estado Inactiva, o la accion Descartar si esta en revision.',
+    'delete_confirm_button' => 'Si, borrar y perder el historial',
 ];

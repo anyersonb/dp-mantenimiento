@@ -95,4 +95,11 @@ return [
     'src_maintenance' => 'Maintenance',
     'src_workshop' => 'Shop',
     'src_manual' => 'Manual',
+    'discard_data' => 'Discard',
+    'discard_confirm' => 'The machine is set to inactive and leaves the review list. Its history (work orders, readings and costs) is kept in full.',
+    'discard_reason' => 'Reason for discarding',
+    'discarded_ok' => 'Machine discarded. Its history was kept.',
+    'delete_heading' => 'Delete machine :machine',
+    'delete_warning' => 'WARNING: this is NOT a retirement. Deleting :machine also removes, in cascade: :work_orders work order(s) with their costs, :readings hour-meter reading(s), :alerts alert(s) and :parts catalogue part(s). To retire a machine use the Inactive status, or the Discard action if it is under review.',
+    'delete_confirm_button' => 'Yes, delete and lose the history',
 ];
