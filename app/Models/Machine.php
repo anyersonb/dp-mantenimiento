@@ -25,6 +25,8 @@ class Machine extends Model
         'last_service_hours' => 'integer',
         'service_interval_hours' => 'integer',
         'remaining_hours' => 'integer',
+        'remaining_anchor_hours' => 'integer',
+        'remaining_anchor_at_hours' => 'integer',
         'hours_adjustment' => 'integer',
         'gallery' => 'array',
     ];

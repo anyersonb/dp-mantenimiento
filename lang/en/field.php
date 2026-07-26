@@ -27,6 +27,7 @@ return [
     'machine_search_placeholder' => 'Type the machine ID…',
     'machine_change' => 'Change',
     'validation_required_machine' => 'Select a machine.',
+    'hours_regressive' => 'The reading (:hours h) is lower than the last one recorded (:current h). Check the value before submitting.',
 
     // Geolocation
     'geolocation_capturing' => 'Getting your location…',

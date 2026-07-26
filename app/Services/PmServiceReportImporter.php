@@ -191,6 +191,15 @@ class PmServiceReportImporter
         }
         if ($record['remaining_hours'] !== null) {
             $postAttrs['remaining_hours'] = $record['remaining_hours'];
+
+            // Fija el ancla verificada (regla-horometro.md, sec. 2.1 y 5): el
+            // dato del reporte manda, y una lectura de campo posterior
+            // descuenta desde este par en vez de recalcular desde cero. Se
+            // ancla contra el current_hours del propio reporte (no el que ya
+            // tuviera la máquina), que es al que corresponde este remaining.
+            $postAttrs['remaining_anchor_hours'] = $record['remaining_hours'];
+            $postAttrs['remaining_anchor_at_hours'] = $record['latest_reading']['hours']
+                ?? $machine->current_hours;
         }
         if ($postAttrs !== []) {
             $machine->refresh();

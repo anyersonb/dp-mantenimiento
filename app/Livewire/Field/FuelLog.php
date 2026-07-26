@@ -91,6 +91,10 @@ class FuelLog extends Component
     {
         $this->validate();
 
+        if ($this->isRegressiveReading()) {
+            return;
+        }
+
         HorometerReading::create([
             'machine_id' => $this->machineId,
             'hours' => (int) round((float) $this->hours),
@@ -112,6 +116,24 @@ class FuelLog extends Component
             'machineId', 'machineLabel', 'gallons', 'hours', 'note',
             'submitted', 'search', 'machineResults',
         ]);
+    }
+
+    /** Hallazgo M4: ver docblock de ReportForm::isRegressiveReading(). */
+    protected function isRegressiveReading(): bool
+    {
+        $machine = Machine::find($this->machineId);
+        $hours = (int) round((float) $this->hours);
+
+        if (! $machine || $machine->current_hours === null || $hours >= $machine->current_hours) {
+            return false;
+        }
+
+        $this->addError('hours', __('field.hours_regressive', [
+            'hours' => $hours,
+            'current' => $machine->current_hours,
+        ]));
+
+        return true;
     }
 
     public function render()

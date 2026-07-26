@@ -35,6 +35,7 @@ return [
     'event_deleted' => 'Eliminado',
     'event_approved' => 'Aprobado',
     'event_imported' => 'Importado',
+    'event_hourmeter_replaced' => 'Reemplazo de horómetro',
 
     // Cotizaciones
     'quotes' => 'Cotizaciones',
@@ -73,6 +74,9 @@ return [
     'import_pm_report_summary' => ':updated actualizadas · :unmatched sin coincidencia · :warnings avisos',
     'import_pm_report_unmatched_list' => 'Sin coincidencia: :ids',
     'import_pm_report_log' => 'Importación de PM Service Report: :updated actualizadas, :unmatched sin coincidencia',
+
+    // Reemplazo de horómetro
+    'hourmeter_replaced_log' => 'Reemplazo de horómetro en :machine: :old h (viejo) -> :new h (nuevo)',
 
     // Mapa de flota
     'fleet_map' => 'Mapa de flota',

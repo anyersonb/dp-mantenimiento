@@ -68,6 +68,14 @@ return [
     'hm_replaced' => 'Replaced',
     'due_soon' => 'Due soon (<= 100 h)',
 
+    // Hourmeter replacement (its own event, not just another reading)
+    'replace_hourmeter' => 'Log hourmeter replacement',
+    'replace_hourmeter_old_hours' => 'Last reading of the old hourmeter',
+    'replace_hourmeter_new_hours' => 'Initial reading of the new hourmeter',
+    'replace_hourmeter_note' => 'Note (optional)',
+    'replace_hourmeter_confirm' => 'This marks the hourmeter as replaced, re-anchors service tracking to the new scale, and gets logged in the audit trail. Confirm?',
+    'replace_hourmeter_success' => 'Hourmeter replacement logged.',
+
     // Parts
     'parts_catalog' => 'Parts catalog',
     'part' => 'Part',

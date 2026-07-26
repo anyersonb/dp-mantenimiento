@@ -6,6 +6,7 @@ use App\Filament\Resources\MachineResource\Pages;
 use App\Filament\Resources\MachineResource\RelationManagers;
 use App\Models\Location;
 use App\Models\Machine;
+use App\Services\HourmeterReplacementService;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Notifications\Notification;
@@ -323,6 +324,38 @@ class MachineResource extends Resource
                         $record->update(['current_location_id' => $data['current_location_id']]);
 
                         Notification::make()->success()->title(__('mgmt.move_success'))->send();
+                    }),
+                Tables\Actions\Action::make('replaceHourmeter')
+                    ->label(__('fleet.replace_hourmeter'))
+                    ->icon('heroicon-o-arrow-path')
+                    ->color('warning')
+                    ->visible(fn () => Auth::user()?->can('manage_machines') ?? false)
+                    ->form([
+                        Forms\Components\TextInput::make('old_final_hours')
+                            ->label(__('fleet.replace_hourmeter_old_hours'))
+                            ->numeric()->minValue(0)->suffix('h')
+                            ->default(fn (Machine $record) => $record->current_hours)
+                            ->required(),
+                        Forms\Components\TextInput::make('new_initial_hours')
+                            ->label(__('fleet.replace_hourmeter_new_hours'))
+                            ->numeric()->minValue(0)->suffix('h')
+                            ->default(0)
+                            ->required(),
+                        Forms\Components\Textarea::make('note')
+                            ->label(__('fleet.replace_hourmeter_note'))->rows(2),
+                    ])
+                    ->requiresConfirmation()
+                    ->modalDescription(__('fleet.replace_hourmeter_confirm'))
+                    ->action(function (Machine $record, array $data) {
+                        app(HourmeterReplacementService::class)->replace(
+                            $record,
+                            (int) $data['old_final_hours'],
+                            (int) $data['new_initial_hours'],
+                            $data['note'] !== '' ? $data['note'] : null,
+                            Auth::user(),
+                        );
+
+                        Notification::make()->success()->title(__('fleet.replace_hourmeter_success'))->send();
                     }),
             ])
             ->bulkActions([

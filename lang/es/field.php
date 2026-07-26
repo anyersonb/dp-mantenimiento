@@ -27,6 +27,7 @@ return [
     'machine_search_placeholder' => 'Escribe el ID de la máquina…',
     'machine_change' => 'Cambiar',
     'validation_required_machine' => 'Selecciona una máquina.',
+    'hours_regressive' => 'La lectura (:hours h) es menor a la última registrada (:current h). Verifica el valor antes de enviar.',
 
     // Geolocalización
     'geolocation_capturing' => 'Obteniendo tu ubicación…',

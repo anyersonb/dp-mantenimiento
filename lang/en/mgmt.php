@@ -35,6 +35,7 @@ return [
     'event_deleted' => 'Deleted',
     'event_approved' => 'Approved',
     'event_imported' => 'Imported',
+    'event_hourmeter_replaced' => 'Hourmeter replacement',
 
     // Quotes
     'quotes' => 'Quotes',
@@ -73,6 +74,9 @@ return [
     'import_pm_report_summary' => ':updated updated · :unmatched unmatched · :warnings warnings',
     'import_pm_report_unmatched_list' => 'Unmatched: :ids',
     'import_pm_report_log' => 'PM Service Report import: :updated updated, :unmatched unmatched',
+
+    // Hourmeter replacement
+    'hourmeter_replaced_log' => 'Hourmeter replaced on :machine: :old h (old) -> :new h (new)',
 
     // Fleet map
     'fleet_map' => 'Fleet map',

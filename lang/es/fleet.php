@@ -68,6 +68,14 @@ return [
     'hm_replaced' => 'Reemplazado',
     'due_soon' => 'Próximo a servicio (<= 100 h)',
 
+    // Reemplazo de horómetro (evento, no una lectura más)
+    'replace_hourmeter' => 'Registrar reemplazo de horómetro',
+    'replace_hourmeter_old_hours' => 'Última lectura del horómetro viejo',
+    'replace_hourmeter_new_hours' => 'Lectura inicial del horómetro nuevo',
+    'replace_hourmeter_note' => 'Nota (opcional)',
+    'replace_hourmeter_confirm' => 'Esto marca el horómetro como reemplazado, re-ancla el seguimiento de servicio a la escala nueva y queda registrado en la bitácora. ¿Confirmas?',
+    'replace_hourmeter_success' => 'Reemplazo de horómetro registrado.',
+
     // Partes
     'parts_catalog' => 'Catálogo de partes',
     'part' => 'Parte',

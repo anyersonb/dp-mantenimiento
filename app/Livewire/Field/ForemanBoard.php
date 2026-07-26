@@ -76,6 +76,10 @@ class ForemanBoard extends Component
     {
         $this->validate();
 
+        if ($this->hours !== '' && $this->isRegressiveReading()) {
+            return;
+        }
+
         $machine = Machine::findOrFail($this->machineId);
         $machine->current_location_id = $this->locationId;
         $machine->save();
@@ -97,6 +101,24 @@ class ForemanBoard extends Component
     {
         $this->reset(['machineId', 'machineLabel', 'hours', 'submitted', 'search', 'machineResults']);
         $this->locationId = Auth::user()->location_id ?? '';
+    }
+
+    /** Hallazgo M4: ver docblock de ReportForm::isRegressiveReading(). */
+    protected function isRegressiveReading(): bool
+    {
+        $machine = Machine::find($this->machineId);
+        $hours = (int) round((float) $this->hours);
+
+        if (! $machine || $machine->current_hours === null || $hours >= $machine->current_hours) {
+            return false;
+        }
+
+        $this->addError('hours', __('field.hours_regressive', [
+            'hours' => $hours,
+            'current' => $machine->current_hours,
+        ]));
+
+        return true;
     }
 
     public function getMyMachinesProperty()
