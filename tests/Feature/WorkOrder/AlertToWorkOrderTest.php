@@ -7,6 +7,7 @@ use App\Models\Alert;
 use App\Models\Location;
 use App\Models\Machine;
 use App\Models\User;
+use App\Models\WorkOrder;
 use Database\Seeders\RolesAndPermissionsSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
@@ -102,7 +103,7 @@ class AlertToWorkOrderTest extends TestCase
         // Paso 2: confirmar (equivalente a pulsar "Confirm" en el modal).
         $test->callMountedTableAction();
 
-        $workOrder = \App\Models\WorkOrder::where('machine_id', $machine->id)->first();
+        $workOrder = WorkOrder::where('machine_id', $machine->id)->first();
 
         $this->assertNotNull($workOrder, 'La OT debería haberse creado al confirmar la acción.');
         $this->assertSame('preventive', $workOrder->type);

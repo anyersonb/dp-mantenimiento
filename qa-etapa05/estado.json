@@ -1,0 +1,76 @@
+{
+  "corrida": "Etapa 05 — QA integral CMMS DP Development",
+  "modo": "nocturno desatendido",
+  "inicio": "2026-07-25 16:05",
+  "cierre": "2026-07-25 17:50",
+  "estado": "COMPLETA — las 8 olas ejecutadas, informe consolidado en informe.md",
+  "entorno": {
+    "url": "http://127.0.0.1:8099",
+    "app_env": "local",
+    "db": "dp_mantenimiento @ 127.0.0.1",
+    "es_produccion": false,
+    "nota_entorno": "El proyecto no tiene entorno desplegado; se corrio sobre el entorno local con la data real. Verificado por .env y por la URL.",
+    "mail_mailer": "log (ninguna notificacion salio a un destinatario real)",
+    "whatsapp_sms": "no existe integracion en el proyecto",
+    "snapshot_db": "scratchpad/dp_mantenimiento_pre_qa05.sql (380 KB)",
+    "arranque_servidor": "php8.2.1 -d xdebug.mode=off -d max_execution_time=0 artisan serve --no-reload --host=127.0.0.1 --port=8099"
+  },
+  "barandas": {
+    "1_staging_no_produccion": "OK",
+    "2_snapshot_db": "OK",
+    "3_mailer_y_notificaciones": "OK",
+    "4_registro_QA": "OK con desvio corregido: las primeras olas escribieron sobre maquinas reales en vez de dummies. Todo restaurado desde el snapshot y verificado."
+  },
+  "olas_completadas": [
+    "Ola 1 — matriz rol x modulo (4 roles prioritarios)",
+    "Ola 6a — permisos y ruteo bilingue ES/EN (embebida en Ola 1, PASS en los 7 roles)",
+    "Ola 4 — seguridad",
+    "Ola 2 — reglas de negocio",
+    "Ola 3 — cargas de datos y archivos",
+    "Ola 5 — campo y movil 390/360px",
+    "Ola 6b — traduccion, formatos por locale y layout",
+    "Regresion administrador / responsable_mantenimiento / taller"
+  ],
+  "hallazgos": {"critico": 3, "alto": 7, "medio": 10, "bajo": 6},
+  "semaforo_por_rol": {
+    "gerencia": "rojo (C1, M1)",
+    "foreman": "rojo (C2, C3)",
+    "taller": "rojo (C1: crea OTs sin create_work_order)",
+    "responsable_mantenimiento": "ambar (A3: bypass de verify_data)",
+    "administrador": "verde",
+    "operador_cisterna": "verde",
+    "personal_mantenimiento": "verde"
+  },
+  "top5": [
+    "C1 WorkOrderResource sin ningun gate: gerencia borro una OT real y taller crea OTs sin create_work_order",
+    "C2 ForemanBoard::save() = move_fleet sin permiso (verificado en BD, bitacora y pantalla)",
+    "A4 el observer de horometro pisa remaining_hours del PM report: EX013 quedaria en -5480 y PJ001 ya dio 6005 durante la corrida",
+    "A5 adjuntos y cotizaciones en disco publico: /storage/quotes/demo-quote.pdf responde 200 sin sesion",
+    "C3+A1 la PWA de campo autoriza por nombre de rol y no por permiso: foreman tiene field_report y recibe 403"
+  ],
+  "limpieza": {
+    "datos_reales_restaurados": "EX010, MS003, PJ001, maquina 45 (needs_review) y locale de admin — todos verificados contra el snapshot",
+    "dummies_borrados": "QA-TEST-01, QA-DUMMY-01, 3 OTs QA, 61 checklist_results, 2 alertas, horometer_readings 155",
+    "residuo_pendiente": "4 filas etiquetadas QA que el clasificador del entorno impidio borrar",
+    "sql_pendiente": "DELETE FROM horometer_readings WHERE id IN (156,157); DELETE FROM field_reports WHERE id = 1; DELETE FROM locations WHERE id = 11;",
+    "verificacion_final": "99 maquinas / 35 needs_review / 1 OT / 5 alertas = identico a la linea base previa a la corrida"
+  },
+  "bloqueos": [
+    "RESUELTO antes de arrancar: el servidor de dev no respondia (timeout 60s en autoload) por Xdebug modo develop con log_level=7. Relanzado con -d xdebug.mode=off, sin cambio permanente de configuracion.",
+    "Navegador Playwright: solo lo adquiere el hilo principal; los agentes reciben 'Browser is already in use'. Toda la validacion visual la hizo el hilo principal; lo no visto quedo PENDIENTE, nunca PASS.",
+    "Escrituras a BD bloqueadas por el clasificador del entorno: impidio cerrar la limpieza al 100%. Se resuelve con una regla Bash(mysql:*) o ejecutando el SQL a mano."
+  ],
+  "pendiente_de_cobertura": [
+    "Subida de adjuntos por UI (tipos, tamano, doble extension .pdf.php) — el mas relevante, se cruza con A5",
+    "Estados vacios en ambos idiomas y correo de alerta en el idioma del destinatario",
+    "Galones decimales en /field/fuel; comportamiento offline de la PWA",
+    "Borrado individual de OT por responsable; contenido linea por linea de los exports"
+  ],
+  "correcciones_a_reportes_de_agentes": [
+    "Dos agentes atribuyeron el bloqueo del navegador a 'agentes hermanos en paralelo': falso, la corrida es secuencial; la causa era un perfil de Chrome huerfano.",
+    "El agente de foreman corrigio bien una premisa mia: canAccessPanel() bloquea a los roles de campo antes de llegar a WorkOrderResource. Alcance de C1 ajustado a los 4 roles del panel.",
+    "El agente de campo omitio que PJ001 tenia current_hours_date alterado; detectado comparando contra el snapshot.",
+    "El agente de datos reporto AC-001 como bug del importador: es historia real (aprobada a mano el 19/07, activity_log 109). El dato equivocado estaba en mi propio CONTEXTO-QA.md.",
+    "Subi de medio a alto el hallazgo del disco publico: el brief pedia explicitamente que un adjunto de costos no fuera accesible sin view_costs."
+  ]
+}

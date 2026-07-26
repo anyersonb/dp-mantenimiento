@@ -212,6 +212,37 @@ cobertura, la unidad no es "el componente" sino **"el componente en esa página"
 Corolario práctico: antes de afirmar que algo no se puede hacer desde el panel,
 buscar el componente con grep y listar sus puntos de montaje, no una pantalla.
 
+## Automatizar el panel con Playwright: trampas ya pagadas
+
+Cada una costó una corrida de 30 s a 30 min. **Están todas verificadas contra el
+DOM real de este panel.**
+
+1. **Los selects "buscables" de Filament son Choices.js.** El `<select>` con el id
+   `data.<campo>` está `hidden`; el clickeable es el `div.choices` que lo envuelve
+   (`div.choices:has(select[id="data.machine_id"])`). Y `fill()` sobre su buscador
+   **no dispara la búsqueda** —Choices escucha teclas—, así que hay que
+   `keyboard.type()`: sin filtrar, el dropdown renderiza la lista completa y la
+   opción buscada puede no estar en el DOM. En el mismo formulario, los selects
+   **no** buscables (`type`, `status`, `priority`, `service_tier`) sí son nativos y
+   aceptan `selectOption()`. Detectar con `isVisible()`, nunca con `count()`.
+2. **El submit del modal y el de la página casan el mismo texto.** En una página de
+   editar con relation managers, "Guardar cambios" existe dos veces; el de la
+   página queda detrás del overlay y el click se cuelga los 30 s del timeout. El
+   del modal cuelga de `div[x-ref="modalContainer"]`.
+3. **El orden del pie del modal cambia según la acción** (crear:
+   `[Guardar, Cancelar]`; borrar: `[Cancelar, Borrar]`). Elegir por texto o por
+   `type=submit`, **jamás por posición** — ver la definición de N1.
+4. **El recolector de descargas se ata ANTES del click.** Las exportaciones usan
+   `openUrlInNewTab()`, y la descarga puede salir antes de que se alcance a
+   escuchar en la pestaña nueva: `ctx.on('download', ...)` antes, y después el
+   click. Atarlo después dio "no hubo descarga" con las dos exportaciones
+   funcionando perfectamente.
+5. **El panel de filtros de la tabla intercepta los clicks** de las acciones de la
+   primera fila. `click({ force: true })`.
+6. **`hasText` con expresión regular no normaliza el `innerText`**, así que
+   `/^Crear$/` no casa contra un botón cuyo texto real trae saltos de línea. Usar
+   `getByRole({ name, exact })`, que sí normaliza, o un patrón sin anclas.
+
 ## Notas de esquema (leer antes de escribir una consulta)
 
 Cada una de estas costó una consulta fallida o un borrado que no borró nada. **No las vuelvas a

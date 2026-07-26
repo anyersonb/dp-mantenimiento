@@ -1,0 +1,55 @@
+{
+  "etapa": "06 — Pase exploratorio por persona",
+  "modo": "MODO PERSONA (no verificacion)",
+  "estado": "EN CURSO — 2 de 3 personas del alcance reducido cerradas",
+  "alcance_acordado": ["operador_cisterna", "foreman", "responsable_mantenimiento"],
+  "como_se_ejecuta_ahora": "El servidor MCP de Playwright sigue bloqueado (dos instancias compitiendo por el perfil mcp-chrome-a9692a1). Se resolvio manejando el navegador con un controlador propio: scripts Node que usan el paquete playwright del cache npx con Chrome del sistema y perfil temporal propio. Cada script abre y CIERRA el navegador explicitamente. Los scripts viven en el scratchpad de la sesion, NUNCA dentro del repositorio.",
+  "personas": {
+    "administrador": {
+      "estado": "CERRADA (parcial declarado)",
+      "informe": "qa-etapa06/persona-administrador.md",
+      "objetivo": "LOGRADO CON DOLOR",
+      "sin_hacer": "revision de flota y deteccion de la maquina mas cercana a servicio",
+      "hallazgos": {"alto": 1, "medio": 1, "bajo": 1},
+      "principal": "ALTO hueco de producto: no puede ver que hace un rol sin volverse el usuario. Propuesta: vista 'ver como este rol'.",
+      "adopcion": "SI"
+    },
+    "operador_cisterna": {
+      "estado": "CERRADA",
+      "informe": "qa-etapa06/persona-operador-cisterna.md",
+      "objetivo": "LOGRADO",
+      "medicion": "6 toques y 14 teclas por carga dentro de la cadena (5 toques del formulario + 1 de 'Log another'). 4 cargas en 21,6 s de tiempo de automatizacion (NO es tiempo humano; los toques si son exactos).",
+      "hallazgos": {"alto": 2, "medio": 3, "bajo": 0},
+      "principal": "ALTO: la puerta de entrada (dominio a secas) le dice 'These credentials do not match our records' con credenciales correctas -> el operario concluye que su clave esta mal y manda WhatsApp al responsable. Segundo ALTO: todo en ingles siendo rol hispanohablante y la unica salida es el conmutador ES de 14x17 px.",
+      "adopcion": "SI, pero solo si alguien le deja el acceso resuelto en el celular",
+      "lo_mejor_del_sistema": "El flujo de carga es el mas pulido de toda la app: confirmacion explicita, encadenado de un toque, cero costos, entra sin scroll, contraste 8,3:1 en el boton Guardar, y el doble toque NO duplica (verificado en BD)."
+    },
+    "foreman": {"estado": "PENDIENTE — siguiente en el orden acordado"},
+    "responsable_mantenimiento": {"estado": "PENDIENTE — ultimo, es el mas largo"},
+    "taller": {"estado": "FUERA DE ALCANCE (reduccion a 3 personas)"},
+    "gerencia": {"estado": "FUERA DE ALCANCE"},
+    "personal_mantenimiento": {"estado": "FUERA DE ALCANCE"}
+  },
+  "linea_base": {
+    "esperada": {"maquinas": 99, "needs_review": 35, "work_orders": 1, "alertas": 5, "anclas": 62, "usuarios": 7, "lecturas": 93, "field_reports": 0},
+    "actual": {"maquinas": 103, "needs_review": 35, "work_orders": 1, "alertas": 5, "anclas": 62, "usuarios": 7, "lecturas": 99, "field_reports": 0},
+    "desvio": "4 maquinas QA-CIS y 6 lecturas del montaje de la persona cisterna, PENDIENTES DE BORRAR",
+    "motivo_del_desvio": "HALLAZGO: no existe ninguna forma de borrar una maquina desde el panel (ni en edicion, ni accion de fila, ni accion masiva). Las escrituras SQL directas estan bloqueadas por el clasificador del entorno.",
+    "matriz_roles": "15/6/4/3/3/4/4 — centinela PASS al cierre de la persona",
+    "valores_PM_report": "intactos (no se toco ninguna maquina real: por eso se creo el montaje QA-CIS)"
+  },
+  "limpieza_pendiente": {
+    "machines": [109, 111, 112, 113],
+    "horometer_readings": [166, 167, 168, 169, 170, 171],
+    "comando_solicitado_al_jefe": "DELETE FROM horometer_readings WHERE machine_id IN (109,111,112,113); DELETE FROM machines WHERE id IN (109,111,112,113);",
+    "nota": "El aparente duplicado QA-CIS-01 150h/20gal x2 son mis dos corridas del script (14:05:39 y 14:07:03), NO el doble toque. El doble toque genero un unico registro."
+  },
+  "bloqueos": [
+    "Servidor MCP de Playwright inutilizable: dos instancias compitiendo por el mismo perfil. Se intento matar Chrome, borrar locks, borrar el perfil, matar el servidor huerfano del 24/07 y el rezago de hoy, y el jefe reconecto con /mcp. Nada lo libera. SOLUCION DE FONDO sugerida: agregar --isolated a los argumentos del servidor MCP (lo dice el propio mensaje de error).",
+    "Sin poder borrar maquinas por UI ni por SQL, la limpieza del montaje requiere un comando del jefe."
+  ],
+  "pendiente_de_probar": [
+    "Carga sin señal o con GPS denegado (la pantalla pide ubicacion al abrir).",
+    "Sesion expirada al momento de guardar (una vez por persona, segun presupuesto)."
+  ]
+}
