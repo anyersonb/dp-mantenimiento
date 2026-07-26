@@ -199,7 +199,16 @@ class MachineResource extends Resource
             Forms\Components\Section::make(__('fleet.data_control'))
                 ->columns(3)
                 ->schema([
-                    Forms\Components\Toggle::make('needs_review')->label(__('fleet.needs_review')),
+                    // Hallazgo A3: responsable_mantenimiento (tiene manage_machines
+                    // pero no verify_data) apagaba needs_review desde este mismo
+                    // form normal de edición. disabled() bloquea la UI y
+                    // dehydrated() evita que el valor viaje de vuelta al modelo
+                    // aunque se manipule el payload; el guardia real y de fondo
+                    // (Machine usa $guarded = []) vive en MachineObserver::saving().
+                    Forms\Components\Toggle::make('needs_review')
+                        ->label(__('fleet.needs_review'))
+                        ->disabled(fn () => ! (Auth::user()?->can('verify_data') ?? false))
+                        ->dehydrated(fn () => Auth::user()?->can('verify_data') ?? false),
                     Forms\Components\TextInput::make('review_note')->label(__('fleet.review_note'))->columnSpan(2),
                     Forms\Components\Textarea::make('notes')->label(__('fleet.notes'))->columnSpanFull()->rows(2),
                 ]),
@@ -289,6 +298,9 @@ class MachineResource extends Resource
                     ->icon('heroicon-o-check-badge')
                     ->color('success')
                     ->visible(fn (Machine $record) => $record->needs_review && (Auth::user()?->can('verify_data') ?? false))
+                    // ->visible() controla el render; ->authorize() vuelve a
+                    // exigir el permiso en el servidor al ejecutar la acción.
+                    ->authorize(fn () => Auth::user()?->can('verify_data') ?? false)
                     ->requiresConfirmation()
                     ->modalDescription(__('fleet.approve_confirm'))
                     ->action(function (Machine $record) {
@@ -311,6 +323,9 @@ class MachineResource extends Resource
                     ->icon('heroicon-o-arrows-right-left')
                     ->color('info')
                     ->visible(fn () => Auth::user()?->can('move_fleet') ?? false)
+                    // ->visible() controla el render; ->authorize() vuelve a
+                    // exigir el permiso en el servidor al ejecutar la acción.
+                    ->authorize(fn () => Auth::user()?->can('move_fleet') ?? false)
                     ->form([
                         Forms\Components\Select::make('current_location_id')
                             ->label(__('mgmt.move_to'))
@@ -330,6 +345,9 @@ class MachineResource extends Resource
                     ->icon('heroicon-o-arrow-path')
                     ->color('warning')
                     ->visible(fn () => Auth::user()?->can('manage_machines') ?? false)
+                    // ->visible() controla el render; ->authorize() vuelve a
+                    // exigir el permiso en el servidor al ejecutar la acción.
+                    ->authorize(fn () => Auth::user()?->can('manage_machines') ?? false)
                     ->form([
                         Forms\Components\TextInput::make('old_final_hours')
                             ->label(__('fleet.replace_hourmeter_old_hours'))
@@ -366,6 +384,9 @@ class MachineResource extends Resource
                         ->icon('heroicon-o-check-badge')
                         ->color('success')
                         ->visible(fn () => Auth::user()?->can('verify_data') ?? false)
+                        // ->visible() controla el render; ->authorize() vuelve a
+                        // exigir el permiso en el servidor al ejecutar la acción.
+                        ->authorize(fn () => Auth::user()?->can('verify_data') ?? false)
                         ->requiresConfirmation()
                         ->modalDescription(__('fleet.approve_confirm'))
                         ->deselectRecordsAfterCompletion()
@@ -398,6 +419,9 @@ class MachineResource extends Resource
                         ->icon('heroicon-o-arrows-right-left')
                         ->color('info')
                         ->visible(fn () => Auth::user()?->can('move_fleet') ?? false)
+                        // ->visible() controla el render; ->authorize() vuelve a
+                        // exigir el permiso en el servidor al ejecutar la acción.
+                        ->authorize(fn () => Auth::user()?->can('move_fleet') ?? false)
                         ->form([
                             Forms\Components\Select::make('current_location_id')
                                 ->label(__('mgmt.move_to'))

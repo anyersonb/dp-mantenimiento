@@ -4,9 +4,11 @@ namespace App\Providers;
 
 use App\Models\ChecklistResult;
 use App\Models\HorometerReading;
+use App\Models\Machine;
 use App\Models\WorkOrderPart;
 use App\Observers\ChecklistResultObserver;
 use App\Observers\HorometerReadingObserver;
+use App\Observers\MachineObserver;
 use App\Observers\WorkOrderPartObserver;
 use Filament\Support\Facades\FilamentView;
 use Filament\View\PanelsRenderHook;
@@ -32,6 +34,11 @@ class AppServiceProvider extends ServiceProvider
         // Etapa 03: notifica al administrador (Alert type=checklist) cuando un ítem
         // del checklist ejecutado en una OT se marca como "alert".
         ChecklistResult::observe(ChecklistResultObserver::class);
+
+        // Hallazgo A3 (QA Etapa 05): needs_review no puede modificarse sin el
+        // permiso verify_data, ni por el form normal de edición ni por payload
+        // manipulado (Machine usa $guarded = []).
+        Machine::observe(MachineObserver::class);
 
         // PWA: manifest + theme-color + registro del service worker en el <head> del panel
         FilamentView::registerRenderHook(
