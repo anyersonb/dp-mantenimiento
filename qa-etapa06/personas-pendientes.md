@@ -64,3 +64,40 @@ herramienta no es la de una persona con el pulgar. Lo que sí es objetivo y se v
 **toques por tarea, pantallas recorridas, si el flujo se puede encadenar sin volver al menú, tamaño de
 los controles, contraste, y si se pierde lo escrito** al interrumpir. Los tiempos se reportarán como
 tiempo de respuesta del servidor, declarado como tal.
+
+---
+
+## Sesión 2 — montaje listo (2026-07-27)
+
+El taller (`taller@dp.local`) tiene **dos** OT esperándolo, y son distintas a propósito: una cierra bien
+y la otra tiene que ser rechazada. Sin las dos, un verde en la primera se leería como "el cierre de
+servicio funciona", cuando en un tercio de la flota no funcionaría.
+
+| OT | Máquina | Horas de la máquina | `hours_at_open` | ¿Se puede cerrar? |
+|---|---|---|---|---|
+| `QA-OT-01` (id 14) | `QA-RESP-02` | 1460 h | NULL | **sí** — camino normal |
+| `QA-OT-02` (id 17) | `QA-RESP-03` | **NULL** | NULL | **no** — es la forma exacta de las 41 máquinas de E6-08 |
+
+`QA-OT-02` se creó **desde el panel** por el responsable, con "Horas al abrir" **vacío a propósito**, y
+dejó verificado en base de datos que el sello de E6-08 funciona en el navegador: `opened_by=2` (antes
+quedaba NULL). De paso quedaron confirmados en pantalla otros dos fixes: el código propuesto fue
+**WO-0002** (numera sobre los códigos; con la fórmula vieja habría propuesto WO-0015) y el desplegable
+"Asignada a" ofreció **2 usuarios** en vez de 7 (solo administrador y taller, los que tienen
+`execute_work_order`).
+
+### Qué tiene que ejercitar la sesión
+
+1. **Cerrar `QA-OT-01`**: debe reiniciar el ciclo, resolver la alerta abierta de 40 h y registrar la
+   lectura de cierre con `source=workshop`.
+2. **Intentar cerrar `QA-OT-02`**: debe **rechazarse** con el mensaje explícito, y hay que comprobar en
+   base de datos que la OT sigue abierta y que `remaining_hours` de la máquina **no** se reinició.
+   Después, cargar las horas en "Horas al abrir" y cerrarla: recién ahí tiene que dejar `last_service_hours`
+   y la lectura de cierre.
+3. **Verificación A5, explícita**: subir la factura como adjunto y responder **a qué disco escribe** y si
+   **su URL responde sin sesión**. `work_order_attachments` está en **0**: es el primer ejercicio real de
+   ese fix.
+4. **Commit B en vivo**: borrar un adjunto propio con la OT **abierta** (debe poder) y con la OT
+   **cerrada** (no debe poder, ni siquiera el administrador). Confirmado en el árbol antes de empezar:
+   el trait `DeletesOnlyWhileWorkOrderIsOpen` está en los tres relation managers de OT y sus 34 tests
+   pasan.
+5. Checklist y repuestos de la OT, que son los otros dos relation managers del mismo trait.

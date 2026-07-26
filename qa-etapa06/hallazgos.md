@@ -162,6 +162,55 @@ eventos, una regla de coherencia única y bitácora con valor anterior.
 - **`remaining_hours` y `current_hours` editables a mano** en el formulario de la máquina. Es un
   override directo del dato sensible; hay que decidir si es intencional (corrección legítima del
   responsable) o si debe pasar por el mismo camino auditado que las lecturas.
-- **4 máquinas reales desalineadas** que detectó `machines:recalculate-hours` en simulación y que **no
-  se tocaron**: EX027 (275→341 h, remaining 304→238), PW-MERSINO-02 (le falta la fecha), y MS-TEMP-01 y
-  RL017, cuyo `remaining_hours` de 500 la regla no reproduce y quedaría en NULL. Decisión de Anyerson.
+- **Máquinas desalineadas: 2 reparadas, 2 son un hueco de DATOS.** Ver la sección de abajo.
+
+
+## EX027 y las otras tres: artefacto contra hueco de datos
+
+La pregunta era si el desalineamiento contra el PM report es un artefacto de cálculo o una máquina
+realmente pasada de servicio. **Son dos cosas distintas y hay que separarlas máquina por máquina.**
+
+### EX027 — artefacto del importador. NO está pasada de servicio.
+
+La historia completa, leída de la bitácora y de las lecturas:
+
+| Cuándo | Qué pasó |
+|---|---|
+| 16/jul 03:05 | La máquina nace con `current_hours=341`, de una lectura del **2/jul** importada del PM report |
+| 22/jul 02:14 | Una importación del archivo `PM_Service Report_Machines_7172026 (3).xlsx` la baja a **275 h**, con una lectura fechada el **17/jun** |
+
+Las dos lecturas son coherentes entre sí —275 h el 17/jun y 341 h el 2/jul: el horómetro subió 66 h en
+quince días—. Lo que está mal es **cuál de las dos quedó como "actual"**: el importador escribió
+`current_hours` desde una fila cuya lectura es **más vieja** que una que ya existía. Un horómetro no
+baja con el tiempo, y el propio sistema rechaza eso en los otros caminos (fix M4, hallazgo E6-03).
+
+O sea: **artefacto**, y de la misma familia que E6-01/E6-02. Reparado con
+`machines:recalculate-hours --machine=EX027 --apply`:
+
+- `current_hours` 275 → **341**, con la fecha correcta (2/jul en vez de 17/jun);
+- `remaining_hours` 304 → **238**, que es `304 − (341 − 275)` sobre el ancla verificada del PM report.
+
+**No hay urgencia:** con 238 h de margen la máquina no está pasada de servicio ni entra en el umbral de
+alerta de 100 h (`is_due_soon = false`, cero alertas). Lo que había era un panel **66 h optimista**: el
+servicio se iba a atrasar 66 h de uso real. El cambio quedó en la bitácora con su valor anterior.
+
+**PW-MERSINO-02** era el mismo caso en versión inocua —le faltaba solo `current_hours_date`—: reparada,
+`remaining_hours` no se movió (229).
+
+### MS-TEMP-01 y RL017 — NO se tocaron, y no es lo mismo
+
+Acá el recálculo dejaría `remaining_hours` en **NULL**, y eso no es reparar: es borrar un número que el
+cliente ve hoy. La causa no es de cálculo, es que **falta el dato**:
+
+| Máquina | Qué tiene | Por qué la regla no puede |
+|---|---|---|
+| MS-TEMP-01 | horómetro `replaced`, 1 h (23/oct/2025), último servicio a las 2800 h de la escala vieja | Sin ancla, no hay forma de relacionar la escala nueva con el ciclo de servicio |
+| RL017 | **ninguna lectura**, sin `current_hours`, último servicio a las 788 h | No hay desde dónde contar |
+
+Las dos tienen `remaining_hours = 500` guardado, que es el intervalo completo puesto como suposición, no
+una medición. **El arreglo correcto no es un comando: es cargar el dato.** MS-TEMP-01 necesita un ancla
+por la acción "Registrar reemplazo de horómetro" (cuántas horas le quedan al día de hoy sobre el
+horómetro nuevo) y RL017 necesita una lectura. Las dos son preguntas para el cliente.
+
+**Y RL017 es una de las 6 que E6-08 dejó al descubierto:** no tiene horas y **tampoco** tiene la marca
+`needs_review`, así que en el panel se ve como una máquina normal.
