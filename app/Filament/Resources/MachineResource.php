@@ -130,7 +130,10 @@ class MachineResource extends Resource
                 ->columns(3)
                 ->schema([
                     Forms\Components\TextInput::make('id_code')
-                        ->label(__('fleet.id_code'))->required()->maxLength(50),
+                        ->label(__('fleet.id_code'))->required()->maxLength(50)
+                        // Hallazgo E6-07: sin esto, un id_code repetido era un
+                        // 500 mudo (verificado con QA-CIS-01 en la Sesión 1).
+                        ->unique(ignoreRecord: true),
                     Forms\Components\Select::make('machine_category_id')
                         ->label(__('fleet.category'))
                         ->relationship('category', 'name')->searchable()->preload(),

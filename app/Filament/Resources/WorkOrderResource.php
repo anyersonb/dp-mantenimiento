@@ -92,8 +92,12 @@ class WorkOrderResource extends Resource
         return $form->schema([
             Forms\Components\Section::make()->columns(3)->schema([
                 Forms\Components\TextInput::make('code')->label(__('wo.code'))
-                    ->default(fn () => 'WO-'.str_pad((string) (WorkOrder::max('id') + 1), 4, '0', STR_PAD_LEFT))
-                    ->required()->maxLength(50),
+                    // Hallazgos E6-09 (el código salía de max(id)+1, que no es
+                    // el id de la fila ni un valor libre garantizado) y E6-07
+                    // (el duplicado era un 500 mudo, reproducido con QA-OT-01).
+                    ->default(fn () => WorkOrder::nextCode())
+                    ->required()->maxLength(50)
+                    ->unique(ignoreRecord: true),
                 Forms\Components\Select::make('machine_id')->label(__('fleet.machines'))
                     ->relationship('machine', 'id_code')->searchable()->preload()->required(),
                 Forms\Components\Select::make('type')->label(__('wo.type'))->options([

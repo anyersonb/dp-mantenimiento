@@ -25,6 +25,8 @@ return [
     '503_heading' => 'Scheduled maintenance',
     '503_message' => 'The system is undergoing scheduled maintenance. Please try again shortly.',
 
+    'name_already_used' => 'A record named ":name" already exists. Choose a different name.',
+
     'exit_panel' => 'Back to the panel',
     'exit_field' => 'Back to home',
     'exit_login' => 'Go to login',

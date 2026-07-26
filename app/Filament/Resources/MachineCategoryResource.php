@@ -4,6 +4,7 @@ namespace App\Filament\Resources;
 
 use App\Filament\Resources\MachineCategoryResource\Pages;
 use App\Models\MachineCategory;
+use App\Rules\UniqueSlugFrom;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
@@ -77,7 +78,11 @@ class MachineCategoryResource extends Resource
         return $form->schema([
             Forms\Components\TextInput::make('name')->label(__('fleet.category'))->required()
                 ->live(onBlur: true)
-                ->afterStateUpdated(fn ($state, Forms\Set $set) => $set('slug', Str::slug((string) $state))),
+                ->afterStateUpdated(fn ($state, Forms\Set $set) => $set('slug', Str::slug((string) $state)))
+                // Hallazgo E6-07: el indice unico esta en `slug`, que es un
+                // campo Hidden derivado de este. Validar aca es lo unico que
+                // le muestra al usuario el motivo; antes era un 500 mudo.
+                ->rule(fn (?Model $record) => new UniqueSlugFrom('machine_categories', $record?->getKey())),
             Forms\Components\Hidden::make('slug'),
             Forms\Components\TextInput::make('prefix')->label(__('nav.prefix'))->maxLength(5),
             Forms\Components\TextInput::make('default_service_interval')->label(__('fleet.service_interval'))

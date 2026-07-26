@@ -25,6 +25,8 @@ return [
     '503_heading' => 'Servicio en mantenimiento',
     '503_message' => 'El sistema está en mantenimiento programado. Volvé a intentarlo en unos minutos.',
 
+    'name_already_used' => 'Ya existe un registro con el nombre ":name". Elegí otro nombre.',
+
     'exit_panel' => 'Volver al panel',
     'exit_field' => 'Volver al inicio',
     'exit_login' => 'Ir a iniciar sesión',

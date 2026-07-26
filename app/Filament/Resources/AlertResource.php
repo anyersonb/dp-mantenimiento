@@ -9,6 +9,7 @@ use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
+use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Facades\Auth;
 
 class AlertResource extends Resource
@@ -149,8 +150,12 @@ class AlertResource extends Resource
                     ->action(function (Alert $record, Tables\Actions\Action $action) {
                         $machine = $record->machine;
 
-                        $workOrder = WorkOrder::create([
-                            'code' => 'WO-'.str_pad((string) (WorkOrder::max('id') + 1), 4, '0', STR_PAD_LEFT),
+                        // Hallazgos E6-09 y E6-07: acá no hay formulario que
+                        // valide, así que el código sale de la única fuente
+                        // (`WorkOrder::nextCode()`) y, si entre el cálculo y el
+                        // insert alguien se quedó con ese número, se reintenta
+                        // en vez de tirarle un 500 al usuario.
+                        $workOrder = static::createWithFreeCode([
                             'machine_id' => $machine->id,
                             'type' => 'preventive',
                             'service_tier' => $machine->service_interval_hours,
@@ -174,6 +179,28 @@ class AlertResource extends Resource
             ->bulkActions([])
             ->emptyStateHeading(__('alerts.empty_heading'))
             ->emptyStateDescription(__('alerts.empty_desc'));
+    }
+
+    /**
+     * Crea la OT resolviendo el código en el momento del insert y reintentando
+     * si otro proceso se quedó con ese número entre el cálculo y el guardado.
+     * Es la mitad "camino sin formulario" del fix de E6-07/E6-09: la validación
+     * `->unique()` protege al que escribe en el panel, esto protege al que no
+     * pasa por un formulario.
+     */
+    protected static function createWithFreeCode(array $attributes, int $intentos = 3): WorkOrder
+    {
+        for ($i = 1; $i <= $intentos; $i++) {
+            try {
+                return WorkOrder::create(['code' => WorkOrder::nextCode()] + $attributes);
+            } catch (UniqueConstraintViolationException $e) {
+                if ($i === $intentos) {
+                    throw $e;
+                }
+            }
+        }
+
+        throw new \LogicException('unreachable');
     }
 
     public static function getPages(): array
