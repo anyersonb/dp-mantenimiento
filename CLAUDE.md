@@ -82,3 +82,68 @@ Fuente de verdad: `database/seeders/RolesAndPermissionsSeeder.php`. Resumen:
 # MySQL del proyecto
 /g/laragon/bin/mysql/mysql-8.0.30-winx64/bin/mysql.exe -uroot dp_mantenimiento
 ```
+
+## Despliegue a producción (Etapa 05, Bloque 5 — hallazgo M7)
+
+`APP_DEBUG=true` es correcto en local: es lo que te deja ver el stack trace de
+Ignition cuando algo rompe. El problema es que **hoy nada impide que ese mismo
+valor viaje a producción**, y ahí un 500 le muestra a cualquier visitante
+~890 KB de Ignition con nombres de clase y rutas absolutas del servidor. Este
+checklist es lo que hay que verificar (o automatizar en el pipeline de
+despliegue) antes de servir la app en el dominio real del cliente.
+
+**El `.env` local NO se toca.** Este checklist es para el `.env` del servidor
+de producción — nunca para el de desarrollo.
+
+### Variables que deben quedar así en el `.env` de producción
+
+| Variable | Valor en producción | Por qué |
+|---|---|---|
+| `APP_ENV` | `production` | Cambia comportamiento interno de Laravel (p. ej. confirmaciones en comandos destructivos) y es lo que muchos paquetes usan para decidir si loguean/exponen de más. |
+| `APP_DEBUG` | `false` | **El punto central de M7.** Con `true`, cualquier excepción no controlada renderiza Ignition con stack trace y rutas del servidor en vez de la página de error con marca (`resources/views/errors/500.blade.php`, hallazgo M6). |
+| `APP_URL` | URL real del cliente (`https://...`) | La usan generación de links absolutos, el correo (`MAIL_FROM`, links de reserva/cotización), y algunos assets. |
+| `SESSION_SECURE_COOKIE` | `true` | **Hoy no está definida en `.env` (hallazgo B5 de la corrida).** Sin esto, la cookie de sesión viaja también por HTTP. Requiere que el dominio de producción sirva TODO por HTTPS; la app no fuerza el esquema por su cuenta, así que si el hosting no tiene HTTPS activo primero, activar esta variable rompe el login. |
+
+`.env.example` ya documenta estos cuatro valores con un comentario explicando
+cada uno (ver el bloque justo antes de `APP_ENV=local`), para que quien
+prepare el `.env` de producción los tenga a la vista y no dependa de esta
+tabla.
+
+### Comandos a correr en cada despliegue
+
+```
+composer install --no-dev --optimize-autoloader
+
+php artisan config:cache
+php artisan route:cache
+php artisan view:cache
+php artisan storage:link
+php artisan migrate --force
+
+npm ci
+npm run build
+```
+
+Notas:
+
+- `storage:link` solo hace falta la primera vez (o si se recrea el
+  servidor); no falla si el enlace ya existe.
+- `config:cache` congela el `.env` leído en ese momento — si después cambiás
+  una variable en el `.env` del servidor, hay que volver a correr
+  `config:cache` (u `optimize:clear` + `optimize`) o el cambio no se ve.
+- `migrate --force` es necesario porque `APP_ENV=production` hace que
+  `migrate` a secas pida confirmación interactiva.
+
+### Cómo se probó M7 (y cómo volver a probarlo)
+
+`tests/Feature/ErrorPagesTest.php::test_a_500_with_debug_disabled_renders_the_branded_page_without_leaking_internals`
+fuerza `config(['app.debug' => false])` dentro del test (sin tocar ningún
+`.env`), dispara una excepción con un dato sensible en el mensaje, y verifica
+que la respuesta:
+
+1. Sea `500` y muestre la página con marca (`errors.500_heading` traducido).
+2. **No** contenga el nombre de la excepción, la ruta sensible del mensaje,
+   `Stack trace`, ni nada de Ignition/Whoops.
+
+Es la prueba real de que "producción con `APP_DEBUG=false`" no filtra nada,
+independiente de qué excepción concreta la dispare.
