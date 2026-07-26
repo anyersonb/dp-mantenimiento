@@ -134,20 +134,33 @@ class FieldScreensTest extends TestCase
         ]);
     }
 
-    public function test_foreman_board_updates_the_machine_location(): void
+    /**
+     * Hallazgo C2 (Etapa 05): este test antes usaba una obra NUEVA y
+     * afirmaba que foreman podía reasignar la máquina — eso era exactamente
+     * el bug (foreman ejerciendo move_fleet sin tenerlo). Corregido: foreman
+     * solo tiene confirm_location, así que aquí ratifica la obra que la
+     * máquina ya tiene. La cobertura del bug (foreman no puede moverla, y
+     * quien tiene move_fleet sí) vive en FieldPermissionAuthorizationTest.
+     */
+    public function test_foreman_board_confirms_the_current_location_without_moving_it(): void
     {
         $foreman = User::where('email', 'foreman@dp.local')->firstOrFail();
         $machine = $this->machine();
-        $newLocation = Location::create(['name' => 'New Job Site', 'slug' => 'new-job-site-'.uniqid()]);
+        $originalLocationId = $machine->current_location_id;
 
         Livewire::actingAs($foreman)
             ->test(ForemanBoard::class)
             ->call('selectMachine', $machine->id)
-            ->set('locationId', $newLocation->id)
             ->call('save')
             ->assertSet('submitted', true);
 
         $machine->refresh();
-        $this->assertSame($newLocation->id, $machine->current_location_id);
+        $this->assertSame($originalLocationId, $machine->current_location_id);
+
+        $this->assertDatabaseHas('activity_log', [
+            'subject_type' => Machine::class,
+            'subject_id' => $machine->id,
+            'event' => 'location_confirmed',
+        ]);
     }
 }
