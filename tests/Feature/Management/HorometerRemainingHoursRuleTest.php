@@ -3,12 +3,14 @@
 namespace Tests\Feature\Management;
 
 use App\Filament\Resources\MachineResource\Pages\ListMachines;
+use App\Models\Alert;
 use App\Models\HorometerReading;
 use App\Models\Machine;
 use App\Models\User;
 use App\Services\HourmeterReplacementService;
 use Database\Seeders\RolesAndPermissionsSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Artisan;
 use Livewire\Livewire;
 use Spatie\Activitylog\Models\Activity;
 use Tests\TestCase;
@@ -265,5 +267,87 @@ class HorometerRemainingHoursRuleTest extends TestCase
         Livewire::actingAs($taller)
             ->test(ListMachines::class)
             ->assertTableActionHidden('replaceHourmeter', $machine);
+    }
+
+    /**
+     * Pendiente detectado tras el fix: Machine::getComputedRemainingHoursAttribute()
+     * tenía una segunda copia de la fórmula rota (el "lector"), usada como
+     * fallback cuando remaining_hours es NULL. Aunque el observer (el
+     * "escritor") ya dejaba a PJ001 en NULL, el semáforo/alertas seguían
+     * mostrando 6054 porque consultaban este accessor. Ahora ambos llaman a
+     * Machine::calculateRemainingHours(), una sola implementación.
+     */
+    public function test_pj001_computed_remaining_hours_and_service_status_are_unknown_not_a_number(): void
+    {
+        $machine = Machine::create([
+            'id_code' => 'PJ001',
+            'status' => 'active',
+            'hourmeter_status' => 'broken',
+            'current_hours' => 4901,
+            'last_service_hours' => 10455,
+            'service_interval_hours' => 500,
+            'hours_adjustment' => 0,
+            'remaining_hours' => null,
+        ]);
+
+        $this->assertNull($machine->computed_remaining_hours);
+        $this->assertNotSame(6054, $machine->computed_remaining_hours);
+        $this->assertSame('unknown', $machine->service_status);
+        $this->assertFalse($machine->is_due_soon);
+        $this->assertFalse($machine->is_overdue);
+    }
+
+    /** Antes del fix, alerts:scan usaba computed_remaining_hours y abría una alerta con el 6054 inventado. */
+    public function test_alerts_scan_does_not_create_an_alert_for_pj001(): void
+    {
+        Machine::create([
+            'id_code' => 'PJ001',
+            'status' => 'active',
+            'hourmeter_status' => 'broken',
+            'current_hours' => 4901,
+            'last_service_hours' => 10455,
+            'service_interval_hours' => 500,
+            'hours_adjustment' => 0,
+            'remaining_hours' => null,
+        ]);
+
+        Artisan::call('alerts:scan');
+
+        $this->assertSame(0, Alert::where('type', 'service')->count());
+    }
+
+    /** El accessor no debe verse afectado por hours_adjustment (mismo defecto que tenía el observer). */
+    public function test_ex013_computed_remaining_hours_is_not_affected_by_hours_adjustment(): void
+    {
+        $machine = Machine::create([
+            'id_code' => 'EX013',
+            'status' => 'active',
+            'hourmeter_status' => 'ok',
+            'current_hours' => 5808,
+            'last_service_hours' => 5542,
+            'service_interval_hours' => 500,
+            'hours_adjustment' => 5714,
+            'remaining_hours' => null, // fuerza el fallback del accessor
+        ]);
+
+        // Clásico sin ancla: 500 - (5808 - 5542) = 234. Con el defecto viejo
+        // habría dado 500 - ((5808 + 5714) - 5542) = -5480.
+        $this->assertSame(234, $machine->computed_remaining_hours);
+    }
+
+    /** El accessor sigue devolviendo tal cual el remaining_hours verificado cuando no es NULL. */
+    public function test_a_verified_remaining_hours_is_returned_as_is_by_the_accessor(): void
+    {
+        $machine = Machine::create([
+            'id_code' => 'EX010',
+            'status' => 'active',
+            'hourmeter_status' => 'ok',
+            'current_hours' => 9793,
+            'last_service_hours' => 9708,
+            'service_interval_hours' => 500,
+            'remaining_hours' => 415,
+        ]);
+
+        $this->assertSame(415, $machine->computed_remaining_hours);
     }
 }

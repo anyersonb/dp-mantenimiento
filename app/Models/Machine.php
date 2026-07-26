@@ -97,8 +97,47 @@ class Machine extends Model
         if ($this->remaining_hours !== null) {
             return $this->remaining_hours;
         }
-        if ($this->current_hours !== null && $this->last_service_hours !== null) {
-            $used = ($this->current_hours + $this->hours_adjustment) - $this->last_service_hours;
+
+        return $this->calculateRemainingHours();
+    }
+
+    /**
+     * Única implementación de la regla de remaining_hours (regla-horometro.md,
+     * sec. 2.1 — hallazgo A4). HorometerReadingObserver y
+     * getComputedRemainingHoursAttribute() llaman aquí; no debe existir una
+     * tercera copia de esta fórmula en ningún otro lado.
+     *
+     * 1. Un horómetro roto o sin información nunca publica un valor calculado.
+     * 2. Con ancla verificada (fijada por el PM Service Report o por un evento
+     *    de reemplazo), se descuenta desde ahí: nunca se recalcula desde cero.
+     * 3. Sin ancla, cae al cálculo clásico, y solo si es válido (misma escala:
+     *    last_service_hours <= current_hours).
+     * 4. Si nada de lo anterior aplica, NULL ("desconocido"): nunca un número
+     *    inventado.
+     *
+     * `hours_adjustment` no entra en esta fórmula (describe horas reales
+     * acumuladas para reventa/garantías, no la ventana de servicio).
+     */
+    public function calculateRemainingHours(): ?int
+    {
+        if (in_array($this->hourmeter_status, ['broken', 'no_info'], true)) {
+            return null;
+        }
+
+        if (
+            $this->current_hours !== null
+            && $this->remaining_anchor_hours !== null
+            && $this->remaining_anchor_at_hours !== null
+        ) {
+            return $this->remaining_anchor_hours - ($this->current_hours - $this->remaining_anchor_at_hours);
+        }
+
+        if (
+            $this->current_hours !== null
+            && $this->last_service_hours !== null
+            && $this->last_service_hours <= $this->current_hours
+        ) {
+            $used = $this->current_hours - $this->last_service_hours;
 
             return $this->service_interval_hours - $used;
         }
