@@ -10,6 +10,7 @@ use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Auth;
 
 class ChecklistResultsRelationManager extends RelationManager
 {
@@ -84,6 +85,12 @@ class ChecklistResultsRelationManager extends RelationManager
                     ->label(__('wo.preload_checklist'))
                     ->icon('heroicon-o-arrow-down-tray')
                     ->color('info')
+                    // Hallazgo del inventario Etapa 05: esta acción no tenía NI
+                    // ->visible() ni ->authorize(); cualquiera que llegara a la
+                    // página de la OT (hoy exige execute_work_order gracias al
+                    // fix de C1) podía precargar el checklist. Se exige el mismo
+                    // permiso que da acceso de edición a la OT.
+                    ->authorize(fn () => Auth::user()?->can('execute_work_order') ?? false)
                     ->requiresConfirmation()
                     ->modalDescription(__('wo.preload_checklist_confirm'))
                     ->action(function () {

@@ -11,6 +11,7 @@ use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Auth;
 
 class WorkOrderResource extends Resource
@@ -20,6 +21,50 @@ class WorkOrderResource extends Resource
     protected static ?string $navigationIcon = 'heroicon-o-clipboard-document-list';
 
     protected static ?int $navigationSort = 2;
+
+    /*
+     * Hallazgo C1 (QA Etapa 05): este Resource no tenía ni un solo control de
+     * permisos y por eso gerencia llegó a borrar una orden de trabajo real y
+     * taller creaba OTs sin tener create_work_order. Matriz aplicada:
+     * - view_fleet: quien ve flota ve el listado/detalle de OT (todos los
+     *   roles del panel lo tienen; el filtro real de costos vive en el form).
+     * - create_work_order: abrir/asignar una OT (responsable_mantenimiento,
+     *   administrador).
+     * - execute_work_order: ejecutar/editar una OT ya abierta (taller,
+     *   administrador) — le da uso real al permiso que antes era letra
+     *   muerta (hallazgo A6).
+     * - borrado: solo administrador, porque una OT es historial de
+     *   mantenimiento (el activo que el cliente quiere sacar del Excel).
+     */
+    public static function canViewAny(): bool
+    {
+        return Auth::user()?->can('view_fleet') ?? false;
+    }
+
+    public static function canView(Model $record): bool
+    {
+        return Auth::user()?->can('view_fleet') ?? false;
+    }
+
+    public static function canCreate(): bool
+    {
+        return Auth::user()?->can('create_work_order') ?? false;
+    }
+
+    public static function canEdit(Model $record): bool
+    {
+        return Auth::user()?->can('execute_work_order') ?? false;
+    }
+
+    public static function canDelete(Model $record): bool
+    {
+        return Auth::user()?->hasRole('administrador') ?? false;
+    }
+
+    public static function canDeleteAny(): bool
+    {
+        return Auth::user()?->hasRole('administrador') ?? false;
+    }
 
     public static function getNavigationLabel(): string
     {
@@ -126,6 +171,9 @@ class WorkOrderResource extends Resource
                     ->icon('heroicon-o-check-circle')
                     ->color('success')
                     ->visible(fn (WorkOrder $record) => ! in_array($record->status, ['completed', 'cancelled'], true))
+                    // Hallazgo A6: "completar" solo validaba el status, nunca el
+                    // permiso. execute_work_order pasa a tener uso real aquí.
+                    ->authorize(fn () => Auth::user()?->can('execute_work_order') ?? false)
                     ->requiresConfirmation()
                     ->modalDescription(__('wo.complete_confirm'))
                     ->action(function (WorkOrder $record) {
