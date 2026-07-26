@@ -6,6 +6,7 @@ use App\Filament\Resources\MachineResource\Pages;
 use App\Filament\Resources\MachineResource\RelationManagers;
 use App\Models\Location;
 use App\Models\Machine;
+use App\Rules\RejectsDangerousUploadExtensions;
 use App\Services\HourmeterReplacementService;
 use Filament\Forms;
 use Filament\Forms\Form;
@@ -178,6 +179,21 @@ class MachineResource extends Resource
                         ->helperText(__('fleet.spec_sheet_help')),
                 ]),
 
+            /*
+             * Etapa 05 (auditoria A5): a diferencia de facturas/cotizaciones,
+             * las fotos de maquina NO son evidencia de costos y no estan
+             * cubiertas por view_costs en el brief del cliente. Se quedan en
+             * disk('public') deliberadamente:
+             * - Moverlas a disco privado exigiria una URL firmada/temporal
+             *   para que el <img> del panel (ficha + galeria + FilePond de
+             *   este mismo FileUpload) siga renderizando, y el disco "local"
+             *   (driver local) no soporta temporaryUrl() como si soporta S3
+             *   — habria que escribir un proxy autenticado para cada thumbnail,
+             *   una complicacion real para un riesgo bajo (foto de un camion,
+             *   no un dato del cliente ni una cifra de costo).
+             * - Se refuerzan igual el tipo/tamano/extension permitidos, que
+             *   es la parte de este hallazgo que si aplica a cualquier subida.
+             */
             Forms\Components\Section::make(__('fleet.images'))
                 ->columns(2)->collapsed()
                 ->schema([
@@ -186,14 +202,18 @@ class MachineResource extends Resource
                         ->image()
                         ->imageEditor()
                         ->disk('public')
-                        ->directory('machines/images'),
+                        ->directory('machines/images')
+                        ->maxSize(5120)
+                        ->rule(new RejectsDangerousUploadExtensions(['png', 'jpg', 'jpeg', 'webp'])),
                     Forms\Components\FileUpload::make('gallery')
                         ->label(__('fleet.gallery'))
                         ->image()
                         ->multiple()
                         ->reorderable()
                         ->disk('public')
-                        ->directory('machines/gallery'),
+                        ->directory('machines/gallery')
+                        ->maxSize(5120)
+                        ->rule(new RejectsDangerousUploadExtensions(['png', 'jpg', 'jpeg', 'webp'])),
                 ]),
 
             Forms\Components\Section::make(__('fleet.data_control'))
