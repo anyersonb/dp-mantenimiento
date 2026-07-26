@@ -12,6 +12,7 @@ use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Auth;
 
@@ -112,8 +113,17 @@ class WorkOrderResource extends Resource
                 Forms\Components\Select::make('priority')->label(__('wo.priority'))->options([
                     'normal' => __('wo.normal'), 'high' => __('wo.high'), 'urgent' => __('wo.urgent'),
                 ])->default('normal')->required(),
+                // Hallazgo E6-12: el desplegable ofrecía los 7 usuarios, así que
+                // se podía asignar una OT a gerencia o al operador de cisterna,
+                // que no pueden ejecutarla. El scope `permission()` de spatie
+                // cubre tanto el permiso por rol como el asignado directo.
                 Forms\Components\Select::make('assigned_to')->label(__('wo.assigned_to'))
-                    ->relationship('assignee', 'name')->searchable()->preload(),
+                    ->helperText(__('wo.assigned_to_help'))
+                    ->relationship(
+                        'assignee',
+                        'name',
+                        fn (Builder $query) => $query->permission('execute_work_order')
+                    )->searchable()->preload(),
                 Forms\Components\Radio::make('execution_mode')->label(__('wo.execution_mode'))->options([
                     'workshop' => __('wo.workshop'), 'onsite' => __('wo.onsite'),
                 ])->default('workshop')->inline()->inlineLabel(false),
