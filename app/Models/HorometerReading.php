@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Casts\AsLocalizedText;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Spatie\Activitylog\LogOptions;
@@ -18,6 +19,10 @@ class HorometerReading extends Model
         'hours' => 'integer',
         'gallons' => 'decimal:2',
         'verified' => 'boolean',
+        // Hallazgo E6-10: la nota que escribe el SISTEMA (el cierre de una OT,
+        // el importador del PM report) se guardaba ya traducida. Las que
+        // escribe una persona pasan de largo sin tocarse: no son traducibles.
+        'note' => AsLocalizedText::class,
     ];
 
     /**

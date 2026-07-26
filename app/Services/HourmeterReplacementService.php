@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\Machine;
 use App\Models\User;
+use App\Support\LocalizedText;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -60,11 +61,11 @@ class HourmeterReplacementService
                     'new_initial_hours' => $newInitialHours,
                     'note' => $note,
                 ])
-                ->log(__('mgmt.hourmeter_replaced_log', [
+                ->log(LocalizedText::of('mgmt.hourmeter_replaced_log', [
                     'machine' => $machine->id_code,
                     'old' => $oldFinalHours,
                     'new' => $newInitialHours,
-                ]));
+                ])->encode());
 
             return $machine;
         });

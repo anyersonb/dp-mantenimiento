@@ -85,5 +85,8 @@ return [
     'coords_approx_notice' => 'Las coordenadas mostradas son aproximadas (zona sur de Florida) y están pendientes de confirmación por el cliente.',
     'no_coords' => 'Aún no hay obras con coordenadas.',
     'event_discarded' => 'Descartada',
+    'machine_moved_log' => 'Máquina movida a otra obra',
+    'location_confirmed_log' => 'Ubicación de la máquina confirmada sin cambios',
+    'machine_approved_log' => 'Datos verificados y aprobados',
     'machine_discarded_log' => 'Maquina :machine descartada: queda inactiva y fuera de revision',
 ];

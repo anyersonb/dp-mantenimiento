@@ -4,6 +4,7 @@ namespace App\Observers;
 
 use App\Models\Alert;
 use App\Models\ChecklistResult;
+use App\Support\LocalizedText;
 
 class ChecklistResultObserver
 {
@@ -33,7 +34,8 @@ class ChecklistResultObserver
             return;
         }
 
-        $title = __('alerts.checklist_title', [
+        // E6-10: clave + parametros, no la frase ya traducida.
+        $title = LocalizedText::of('alerts.checklist_title', [
             'machine' => $machine->id_code,
             'code' => $workOrder->code,
         ]);
@@ -42,10 +44,14 @@ class ChecklistResultObserver
             ->map(fn (ChecklistResult $item) => '- '.$item->label.': '.($item->alert_detail ?: '—'))
             ->implode("\n");
 
+        // La búsqueda de la alerta ya abierta va contra lo GUARDADO, que ahora
+        // es el sobre de la clave y no la frase renderizada. Comparar contra el
+        // texto traducido dejaría de encontrarla en cuanto cambiara el idioma
+        // del que ejecuta, y se duplicarían las alertas.
         $existing = Alert::query()
             ->where('machine_id', $machine->id)
             ->where('type', 'checklist')
-            ->where('title', $title)
+            ->where('title', $title->encode())
             ->where('status', 'open')
             ->first();
 

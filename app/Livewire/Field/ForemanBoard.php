@@ -2,11 +2,12 @@
 
 namespace App\Livewire\Field;
 
+use App\Livewire\Field\Concerns\RejectsIncoherentReadings;
 use App\Models\HorometerReading;
 use App\Models\Location;
 use App\Models\Machine;
+use App\Support\LocalizedText;
 use Illuminate\Support\Facades\Auth;
-use App\Livewire\Field\Concerns\RejectsIncoherentReadings;
 use Livewire\Component;
 
 class ForemanBoard extends Component
@@ -114,7 +115,7 @@ class ForemanBoard extends Component
                 ->performedOn($machine)
                 ->causedBy(Auth::user())
                 ->event('location_moved')
-                ->log('Máquina movida a otra obra');
+                ->log(LocalizedText::of('mgmt.machine_moved_log')->encode());
         } else {
             // No hay atributo que cambie (logOnlyDirty no generaría nada),
             // así que la ratificación necesita su propio asiento explícito
@@ -123,7 +124,7 @@ class ForemanBoard extends Component
                 ->performedOn($machine)
                 ->causedBy(Auth::user())
                 ->event('location_confirmed')
-                ->log('Ubicación de la máquina confirmada sin cambios');
+                ->log(LocalizedText::of('mgmt.location_confirmed_log')->encode());
         }
 
         if ($this->hours !== '') {
@@ -144,7 +145,6 @@ class ForemanBoard extends Component
         $this->reset(['machineId', 'machineLabel', 'hours', 'submitted', 'search', 'machineResults']);
         $this->locationId = Auth::user()->location_id ?? '';
     }
-
 
     /**
      * Hallazgo C2: el <select> de obras no debe ofrecer opciones que el

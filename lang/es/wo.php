@@ -65,6 +65,7 @@ return [
     // Cierre
     'complete' => 'Completar',
     'complete_confirm' => 'Esto cierra la orden de trabajo. Si es preventiva, se reiniciará el ciclo de servicio de la máquina y se resolverá su alerta de servicio abierta.',
+    'assigned_to_help' => 'Solo aparecen los usuarios que pueden ejecutar órdenes de trabajo.',
     'hours_at_open' => 'Horas al abrir',
     'hours_at_open_help' => 'Horas del horómetro al abrir la OT. Si se deja vacío se toman las horas actuales de la máquina. Es el único dato con el que se puede cerrar el servicio de una máquina sin horómetro cargado.',
     'cannot_complete_no_hours' => 'No se puede completar sin horas de servicio',

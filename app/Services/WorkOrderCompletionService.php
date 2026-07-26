@@ -6,6 +6,7 @@ use App\Exceptions\CannotCompleteWorkOrder;
 use App\Models\Alert;
 use App\Models\HorometerReading;
 use App\Models\WorkOrder;
+use App\Support\LocalizedText;
 
 class WorkOrderCompletionService
 {
@@ -52,10 +53,18 @@ class WorkOrderCompletionService
 
         // Evita duplicar la lectura si complete() se invoca más de una vez para la misma OT
         // (p. ej. acción "Completar" + guardado posterior del formulario con status=completed).
+        //
+        // La identidad NO puede ser el texto de la nota: desde E6-10 la nota se
+        // guarda como clave + parámetros, y comparar contra la frase traducida
+        // dejaría de encontrarla en cuanto cambiara el idioma del que cierra la
+        // OT, duplicando la lectura. Se compara por lo que de verdad define "la
+        // misma lectura de cierre": misma máquina, mismo origen, misma fecha y
+        // las mismas horas.
         $alreadyLogged = HorometerReading::query()
             ->where('machine_id', $machine->id)
             ->where('source', 'workshop')
-            ->where('note', __('wo.service_reset_note', ['code' => $workOrder->code]))
+            ->whereDate('read_at', $serviceDate)
+            ->where('hours', $hours)
             ->exists();
 
         if ($alreadyLogged) {
@@ -69,7 +78,7 @@ class WorkOrderCompletionService
             'source' => 'workshop',
             'recorded_by' => $workOrder->assigned_to,
             'verified' => true,
-            'note' => __('wo.service_reset_note', ['code' => $workOrder->code]),
+            'note' => LocalizedText::of('wo.service_reset_note', ['code' => $workOrder->code]),
         ]);
     }
 

@@ -8,6 +8,7 @@ use App\Models\Location;
 use App\Models\Machine;
 use App\Rules\RejectsDangerousUploadExtensions;
 use App\Services\HourmeterReplacementService;
+use App\Support\LocalizedText;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Notifications\Notification;
@@ -364,7 +365,7 @@ class MachineResource extends Resource
                             ->performedOn($record)
                             ->causedBy(Auth::user())
                             ->event('approved')
-                            ->log('Datos verificados y aprobados');
+                            ->log(LocalizedText::of('mgmt.machine_approved_log')->encode());
 
                         Notification::make()->success()->title(__('fleet.approved_ok'))->send();
                     }),
@@ -399,7 +400,7 @@ class MachineResource extends Resource
                             ->causedBy(Auth::user())
                             ->event('discarded')
                             ->withProperties(['reason' => $data['reason']])
-                            ->log(__('mgmt.machine_discarded_log', ['machine' => $record->id_code]));
+                            ->log(LocalizedText::of('mgmt.machine_discarded_log', ['machine' => $record->id_code])->encode());
 
                         Notification::make()->success()->title(__('fleet.discarded_ok'))->send();
                     }),
@@ -490,7 +491,7 @@ class MachineResource extends Resource
                                     ->performedOn($machine)
                                     ->causedBy($user)
                                     ->event('approved')
-                                    ->log('Datos verificados y aprobados');
+                                    ->log(LocalizedText::of('mgmt.machine_approved_log')->encode());
 
                                 $approved++;
                             });

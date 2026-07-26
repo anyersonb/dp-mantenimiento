@@ -3,6 +3,7 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\ActivityResource\Pages;
+use App\Models\ActivityLog as Activity;
 use App\Models\HorometerReading;
 use App\Models\Machine;
 use App\Models\WorkOrder;
@@ -15,7 +16,6 @@ use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
-use Spatie\Activitylog\Models\Activity;
 
 /**
  * Visor de bitácora transversal (quién / qué / cuándo), de solo lectura.

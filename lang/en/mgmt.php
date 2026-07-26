@@ -85,5 +85,8 @@ return [
     'coords_approx_notice' => 'Coordinates shown are approximate (South Florida area) and pending client confirmation.',
     'no_coords' => 'No jobsites with coordinates yet.',
     'event_discarded' => 'Discarded',
+    'machine_moved_log' => 'Machine moved to another job site',
+    'location_confirmed_log' => 'Machine location confirmed with no changes',
+    'machine_approved_log' => 'Data verified and approved',
     'machine_discarded_log' => 'Machine :machine discarded: set to inactive and removed from review',
 ];

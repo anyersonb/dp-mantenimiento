@@ -8,6 +8,7 @@ use App\Models\Machine;
 use App\Models\MachineCategory;
 use App\Models\MachinePart;
 use App\Models\Make;
+use App\Support\LocalizedText;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Str;
 
@@ -97,7 +98,7 @@ class FleetSeeder extends Seeder
                     ],
                     [
                         'hours' => $m['latest_reading']['hrs'],
-                        'note' => 'Lectura importada del PM Service Report',
+                        'note' => LocalizedText::of('fleet.imported_reading_note'),
                         'verified' => true,
                     ]
                 );

@@ -102,4 +102,7 @@ return [
     'delete_heading' => 'Borrar la maquina :machine',
     'delete_warning' => 'ATENCION: esto NO es dar de baja. Borrar :machine elimina tambien, en cascada: :work_orders orden(es) de trabajo con sus costos, :readings lectura(s) de horometro, :alerts alerta(s) y :parts parte(s) del catalogo. Para dar de baja una maquina usa el estado Inactiva, o la accion Descartar si esta en revision.',
     'delete_confirm_button' => 'Si, borrar y perder el historial',
+
+    'imported_reading_note' => 'Lectura importada del PM Service Report',
+    'imported_reading_from_file_note' => 'Lectura importada del PM Service Report (:file)',
 ];

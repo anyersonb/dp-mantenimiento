@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\HorometerReading;
 use App\Models\Machine;
 use App\Models\User;
+use App\Support\LocalizedText;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use PhpOffice\PhpSpreadsheet\IOFactory;
@@ -108,10 +109,10 @@ class PmServiceReportImporter
                 'unmatched' => array_column($unmatched, 'id_code'),
                 'warnings' => $warnings,
             ])
-            ->log(__('mgmt.import_pm_report_log', [
+            ->log(LocalizedText::of('mgmt.import_pm_report_log', [
                 'updated' => count($updated),
                 'unmatched' => count($unmatched),
-            ]));
+            ])->encode());
 
         return [
             'updated' => $updated,
@@ -170,7 +171,11 @@ class PmServiceReportImporter
                     'source' => 'import',
                     'hours' => $record['latest_reading']['hours'],
                     'recorded_by' => $causer?->id,
-                    'note' => 'PM Service Report import'.($originalFilename ? " ({$originalFilename})" : ''),
+                    // E6-10: clave + parámetros. El nombre del archivo es un
+                    // dato, no texto traducible, y va como parámetro.
+                    'note' => $originalFilename
+                        ? LocalizedText::of('fleet.imported_reading_from_file_note', ['file' => $originalFilename])
+                        : LocalizedText::of('fleet.imported_reading_note'),
                     'gallons' => $record['fuel_added'],
                     'verified' => true,
                 ]);

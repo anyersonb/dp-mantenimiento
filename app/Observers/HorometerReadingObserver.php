@@ -5,6 +5,7 @@ namespace App\Observers;
 use App\Models\Alert;
 use App\Models\HorometerReading;
 use App\Models\Machine;
+use App\Support\LocalizedText;
 use Illuminate\Support\Facades\Auth;
 
 class HorometerReadingObserver
@@ -98,8 +99,8 @@ class HorometerReadingObserver
         Alert::create([
             'machine_id' => $machine->id,
             'type' => 'service',
-            'title' => __('alerts.auto_title', ['machine' => $machine->id_code]),
-            'message' => __('alerts.auto_message', [
+            'title' => LocalizedText::of('alerts.auto_title', ['machine' => $machine->id_code]),
+            'message' => LocalizedText::of('alerts.auto_message', [
                 'machine' => $machine->id_code,
                 'hours' => $machine->remaining_hours,
             ]),

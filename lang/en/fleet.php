@@ -102,4 +102,7 @@ return [
     'delete_heading' => 'Delete machine :machine',
     'delete_warning' => 'WARNING: this is NOT a retirement. Deleting :machine also removes, in cascade: :work_orders work order(s) with their costs, :readings hour-meter reading(s), :alerts alert(s) and :parts catalogue part(s). To retire a machine use the Inactive status, or the Discard action if it is under review.',
     'delete_confirm_button' => 'Yes, delete and lose the history',
+
+    'imported_reading_note' => 'Reading imported from the PM Service Report',
+    'imported_reading_from_file_note' => 'Reading imported from the PM Service Report (:file)',
 ];

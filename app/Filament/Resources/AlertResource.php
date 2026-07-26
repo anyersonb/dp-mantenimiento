@@ -81,8 +81,12 @@ class AlertResource extends Resource
                         'hourmeter' => 'gray',
                         default => 'gray',
                     }),
+                // Sin ->searchable(): desde E6-10 la columna guarda el sobre con
+                // la clave, así que un LIKE en SQL buscaría sobre el JSON y no
+                // sobre el texto que la persona ve. La búsqueda útil —y la que
+                // se usa— es por código de máquina, que sigue arriba.
                 Tables\Columns\TextColumn::make('title')
-                    ->label(__('alerts.title'))->wrap()->searchable(),
+                    ->label(__('alerts.title'))->wrap(),
                 Tables\Columns\TextColumn::make('remaining_hours')
                     ->label(__('fleet.remaining_hours'))->badge()
                     ->formatStateUsing(fn ($state) => $state === null ? '—' : number_format($state).' h')
