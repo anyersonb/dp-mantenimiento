@@ -5,10 +5,12 @@ namespace App\Providers;
 use App\Models\ChecklistResult;
 use App\Models\HorometerReading;
 use App\Models\Machine;
+use App\Models\WorkOrder;
 use App\Models\WorkOrderPart;
 use App\Observers\ChecklistResultObserver;
 use App\Observers\HorometerReadingObserver;
 use App\Observers\MachineObserver;
+use App\Observers\WorkOrderObserver;
 use App\Observers\WorkOrderPartObserver;
 use Filament\Support\Facades\FilamentView;
 use Filament\View\PanelsRenderHook;
@@ -27,6 +29,10 @@ class AppServiceProvider extends ServiceProvider
         // Motor de alertas: cada lectura de horómetro recalcula la máquina y puede
         // disparar una alerta de servicio (ver Etapa 02).
         HorometerReading::observe(HorometerReadingObserver::class);
+
+        // Hallazgo E6-08: sella opened_by y hours_at_open en TODOS los caminos
+        // de creación (el formulario del panel no los ponía).
+        WorkOrder::observe(WorkOrderObserver::class);
 
         // Etapa 03: recalcula parts_cost al agregar/editar/borrar partes de una OT.
         WorkOrderPart::observe(WorkOrderPartObserver::class);

@@ -5,6 +5,7 @@ namespace App\Observers;
 use App\Models\Alert;
 use App\Models\HorometerReading;
 use App\Models\Machine;
+use Illuminate\Support\Facades\Auth;
 
 class HorometerReadingObserver
 {
@@ -32,6 +33,19 @@ class HorometerReadingObserver
      * ya no es necesario —el recálculo completo se queda con la más alta— y el
      * importador escribe sus propios valores después.
      */
+    /**
+     * Hallazgo E6-08: las lecturas creadas desde el relation manager del panel
+     * quedaban sin `recorded_by`, mientras el camino de campo y el cierre de OT
+     * sí lo sellan. Solo rellena lo que viene vacío: quien pasa el autor
+     * explícito manda.
+     */
+    public function creating(HorometerReading $reading): void
+    {
+        if ($reading->recorded_by === null && Auth::id() !== null) {
+            $reading->recorded_by = Auth::id();
+        }
+    }
+
     public function created(HorometerReading $reading): void
     {
         // Alta: se agrega evidencia, no se quita. Una lectura más baja que el

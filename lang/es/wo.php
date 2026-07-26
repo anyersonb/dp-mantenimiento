@@ -65,6 +65,10 @@ return [
     // Cierre
     'complete' => 'Completar',
     'complete_confirm' => 'Esto cierra la orden de trabajo. Si es preventiva, se reiniciará el ciclo de servicio de la máquina y se resolverá su alerta de servicio abierta.',
+    'hours_at_open' => 'Horas al abrir',
+    'hours_at_open_help' => 'Horas del horómetro al abrir la OT. Si se deja vacío se toman las horas actuales de la máquina. Es el único dato con el que se puede cerrar el servicio de una máquina sin horómetro cargado.',
+    'cannot_complete_no_hours' => 'No se puede completar sin horas de servicio',
+    'cannot_complete_no_hours_body' => 'La máquina :machine no tiene horómetro cargado y esta OT no tiene horas al abrir. Cerrarla reiniciaría el ciclo de servicio sin registrar a qué horas se hizo. Cargá las horas en el campo "Horas al abrir" o registrá una lectura de horómetro para la máquina, y volvé a intentar.',
     'service_reset_note' => 'Servicio reiniciado al completar :code',
     'alert_detail_required' => 'El detalle de la alerta es obligatorio cuando el resultado del checklist es "Alerta".',
 ];

@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Exceptions\CannotCompleteWorkOrder;
 use App\Models\Alert;
 use App\Models\HorometerReading;
 use App\Models\WorkOrder;
@@ -26,12 +27,18 @@ class WorkOrderCompletionService
             return;
         }
 
-        $hours = $machine->current_hours ?? $workOrder->hours_at_open;
+        $hours = static::serviceHours($workOrder);
         $serviceDate = $workOrder->completed_at ?? now()->toDateString();
 
-        if ($hours !== null) {
-            $machine->last_service_hours = $hours;
+        // Hallazgo E6-08. Sin horas no hay cierre: reiniciar el ciclo sin
+        // registrar a qué horas se hizo el servicio deja a la máquina
+        // declarándose "recién servida" sobre nada. Antes se seguía adelante en
+        // silencio; ahora se rechaza y el usuario recibe el motivo.
+        if ($hours === null) {
+            throw CannotCompleteWorkOrder::withoutHours($workOrder);
         }
+
+        $machine->last_service_hours = $hours;
         $machine->last_service_date = $serviceDate;
         // El servicio reinicia el ciclo: horas usadas = 0.
         $machine->remaining_hours = $machine->service_interval_hours;
@@ -42,10 +49,6 @@ class WorkOrderCompletionService
             ->where('type', 'service')
             ->where('status', 'open')
             ->update(['status' => 'resolved']);
-
-        if ($hours === null) {
-            return;
-        }
 
         // Evita duplicar la lectura si complete() se invoca más de una vez para la misma OT
         // (p. ej. acción "Completar" + guardado posterior del formulario con status=completed).
@@ -68,5 +71,32 @@ class WorkOrderCompletionService
             'verified' => true,
             'note' => __('wo.service_reset_note', ['code' => $workOrder->code]),
         ]);
+    }
+
+    /**
+     * Las horas con las que se cierra el servicio, o null si no hay ninguna
+     * fuente. Es una sola implementación para que la UI pueda preguntar ANTES
+     * de tocar el estado de la OT y `complete()` decidir con lo mismo: si la
+     * pregunta y la ejecución usaran fórmulas distintas volveríamos al vicio
+     * que ya arreglamos en el comando de recálculo.
+     */
+    public static function serviceHours(WorkOrder $workOrder): ?int
+    {
+        $horas = $workOrder->machine?->current_hours ?? $workOrder->hours_at_open;
+
+        return $horas === null ? null : (int) $horas;
+    }
+
+    /**
+     * ¿Se puede completar esta OT? Solo las preventivas exigen horas: una
+     * correctiva o una inspección no reinician ningún ciclo de servicio.
+     */
+    public static function canComplete(WorkOrder $workOrder): bool
+    {
+        if ($workOrder->machine === null || $workOrder->type !== 'preventive') {
+            return true;
+        }
+
+        return static::serviceHours($workOrder) !== null;
     }
 }

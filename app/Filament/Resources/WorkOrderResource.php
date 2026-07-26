@@ -8,6 +8,7 @@ use App\Models\WorkOrder;
 use App\Services\WorkOrderCompletionService;
 use Filament\Forms;
 use Filament\Forms\Form;
+use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
@@ -114,6 +115,14 @@ class WorkOrderResource extends Resource
                 ])->default('workshop')->inline()->inlineLabel(false),
                 Forms\Components\DatePicker::make('opened_at')->label(__('wo.opened_at'))->default(now()),
                 Forms\Components\DatePicker::make('completed_at')->label(__('wo.completed_at')),
+                // Hallazgo E6-08: el formulario no tenía forma de registrar las
+                // horas de apertura, y son la ÚNICA fuente para cerrar el
+                // servicio de las 41 máquinas sin horómetro cargado. Si queda
+                // vacío, el observer lo sella con las horas de la máquina.
+                Forms\Components\TextInput::make('hours_at_open')
+                    ->label(__('wo.hours_at_open'))
+                    ->helperText(__('wo.hours_at_open_help'))
+                    ->numeric()->minValue(0)->suffix('h'),
             ]),
             Forms\Components\Section::make(__('wo.execution'))->columns(2)->schema([
                 Forms\Components\TextInput::make('labor_hours')->label(__('wo.labor_hours'))->numeric()->suffix('h'),
@@ -176,7 +185,22 @@ class WorkOrderResource extends Resource
                     ->authorize(fn () => Auth::user()?->can('execute_work_order') ?? false)
                     ->requiresConfirmation()
                     ->modalDescription(__('wo.complete_confirm'))
-                    ->action(function (WorkOrder $record) {
+                    ->action(function (WorkOrder $record, Tables\Actions\Action $action) {
+                        // Hallazgo E6-08: se pregunta ANTES de tocar el estado.
+                        // Rechazar después de marcar "completada" dejaría la OT
+                        // cerrada y la máquina sin servicio registrado, que es
+                        // peor que el defecto original.
+                        if (! WorkOrderCompletionService::canComplete($record)) {
+                            Notification::make()
+                                ->title(__('wo.cannot_complete_no_hours'))
+                                ->body(__('wo.cannot_complete_no_hours_body', ['machine' => $record->machine?->id_code ?? '—']))
+                                ->warning()
+                                ->persistent()
+                                ->send();
+
+                            $action->halt();
+                        }
+
                         $record->update([
                             'status' => 'completed',
                             'completed_at' => $record->completed_at ?? now()->toDateString(),

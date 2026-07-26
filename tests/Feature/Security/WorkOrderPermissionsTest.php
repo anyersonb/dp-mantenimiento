@@ -33,10 +33,19 @@ class WorkOrderPermissionsTest extends TestCase
     {
         $location = Location::create(['name' => 'Test Yard', 'slug' => 'test-yard-'.uniqid()]);
 
+        // Las horas no son decorado: desde E6-08, completar una OT preventiva
+        // sobre una máquina sin `current_hours` y sin `hours_at_open` se
+        // RECHAZA. Este archivo mide permisos, no la regla de horas, así que la
+        // máquina de prueba lleva horómetro cargado para que el único motivo
+        // posible de un fallo acá sea el permiso.
         return Machine::create([
             'id_code' => 'QA-'.random_int(1000, 9999),
             'status' => 'active',
             'current_location_id' => $location->id,
+            'hourmeter_status' => 'ok',
+            'current_hours' => 1000,
+            'last_service_hours' => 500,
+            'service_interval_hours' => 500,
         ]);
     }
 
