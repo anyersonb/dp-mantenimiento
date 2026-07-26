@@ -70,6 +70,32 @@ Fuente de verdad: `database/seeders/RolesAndPermissionsSeeder.php`. Resumen:
   `canEdit()` del Resource dueño ya exige el permiso correcto para llegar a esa página.
   Ver `qa-etapa05/deuda-detectada.md` (sección "Bloque 2") si se toca ese acoplamiento.
 
+## Red de seguridad de la matriz de permisos (Etapa 06)
+
+Nace de un incidente real: en una prueba exploratoria se le quitó a mano un
+permiso al rol `taller` para verificar un comportamiento y, por una caída del
+navegador, quedó sin restaurar 4 horas.
+
+- **Restaurar la matriz** (converge `role_has_permissions` a los 15×7 sin
+  tocar usuarios, `model_has_roles` ni ningún otro dato — no requiere
+  navegador ni SQL manual):
+  ```
+  php artisan db:seed --class=RolePermissionBaselineSeeder
+  ```
+  Es idempotente (correrlo dos veces seguidas no cambia nada la segunda vez)
+  y convergente (agrega el permiso que falte y quita el que sobre). Informa
+  por pantalla qué corrigió, o dice "ya estaba correcta" y no escribe si no
+  hay deriva. La matriz vive en `RolePermissionBaselineSeeder::MATRIX`, única
+  fuente compartida con el test de abajo. No está registrado en
+  `DatabaseSeeder` a propósito.
+- **Detectar la deriva en la suite**, antes de que alguien la note manual:
+  ```
+  php artisan test tests/Feature/Security/RolePermissionMatrixSentinelTest.php
+  ```
+  Falla nombrando el rol y el permiso exacto de más o de menos (p. ej. "al
+  rol taller le falta el permiso log_horometer"). Si falla, correr el seeder
+  de arriba para reconverger.
+
 ## Comandos útiles
 
 ```
