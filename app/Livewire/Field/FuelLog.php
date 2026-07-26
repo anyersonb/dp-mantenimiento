@@ -5,10 +5,13 @@ namespace App\Livewire\Field;
 use App\Models\HorometerReading;
 use App\Models\Machine;
 use Illuminate\Support\Facades\Auth;
+use App\Livewire\Field\Concerns\RejectsIncoherentReadings;
 use Livewire\Component;
 
 class FuelLog extends Component
 {
+    use RejectsIncoherentReadings;
+
     public string $search = '';
 
     public array $machineResults = [];
@@ -121,23 +124,6 @@ class FuelLog extends Component
         ]);
     }
 
-    /** Hallazgo M4: ver docblock de ReportForm::isRegressiveReading(). */
-    protected function isRegressiveReading(): bool
-    {
-        $machine = Machine::find($this->machineId);
-        $hours = (int) round((float) $this->hours);
-
-        if (! $machine || $machine->current_hours === null || $hours >= $machine->current_hours) {
-            return false;
-        }
-
-        $this->addError('hours', __('field.hours_regressive', [
-            'hours' => $hours,
-            'current' => $machine->current_hours,
-        ]));
-
-        return true;
-    }
 
     public function render()
     {

@@ -6,10 +6,13 @@ use App\Models\HorometerReading;
 use App\Models\Location;
 use App\Models\Machine;
 use Illuminate\Support\Facades\Auth;
+use App\Livewire\Field\Concerns\RejectsIncoherentReadings;
 use Livewire\Component;
 
 class ForemanBoard extends Component
 {
+    use RejectsIncoherentReadings;
+
     public string $search = '';
 
     public array $machineResults = [];
@@ -142,23 +145,6 @@ class ForemanBoard extends Component
         $this->locationId = Auth::user()->location_id ?? '';
     }
 
-    /** Hallazgo M4: ver docblock de ReportForm::isRegressiveReading(). */
-    protected function isRegressiveReading(): bool
-    {
-        $machine = Machine::find($this->machineId);
-        $hours = (int) round((float) $this->hours);
-
-        if (! $machine || $machine->current_hours === null || $hours >= $machine->current_hours) {
-            return false;
-        }
-
-        $this->addError('hours', __('field.hours_regressive', [
-            'hours' => $hours,
-            'current' => $machine->current_hours,
-        ]));
-
-        return true;
-    }
 
     /**
      * Hallazgo C2: el <select> de obras no debe ofrecer opciones que el

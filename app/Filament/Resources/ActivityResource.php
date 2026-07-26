@@ -3,6 +3,7 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\ActivityResource\Pages;
+use App\Models\HorometerReading;
 use App\Models\Machine;
 use App\Models\WorkOrder;
 use Filament\Forms\Components\DatePicker;
@@ -120,6 +121,10 @@ class ActivityResource extends Resource
                     ->options([
                         Machine::class => 'Machine',
                         WorkOrder::class => 'WorkOrder',
+                        // Agregado con E6-04: las lecturas de horómetro ahora
+                        // dejan asiento. Sin esta opción el auditor no puede
+                        // filtrarlas, que es justo el caso de uso del hallazgo.
+                        HorometerReading::class => 'HorometerReading',
                     ]),
             ])
             ->actions([

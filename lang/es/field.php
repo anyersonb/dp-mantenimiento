@@ -28,6 +28,7 @@ return [
     'machine_change' => 'Cambiar',
     'validation_required_machine' => 'Selecciona una máquina.',
     'hours_regressive' => 'La lectura (:hours h) es menor a la última registrada (:current h). Verifica el valor antes de enviar.',
+    'hours_above_next' => 'La lectura (:hours h) es mayor que una posterior ya registrada (:next h). El horómetro no puede bajar con el tiempo: revisa la fecha o el valor.',
 
     // Geolocalización
     'geolocation_capturing' => 'Obteniendo tu ubicación…',

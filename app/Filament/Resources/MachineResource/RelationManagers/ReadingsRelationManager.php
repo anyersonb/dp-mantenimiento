@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\MachineResource\RelationManagers;
 
+use App\Rules\CoherentHorometerReading;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\RelationManagers\RelationManager;
@@ -24,7 +25,18 @@ class ReadingsRelationManager extends RelationManager
     public function form(Form $form): Form
     {
         return $form->schema([
-            Forms\Components\TextInput::make('hours')->label(__('fleet.hours'))->numeric()->minValue(0)->required()->suffix('h'),
+            Forms\Components\TextInput::make('hours')->label(__('fleet.hours'))->numeric()->minValue(0)->required()->suffix('h')
+                // Hallazgo E6-03: este camino no tenía NINGUNA validación de
+                // coherencia, así que aceptaba un horómetro que baja con el
+                // tiempo. La regla es la MISMA que usan los tres componentes de
+                // campo — una regla, un lugar (App\Rules\CoherentHorometerReading).
+                ->rule(function (Forms\Get $get, ?Model $record) {
+                    return new CoherentHorometerReading(
+                        $this->getOwnerRecord(),
+                        $get('read_at') ? (string) $get('read_at') : null,
+                        $record?->getKey(),
+                    );
+                }),
             Forms\Components\DatePicker::make('read_at')->label(__('fleet.read_at'))->required()->default(now()),
             Forms\Components\Select::make('source')->label(__('fleet.source'))->options([
                 'fuel' => __('fleet.src_fuel'), 'maintenance' => __('fleet.src_maintenance'),

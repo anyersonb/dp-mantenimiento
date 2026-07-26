@@ -9,39 +9,58 @@ use App\Models\Machine;
 class HorometerReadingObserver
 {
     /**
-     * Cada vez que se registra una lectura de horómetro (combustible, reporte de
-     * campo, foreman, taller o carga manual) se recalcula el estado de la máquina
-     * y, si corresponde, se dispara una alerta de servicio.
+     * Cualquier cambio en el historial de lecturas —alta, edición o borrado—
+     * rehace el estado de la máquina desde cero y, si corresponde, dispara la
+     * alerta de servicio.
      *
-     * Lecturas menores a la actual se toleran en silencio aquí (no tocan la
-     * máquina): el importador del PM Service Report depende de este descarte
-     * silencioso porque el Excel del cliente trae filas desordenadas. El
-     * rechazo explícito al usuario (hallazgo M4) vive en los componentes
-     * Livewire de app/Livewire/Field/, que validan ANTES de crear el registro.
+     * Hallazgos E6-01 y E6-02 (Etapa 06): antes esta clase implementaba
+     * ÚNICAMENTE `created()`, y lo hacía de forma incremental
+     * (`if ($reading->hours > $machine->current_hours)`). Consecuencias
+     * verificadas en base de datos, no supuestas:
+     *
+     *   - Editar una lectura no recalculaba nada. Si el valor nuevo superaba
+     *     el de la máquina, el panel quedaba atrasado sin avisar.
+     *   - Borrar la última lectura dejaba `current_hours` y
+     *     `current_hours_date` apuntando a una lectura que ya no existía.
+     *
+     * La regla vive en `Machine::recalculateHoursFromReadings()` y es completa,
+     * no incremental: se recalcula desde el ancla más las lecturas
+     * sobrevivientes de la escala vigente.
+     *
+     * Lo que NO cambia: el importador del PM Service Report sigue tolerando
+     * filas desordenadas del Excel del cliente, porque el descarte silencioso
+     * ya no es necesario —el recálculo completo se queda con la más alta— y el
+     * importador escribe sus propios valores después.
      */
     public function created(HorometerReading $reading): void
     {
+        // Alta: se agrega evidencia, no se quita. Una lectura más baja que el
+        // valor de la máquina no puede bajarlo (ver el docblock de
+        // Machine::recalculateHoursFromReadings).
+        $this->syncMachine($reading, allowLowering: false);
+    }
+
+    public function updated(HorometerReading $reading): void
+    {
+        $this->syncMachine($reading, allowLowering: true);
+    }
+
+    public function deleted(HorometerReading $reading): void
+    {
+        $this->syncMachine($reading, allowLowering: true);
+    }
+
+    protected function syncMachine(HorometerReading $reading, bool $allowLowering): void
+    {
+        // En `deleted` la relación sigue resolviendo: machine_id está en el
+        // modelo aunque la fila ya no esté en la tabla de lecturas.
         $machine = $reading->machine;
 
         if (! $machine) {
             return;
         }
 
-        $isNewerReading = $machine->current_hours === null || $reading->hours > $machine->current_hours;
-
-        if (! $isNewerReading) {
-            return;
-        }
-
-        $machine->current_hours = $reading->hours;
-        $machine->current_hours_date = $reading->read_at;
-        // Única implementación de la regla: Machine::calculateRemainingHours()
-        // (regla-horometro.md, sec. 2.1). El accessor
-        // getComputedRemainingHoursAttribute() usa la misma; no hay una
-        // tercera copia de esta fórmula en ningún otro lado.
-        $machine->remaining_hours = $machine->calculateRemainingHours();
-
-        $machine->save();
+        $machine->recalculateHoursFromReadings($allowLowering);
 
         $this->maybeRaiseServiceAlert($machine);
     }

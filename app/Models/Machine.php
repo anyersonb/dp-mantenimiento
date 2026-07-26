@@ -145,6 +145,125 @@ class Machine extends Model
         return null;
     }
 
+    /**
+     * RECÁLCULO COMPLETO de `current_hours` y `remaining_hours` desde el ancla
+     * más las lecturas sobrevivientes. Nada incremental.
+     *
+     * Nace de los hallazgos E6-01 y E6-02 (Etapa 06): el observer solo
+     * implementaba `created()` y hacía una actualización incremental
+     * (`if reading > current`), así que editar o borrar una lectura desde el
+     * panel dejaba la máquina apuntando a un valor que ya no tenía respaldo —
+     * en el caso del borrado, a una lectura inexistente.
+     *
+     * Reglas, en este orden:
+     *
+     * 1. Solo cuentan las lecturas de la ESCALA VIGENTE. Si hubo un reemplazo
+     *    de horómetro (`hours_scale_since`), las anteriores quedan fuera: el
+     *    contador arrancó de nuevo y no son comparables (sec. 2.2).
+     * 2. `current_hours` = la lectura más alta de esa escala, **nunca por
+     *    debajo del ancla verificada** (`remaining_anchor_at_hours`). El ancla
+     *    la fijó el PM Service Report o un reemplazo, a mano, y no se
+     *    desmiente por una lectura borrada.
+     * 3. Sin lecturas en la escala vigente, `current_hours` **no se toca**: 34
+     *    máquinas reales no tienen ninguna lectura y su valor viene del reporte.
+     *    Recalcular a cero sería destruir dato verificado.
+     * 4. `remaining_hours` sale siempre de `calculateRemainingHours()`, que
+     *    sigue siendo la única implementación de la regla.
+     *
+     * `$allowLowering` distingue las dos situaciones que parecen la misma y no
+     * lo son:
+     *
+     *   - **Alta de una lectura** (`false`): se está AGREGANDO evidencia. Una
+     *     lectura más baja que el valor de la máquina no puede bajarlo, porque
+     *     ese valor puede venir del PM Service Report —verificado a mano— y
+     *     ninguna lectura nueva lo desmiente. Es la tolerancia que el
+     *     importador ya dependía y que `AlertsEngineTest` protege.
+     *   - **Edición o borrado** (`true`): se está QUITANDO o cambiando la
+     *     evidencia que sostenía el valor, así que la máquina tiene que poder
+     *     bajar. Sin esto, borrar la última lectura deja el horómetro huérfano,
+     *     que es el hallazgo E6-02.
+     *
+     * @return bool true si algo cambió (y por lo tanto se guardó).
+     */
+    public function recalculateHoursFromReadings(bool $allowLowering = false): bool
+    {
+        $nuevos = $this->computeHoursFromReadings($allowLowering);
+
+        $this->current_hours = $nuevos['current_hours'];
+        $this->current_hours_date = $nuevos['current_hours_date'];
+        $this->remaining_hours = $nuevos['remaining_hours'];
+
+        if (! $this->isDirty(['current_hours', 'current_hours_date', 'remaining_hours'])) {
+            return false;
+        }
+
+        $this->save();
+
+        return true;
+    }
+
+    /**
+     * La regla, sin efectos: calcula y devuelve, no guarda. Existe para que el
+     * comando de reparación pueda simular sin escribir usando ESTA misma
+     * implementación y no una copia — la duplicación de la fórmula ya causó el
+     * hallazgo A4 una vez.
+     *
+     * @return array{current_hours: int|null, current_hours_date: mixed, remaining_hours: int|null}
+     */
+    public function computeHoursFromReadings(bool $allowLowering = false): array
+    {
+        $readings = $this->readings()
+            ->when($this->hours_scale_since, fn ($q) => $q->where('read_at', '>=', $this->hours_scale_since))
+            ->orderByDesc('hours')
+            ->orderByDesc('read_at')
+            ->get(['hours', 'read_at']);
+
+        $highest = $readings->first();
+
+        $current = $this->current_hours;
+        $date = $this->current_hours_date;
+
+        if ($highest !== null) {
+            $anchorFloor = $this->remaining_anchor_at_hours;
+
+            if (! $allowLowering && $current !== null && $current > $highest->hours) {
+                // Alta de una lectura más baja: no baja nada.
+                $anchorFloor = max((int) $anchorFloor, (int) $current);
+            }
+
+            if ($anchorFloor !== null && $anchorFloor > $highest->hours) {
+                // El ancla verificada manda: se conserva su valor y la fecha
+                // que ya tenía la máquina, no la de una lectura más baja.
+                $current = $anchorFloor;
+            } else {
+                $current = $highest->hours;
+                $date = $highest->read_at;
+            }
+        } elseif ($this->remaining_anchor_at_hours !== null) {
+            // Sin lecturas pero con ancla: se cae al valor verificado en vez de
+            // quedarse con el de una lectura borrada, que es el defecto E6-02
+            // repitiéndose en el último paso. Se conserva la fecha existente
+            // porque el ancla no trae una.
+            //
+            // Verificado contra la base real antes de escribir esto: de las 34
+            // máquinas sin ninguna lectura, CERO tienen ancla, así que esta
+            // rama no puede alterar ningún valor de producción.
+            $current = $this->remaining_anchor_at_hours;
+        }
+
+        // remaining_hours sale de calculateRemainingHours() —única
+        // implementación de la fórmula— evaluada con el current candidato, en un
+        // espejo, para no ensuciar el modelo cuando esto es una simulación.
+        $espejo = clone $this;
+        $espejo->current_hours = $current;
+
+        return [
+            'current_hours' => $current,
+            'current_hours_date' => $date,
+            'remaining_hours' => $espejo->calculateRemainingHours(),
+        ];
+    }
+
     public function getIsDueSoonAttribute(): bool
     {
         $r = $this->computed_remaining_hours;

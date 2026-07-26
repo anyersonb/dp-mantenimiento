@@ -28,6 +28,7 @@ return [
     'machine_change' => 'Change',
     'validation_required_machine' => 'Select a machine.',
     'hours_regressive' => 'The reading (:hours h) is lower than the last one recorded (:current h). Check the value before submitting.',
+    'hours_above_next' => 'The reading (:hours h) is higher than a later one already recorded (:next h). An hour-meter cannot go down over time: check the date or the value.',
 
     // Geolocation
     'geolocation_capturing' => 'Getting your location…',

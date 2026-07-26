@@ -6,10 +6,13 @@ use App\Models\FieldReport;
 use App\Models\HorometerReading;
 use App\Models\Machine;
 use Illuminate\Support\Facades\Auth;
+use App\Livewire\Field\Concerns\RejectsIncoherentReadings;
 use Livewire\Component;
 
 class ReportForm extends Component
 {
+    use RejectsIncoherentReadings;
+
     public string $search = '';
 
     public array $machineResults = [];
@@ -136,29 +139,6 @@ class ReportForm extends Component
         $this->condition = 'ok';
     }
 
-    /**
-     * Hallazgo M4: una lectura menor a la ya registrada se rechaza con un
-     * mensaje explícito en vez de guardarse en silencio y sin efecto. Esta
-     * validación es exclusiva del camino de campo: el importador del PM
-     * Service Report sigue tolerando filas desordenadas del Excel porque no
-     * pasa por aquí (crea el HorometerReading directamente).
-     */
-    protected function isRegressiveReading(): bool
-    {
-        $machine = Machine::find($this->machineId);
-        $hours = (int) round((float) $this->hours);
-
-        if (! $machine || $machine->current_hours === null || $hours >= $machine->current_hours) {
-            return false;
-        }
-
-        $this->addError('hours', __('field.hours_regressive', [
-            'hours' => $hours,
-            'current' => $machine->current_hours,
-        ]));
-
-        return true;
-    }
 
     public function render()
     {
