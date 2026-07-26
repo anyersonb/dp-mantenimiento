@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\WorkOrderResource\RelationManagers;
 
+use App\Filament\Concerns\DeletesOnlyWhileWorkOrderIsOpen;
 use App\Models\ChecklistResult;
 use App\Models\ChecklistTemplate;
 use Filament\Forms;
@@ -14,6 +15,8 @@ use Illuminate\Support\Facades\Auth;
 
 class ChecklistResultsRelationManager extends RelationManager
 {
+    use DeletesOnlyWhileWorkOrderIsOpen;
+
     protected static string $relationship = 'checklistResults';
 
     protected static ?string $recordTitleAttribute = 'label';
@@ -124,6 +127,7 @@ class ChecklistResultsRelationManager extends RelationManager
             ->emptyStateHeading(__('checklist.empty_heading'))
             ->emptyStateDescription(__('checklist.empty_desc'));
     }
+
     /* ----------------------------------------------------------------- *
      * Autorizacion propia (hallazgo A8).
      *
@@ -145,13 +149,7 @@ class ChecklistResultsRelationManager extends RelationManager
         return Auth::user()?->can('execute_work_order') ?? false;
     }
 
-    protected function canDelete(Model $record): bool
-    {
-        return Auth::user()?->can('execute_work_order') ?? false;
-    }
-
-    protected function canDeleteAny(): bool
-    {
-        return Auth::user()?->can('execute_work_order') ?? false;
-    }
+    // canDelete()/canDeleteAny() los aporta el trait
+    // DeletesOnlyWhileWorkOrderIsOpen: el borrado se gobierna por ESTADO de la
+    // OT, no por rol. Con la OT cerrada no borra nadie.
 }

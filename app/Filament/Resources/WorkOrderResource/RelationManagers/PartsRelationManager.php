@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\WorkOrderResource\RelationManagers;
 
+use App\Filament\Concerns\DeletesOnlyWhileWorkOrderIsOpen;
 use App\Models\MachinePart;
 use Filament\Forms;
 use Filament\Forms\Form;
@@ -13,6 +14,8 @@ use Illuminate\Support\Facades\Auth;
 
 class PartsRelationManager extends RelationManager
 {
+    use DeletesOnlyWhileWorkOrderIsOpen;
+
     protected static string $relationship = 'parts';
 
     protected static ?string $recordTitleAttribute = 'part_number';
@@ -100,6 +103,7 @@ class PartsRelationManager extends RelationManager
             ->emptyStateHeading(__('wo.parts_empty_heading'))
             ->emptyStateDescription(__('wo.parts_empty_desc'));
     }
+
     /* ----------------------------------------------------------------- *
      * Autorizacion propia (hallazgo A8).
      *
@@ -121,13 +125,7 @@ class PartsRelationManager extends RelationManager
         return Auth::user()?->can('execute_work_order') ?? false;
     }
 
-    protected function canDelete(Model $record): bool
-    {
-        return Auth::user()?->can('execute_work_order') ?? false;
-    }
-
-    protected function canDeleteAny(): bool
-    {
-        return Auth::user()?->can('execute_work_order') ?? false;
-    }
+    // canDelete()/canDeleteAny() los aporta el trait
+    // DeletesOnlyWhileWorkOrderIsOpen: el borrado se gobierna por ESTADO de la
+    // OT, no por rol. Con la OT cerrada no borra nadie.
 }

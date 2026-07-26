@@ -12,6 +12,16 @@ class WorkOrder extends Model
 {
     use LogsActivity;
 
+    /**
+     * Estados en los que la OT ya no admite cambios destructivos: el trabajo
+     * terminó (o se canceló) y sus adjuntos, checklist y repuestos son el
+     * respaldo de lo que se hizo y de lo que se cobró.
+     *
+     * Única definición de "cerrada" del sistema. Ver el trait
+     * App\Filament\Concerns\DeletesOnlyWhileWorkOrderIsOpen.
+     */
+    public const CLOSED_STATUSES = ['completed', 'cancelled'];
+
     protected $guarded = [];
 
     protected $casts = [
@@ -26,6 +36,16 @@ class WorkOrder extends Model
         return LogOptions::defaults()
             ->logOnly(['code', 'status', 'assigned_to', 'parts_cost'])
             ->logOnlyDirty();
+    }
+
+    public function isClosed(): bool
+    {
+        return in_array($this->status, self::CLOSED_STATUSES, true);
+    }
+
+    public function isOpen(): bool
+    {
+        return ! $this->isClosed();
     }
 
     public function machine(): BelongsTo
