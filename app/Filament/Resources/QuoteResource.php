@@ -9,6 +9,7 @@ use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\HtmlString;
 
@@ -45,6 +46,39 @@ class QuoteResource extends Resource
     }
 
     public static function canViewAny(): bool
+    {
+        return Auth::user()?->can('manage_quotes') ?? false;
+    }
+
+    /*
+     * Inventario Etapa 05 (Bloque 2): este Resource solo tenía canViewAny.
+     * Al no declarar canCreate/canEdit/canDelete/canDeleteAny, Filament cae al
+     * default de Resource (permitir), exactamente el mismo patrón de C1 —
+     * cualquiera con sesión en el panel podía llegar a /admin/quotes/create o
+     * /{id}/edit aunque no viera el recurso en el menú. Se cierra con el mismo
+     * permiso que ya gobierna canViewAny.
+     */
+    public static function canCreate(): bool
+    {
+        return Auth::user()?->can('manage_quotes') ?? false;
+    }
+
+    public static function canView(Model $record): bool
+    {
+        return Auth::user()?->can('manage_quotes') ?? false;
+    }
+
+    public static function canEdit(Model $record): bool
+    {
+        return Auth::user()?->can('manage_quotes') ?? false;
+    }
+
+    public static function canDelete(Model $record): bool
+    {
+        return Auth::user()?->can('manage_quotes') ?? false;
+    }
+
+    public static function canDeleteAny(): bool
     {
         return Auth::user()?->can('manage_quotes') ?? false;
     }

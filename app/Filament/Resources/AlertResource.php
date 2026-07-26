@@ -141,6 +141,9 @@ class AlertResource extends Resource
                     ->visible(fn (Alert $record) => $record->status !== 'resolved'
                         && $record->machine
                         && (Auth::user()?->can('create_work_order') || Auth::user()?->hasRole('administrador')))
+                    // ->visible() controla el render; ->authorize() vuelve a
+                    // exigir el permiso en el servidor al ejecutar la acción.
+                    ->authorize(fn () => Auth::user()?->can('create_work_order') || Auth::user()?->hasRole('administrador'))
                     ->requiresConfirmation()
                     ->modalDescription(__('alerts.create_work_order_confirm'))
                     ->action(function (Alert $record, Tables\Actions\Action $action) {
