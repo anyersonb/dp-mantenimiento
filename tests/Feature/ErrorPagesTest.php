@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Http\Middleware\SetLocale;
 use App\Models\User;
 use Database\Seeders\RolesAndPermissionsSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -153,5 +154,114 @@ class ErrorPagesTest extends TestCase
         $response->assertDontSee('Stack trace', false);
         $response->assertDontSee('ignition', false);
         $response->assertDontSee('Whoops', false);
+    }
+
+    /**
+     * Regresión reportada por QA (Etapa 05, Bloque 5, corrección sobre M6):
+     * el 403 más frecuente del sistema — un rol de campo (canAccessPanel()
+     * false) entrando a /admin — se renderizaba SIEMPRE en el locale por
+     * defecto de la app, ignorando users.locale. Verificado en vivo con
+     * foreman@dp.local (locale=es): <html lang="en">, "Access not allowed".
+     *
+     * Causa: Filament\Http\Middleware\Authenticate hace abort_if(403) DENTRO
+     * de su propio handle(), y Laravel ordena el pipeline de middleware por
+     * PRIORIDAD (Illuminate\Foundation\Http\Kernel::$middlewarePriority), no
+     * por el orden declarado en AdminPanelProvider::middleware(). SetLocale
+     * no estaba en esa lista, así que Laravel lo relegaba siempre al final
+     * del pipeline real — después del 403, no antes.
+     *
+     * Estos tests NO usan una ruta ad hoc con abort(403) manual (por eso el
+     * test original no detectó el bug): pasan por el 403 REAL de
+     * canAccessPanel() en GET /admin, con un usuario de rol de campo
+     * autenticado de verdad, para probar el pipeline de middleware tal cual
+     * corre en producción.
+     */
+    public function test_the_real_panel_403_from_can_access_panel_respects_the_field_users_locale_es(): void
+    {
+        $foreman = User::where('email', 'foreman@dp.local')->firstOrFail();
+        $foreman->forceFill(['locale' => 'es'])->save();
+
+        $response = $this->actingAs($foreman)->get('/admin');
+
+        $response->assertStatus(403);
+        $response->assertSee('lang="es"', false);
+        $response->assertSee(__('errors.403_heading', [], 'es'));
+        $response->assertSee(__('errors.403_message', [], 'es'));
+        $response->assertDontSee(__('errors.403_heading', [], 'en'));
+    }
+
+    public function test_the_real_panel_403_from_can_access_panel_respects_the_field_users_locale_en(): void
+    {
+        $foreman = User::where('email', 'foreman@dp.local')->firstOrFail();
+        $foreman->forceFill(['locale' => 'en'])->save();
+
+        $response = $this->actingAs($foreman)->get('/admin');
+
+        $response->assertStatus(403);
+        $response->assertSee('lang="en"', false);
+        $response->assertSee(__('errors.403_heading', [], 'en'));
+        $response->assertSee(__('errors.403_message', [], 'en'));
+        $response->assertDontSee(__('errors.403_heading', [], 'es'));
+    }
+
+    /**
+     * Punto 4 del pedido de QA: revisar si 404 y 419 arrastran el mismo
+     * problema por otra vía. 419 no lo tenía (la ruta que lo dispara siempre
+     * matchea, así que SetLocale ya corría dentro de ese grupo). El 404
+     * genuino (URL que no matchea NINGUNA ruta) sí lo tenía, por una causa
+     * distinta a la del 403: Laravel resuelve ese 404 directo en el router,
+     * sin pasar por el middleware de ningún grupo (ni "web" ni el del panel)
+     * — se agregó Route::fallback(...)->middleware(['web', SetLocale::class])
+     * al final de routes/web.php para que ese caso también pase por
+     * SetLocale. Este test golpea una URL real, no una ruta ad hoc.
+     */
+    public function test_a_genuinely_unmatched_url_404_respects_the_authenticated_users_locale(): void
+    {
+        $admin = User::where('email', 'admin@dp.local')->firstOrFail();
+        $admin->forceFill(['locale' => 'es'])->save();
+
+        $response = $this->actingAs($admin)->get('/esto-no-existe-'.uniqid());
+
+        $response->assertStatus(404);
+        $response->assertSee('lang="es"', false);
+        $response->assertSee(__('errors.404_heading', [], 'es'));
+    }
+
+    /**
+     * Control: un 404 de ruta que SÍ matchea (registro inexistente, ej. el
+     * edit de un Machine con un id que no existe) ya pasaba por el pipeline
+     * completo del panel antes de este fix — se deja como regresión.
+     */
+    public function test_a_404_for_a_matched_route_with_a_missing_record_respects_the_users_locale(): void
+    {
+        $admin = User::where('email', 'admin@dp.local')->firstOrFail();
+        $admin->forceFill(['locale' => 'es'])->save();
+
+        $response = $this->actingAs($admin)->get('/admin/machines/999999999/edit');
+
+        $response->assertStatus(404);
+        $response->assertSee('lang="es"', false);
+        $response->assertSee(__('errors.404_heading', [], 'es'));
+    }
+
+    /**
+     * 419 a través de la MISMA combinación real de middleware que usan las
+     * rutas de campo (['auth', SetLocale::class], ver routes/web.php) — no
+     * el genérico "web" del test sintético de más arriba.
+     */
+    public function test_a_419_through_the_real_auth_and_setlocale_middleware_combo_respects_the_users_locale(): void
+    {
+        Route::post('/__test/419-field', function () {
+            throw new TokenMismatchException('token mismatch');
+        })->middleware(['auth', SetLocale::class]);
+
+        $foreman = User::where('email', 'foreman@dp.local')->firstOrFail();
+        $foreman->forceFill(['locale' => 'es'])->save();
+
+        $response = $this->actingAs($foreman)->post('/__test/419-field');
+
+        $response->assertStatus(419);
+        $response->assertSee('lang="es"', false);
+        $response->assertSee(__('errors.419_heading', [], 'es'));
     }
 }

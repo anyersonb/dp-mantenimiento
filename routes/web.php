@@ -168,3 +168,19 @@ Route::middleware(['auth', SetLocale::class])->prefix('field')->name('field.')->
     Route::get('/report', ReportForm::class)->name('report');
     Route::get('/foreman', ForemanBoard::class)->name('foreman');
 });
+
+/*
+|--------------------------------------------------------------------------
+| Fallback (Etapa 05, Bloque 5 — M6, hallazgo de QA sobre 404)
+|--------------------------------------------------------------------------
+| Una URL que no matchea NINGUNA ruta (ni siquiera un typo dentro de /admin
+| o /field) no pasa por el middleware de ningun grupo -> Laravel resuelve
+| el 404 directo en el router, ANTES de armar el pipeline de la ruta. Sin
+| este fallback, SetLocale nunca corria para una URL inexistente y esa
+| pagina 404 quedaba siempre en el locale por defecto de la app, sin
+| importar el idioma guardado del usuario autenticado. Se reutiliza el
+| mismo SetLocale (nada de logica de idioma duplicada). Debe ser la ULTIMA
+| ruta del archivo (asi lo pide Laravel: el fallback solo se intenta cuando
+| ninguna otra ruta matcheo).
+*/
+Route::fallback(fn () => abort(404))->middleware(['web', SetLocale::class]);
