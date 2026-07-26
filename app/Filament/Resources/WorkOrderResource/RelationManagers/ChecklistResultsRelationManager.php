@@ -124,4 +124,34 @@ class ChecklistResultsRelationManager extends RelationManager
             ->emptyStateHeading(__('checklist.empty_heading'))
             ->emptyStateDescription(__('checklist.empty_desc'));
     }
+    /* ----------------------------------------------------------------- *
+     * Autorizacion propia (hallazgo A8).
+     *
+     * Antes estas acciones no declaraban nada y quedaban a merced de la
+     * autorizacion "heredada" de Filament, que sin Policy devuelve allow():
+     * `$this->can('create')` -> `Filament\authorize(..., true)` -> sin
+     * Policy -> Response::allow(). Este proyecto no tiene app/Policies, asi
+     * que heredar era permitir. Lo unico que limitaba era el canEdit() del
+     * Resource dueno, que no defiende una llamada directa al componente.
+     * ----------------------------------------------------------------- */
+
+    protected function canCreate(): bool
+    {
+        return Auth::user()?->can('execute_work_order') ?? false;
+    }
+
+    protected function canEdit(Model $record): bool
+    {
+        return Auth::user()?->can('execute_work_order') ?? false;
+    }
+
+    protected function canDelete(Model $record): bool
+    {
+        return Auth::user()?->can('execute_work_order') ?? false;
+    }
+
+    protected function canDeleteAny(): bool
+    {
+        return Auth::user()?->can('execute_work_order') ?? false;
+    }
 }

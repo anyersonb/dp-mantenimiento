@@ -8,6 +8,7 @@ use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Auth;
 
 class ReadingsRelationManager extends RelationManager
 {
@@ -52,5 +53,41 @@ class ReadingsRelationManager extends RelationManager
             ->defaultSort('read_at', 'desc')
             ->headerActions([Tables\Actions\CreateAction::make()])
             ->actions([Tables\Actions\EditAction::make(), Tables\Actions\DeleteAction::make()]);
+    }
+
+    /* ----------------------------------------------------------------- *
+     * Autorización propia (hallazgo A8).
+     *
+     * Antes estas acciones no declaraban nada y quedaban a merced de la
+     * autorización "heredada" de Filament, que sin Policy devuelve allow():
+     * `$this->can('create')` → `Filament\authorize(..., true)` → sin Policy →
+     * `Response::allow()`. Este proyecto no tiene `app/Policies`, así que
+     * heredar era permitir. Lo único que limitaba era el `canEdit()` del
+     * Resource dueño, que no defiende una llamada directa al componente
+     * (probado en `RelationManagerWritePermissionTest`).
+     *
+     * Este relation manager escribe sobre el dato más sensible del sistema:
+     * las lecturas de horómetro de las que dependen `remaining_hours`, el
+     * ancla del PM report y las alertas de servicio.
+     * ----------------------------------------------------------------- */
+
+    protected function canCreate(): bool
+    {
+        return Auth::user()?->can('manage_machines') ?? false;
+    }
+
+    protected function canEdit(Model $record): bool
+    {
+        return Auth::user()?->can('manage_machines') ?? false;
+    }
+
+    protected function canDelete(Model $record): bool
+    {
+        return Auth::user()?->can('manage_machines') ?? false;
+    }
+
+    protected function canDeleteAny(): bool
+    {
+        return Auth::user()?->can('manage_machines') ?? false;
     }
 }

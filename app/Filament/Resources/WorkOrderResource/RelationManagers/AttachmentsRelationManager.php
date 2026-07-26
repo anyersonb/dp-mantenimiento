@@ -9,6 +9,7 @@ use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Auth;
 
 class AttachmentsRelationManager extends RelationManager
 {
@@ -97,5 +98,33 @@ class AttachmentsRelationManager extends RelationManager
             ])
             ->emptyStateHeading(__('wo.attachments_empty_heading'))
             ->emptyStateDescription(__('wo.attachments_empty_desc'));
+    }
+
+    /* ----------------------------------------------------------------- *
+     * Autorización propia (hallazgo A8). Ver la nota extendida en
+     * MachineResource\ReadingsRelationManager: sin Policy, la autorización
+     * heredada de un relation manager es `Response::allow()`.
+     *
+     * Este es el más delicado de los tres de OT: acá viven las facturas.
+     * ----------------------------------------------------------------- */
+
+    protected function canCreate(): bool
+    {
+        return Auth::user()?->can('execute_work_order') ?? false;
+    }
+
+    protected function canEdit(Model $record): bool
+    {
+        return Auth::user()?->can('execute_work_order') ?? false;
+    }
+
+    protected function canDelete(Model $record): bool
+    {
+        return Auth::user()?->can('execute_work_order') ?? false;
+    }
+
+    protected function canDeleteAny(): bool
+    {
+        return Auth::user()?->can('execute_work_order') ?? false;
     }
 }

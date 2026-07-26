@@ -23,6 +23,21 @@ Este test recorre automáticamente:
    con un método público `save/create/store/update/delete/destroy`) y falla si el
    archivo no tiene ningún control de acceso detectable (`->can(`, `hasRole(`,
    `hasAnyRole(`, `Gate::`, `abort_unless(`, `abort_if(`, `->authorize(`).
+3. **Todos los relation managers** (`Resources/*/RelationManagers/*.php`), acción por
+   acción: falla si una acción de escritura no trae `->authorize()`/`->visible()` con un
+   permiso **y** el relation manager no sobreescribe el `can*()` correspondiente. Acá no
+   vale "lo hereda": sin Policy, heredar es permitir (ver A8).
+4. **Toda Action propia fuera de un Resource** (Pages y Widgets del panel): si ejecuta
+   algo (`->action()`/`->form()`), necesita su propio control. Las acciones *estándar* de
+   las Pages de Resource quedan exentas porque Filament les inyecta el `->authorize()` del
+   Resource.
+
+**Alcance histórico, para no volver a confiar de más:** los puntos 1 y 2 son de la Etapa
+05 y **dejaron pasar los 5 relation managers** (15 acciones). Los puntos 3 y 4 son de la
+Etapa 06 y nacieron de ese hueco. Cuando se agregue una superficie de escritura de un tipo
+nuevo (una page propia, un widget con acciones, un endpoint), **asumir que el centinela no
+la cubre hasta comprobarlo** — el patrón de este proyecto es que la red siempre iba un
+paso atrás del código.
 
 **Correrlo solo:**
 
@@ -57,18 +72,31 @@ Fuente de verdad: `database/seeders/RolesAndPermissionsSeeder.php`. Resumen:
 - Todo Resource con página `create`/`edit` **debe** declarar `canCreate()`/`canEdit()`/
   `canDelete()`/`canDeleteAny()` explícitos. No confiar en el default de
   `Filament\Resources\Resource` (permite).
-- `->visible()` en una acción (`Tables\Actions\Action`/`BulkAction`) controla el
-  renderizado. Sumale siempre `->authorize()` con el mismo permiso: es defensa en
-  profundidad server-side, no solo estético.
+- `->visible()` en una **acción** (`Tables\Actions\Action`/`BulkAction`) **sí es control
+  server-side**, no solo de renderizado. Verificado en el código de Filament v3:
+  `isHiddenInGroup()` evalúa `hidden`, `visible` y `authorize` juntos → `isHidden()` →
+  `isDisabled()` (`actions/src/Concerns/CanBeDisabled.php:21`), y tanto
+  `mountTableAction()` como `callMountedTableAction()` cortan cuando `isDisabled()`
+  (`tables/src/Concerns/HasActions.php:82,199`). `->authorize()` y `->visible()` son
+  equivalentes en efecto; `->authorize()` se prefiere solo porque expresa la intención.
+  **Lo que es solo de renderizado es `->visible()`/`->hidden()` en un campo de formulario o
+  en una columna de tabla** — ahí sí hace falta la barrera real aparte (ver punto siguiente).
 - Un campo del formulario oculto o `disabled()` **no es una barrera real** si el modelo
   usa `$guarded = []` (como `Machine`): un payload manipulado igual puede llegar a
   `save()`. Para campos sensibles (ej. `needs_review`, ver `App\Observers\MachineObserver`)
   la barrera real vive en un Observer (`saving()`), no en el form.
-- Los RelationManagers de Filament (`ChecklistResultsRelationManager`,
-  `PartsRelationManager`, etc.) **no tienen Policy propia** en este proyecto — sin
-  Policy, Filament permite su CRUD por defecto. Hoy quedan protegidos solo porque el
-  `canEdit()` del Resource dueño ya exige el permiso correcto para llegar a esa página.
-  Ver `qa-etapa05/deuda-detectada.md` (sección "Bloque 2") si se toca ese acoplamiento.
+- Los RelationManagers de Filament **no tienen Policy propia** en este proyecto, y este
+  proyecto **no tiene `app/Policies` en absoluto**. Sin Policy, `Filament\authorize()`
+  devuelve `Response::allow()` (`filament/src/helpers.php:24-43`), así que en un relation
+  manager la autorización *heredada* **es permiso abierto**. Lo único que los limita hoy es
+  el `canEdit()` del Resource dueño, que para las tres de OT es `execute_work_order` — o
+  sea que **el rol `taller` puede borrar adjuntos, checklist y repuestos** de cualquier OT
+  (`execute_work_order` lo tienen solo administrador y taller; `personal_mantenimiento` NO
+  lo tiene y no llega a las OT). Ver hallazgo **A8** en `qa-etapa05/informe-fixes.md`.
+- **Asimetría que hay que tener presente:** las *Pages* de Resource sí heredan de verdad,
+  porque Filament les inyecta `->authorize($resource::canX())` en `configureCreateAction()`
+  y compañía (`filament/src/Resources/Pages/ListRecords.php:112-216`). Un relation manager
+  y una page se leen igual en el código y se comportan al revés. No asumir simetría.
 
 ## Red de seguridad de la matriz de permisos (Etapa 06)
 
@@ -110,6 +138,31 @@ mapea a **(a)** fix + test, o **(b)** una entrada explícita "abierto y
 aceptado" con su motivo. Se verifica **hallazgo por hallazgo, nunca por
 conteo agregado por severidad** ("6 de 7 altos" no dice cuál falta). Una
 etapa no se declara cerrada sin pasar este gate.
+
+**Extensión (A8):** un hallazgo archivado como *deuda aceptada* sigue siendo un
+hallazgo. La deuda §1 del Bloque 2 (relation managers sin Policy) estaba escrita
+y razonada, y aun así pasó dos etapas sin red ni cuantificación, porque "deuda
+documentada" se leyó como "cerrada". **Toda deuda que se acepta se acepta con un
+test que la haga visible** —aunque el test solo afirme el estado actual— o se
+declara de nuevo en el cierre de la etapa siguiente. Si no tiene test, no está
+aceptada: está olvidada con estilo.
+
+## Lección de método: un componente rinde distinto según dónde se monta
+
+De A8, y aplica a toda verificación futura de este panel.
+
+Los relation managers de `MachineResource` **no muestran acciones en la página de
+ver máquina y sí las muestran en la de editar**. Se auditó la de ver, se concluyó
+"el historial de lecturas es de solo lectura", y era falso: administrador y
+responsable pueden crear, editar y **borrar** lecturas de horómetro a mano, que es
+el dato del que dependen `remaining_hours` y el ancla del PM report.
+
+**Regla:** ni un N5 ni un N1 en **una sola pantalla** acreditan cobertura de un
+componente. Hay que ubicarlo en **todas las páginas donde se monta** (`getPages()`
+del Resource dueño + `getRelations()`) y verificarlo en cada una. En la matriz de
+cobertura, la unidad no es "el componente" sino **"el componente en esa página"**.
+Corolario práctico: antes de afirmar que algo no se puede hacer desde el panel,
+buscar el componente con grep y listar sus puntos de montaje, no una pantalla.
 
 ## Notas de esquema (leer antes de escribir una consulta)
 

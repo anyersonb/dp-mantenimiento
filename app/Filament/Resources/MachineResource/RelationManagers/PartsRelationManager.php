@@ -8,6 +8,7 @@ use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Auth;
 
 class PartsRelationManager extends RelationManager
 {
@@ -59,5 +60,31 @@ class PartsRelationManager extends RelationManager
             ])
             ->headerActions([Tables\Actions\CreateAction::make()])
             ->actions([Tables\Actions\EditAction::make(), Tables\Actions\DeleteAction::make()]);
+    }
+
+    /* ----------------------------------------------------------------- *
+     * Autorización propia (hallazgo A8). Ver la nota extendida en
+     * ReadingsRelationManager: sin Policy, la autorización heredada de un
+     * relation manager es `Response::allow()`.
+     * ----------------------------------------------------------------- */
+
+    protected function canCreate(): bool
+    {
+        return Auth::user()?->can('manage_machines') ?? false;
+    }
+
+    protected function canEdit(Model $record): bool
+    {
+        return Auth::user()?->can('manage_machines') ?? false;
+    }
+
+    protected function canDelete(Model $record): bool
+    {
+        return Auth::user()?->can('manage_machines') ?? false;
+    }
+
+    protected function canDeleteAny(): bool
+    {
+        return Auth::user()?->can('manage_machines') ?? false;
     }
 }
