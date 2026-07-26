@@ -18,33 +18,38 @@ use Illuminate\Support\Facades\DB;
  * la próxima lectura de campo descuente desde ahí en vez de recalcular
  * desde cero con el clásico.
  *
- * Alcance deliberadamente conservador — solo hourmeter_status = 'ok':
- *   - 'broken' / 'no_info': su remaining_hours ya es NULL, no hay nada
- *     confiable que anclar (PJ001).
- *   - 'replaced': anclar el remaining_hours actual (a menudo un residuo del
- *     horómetro viejo, ej. MS-TEMP-01 en 500 con current_hours=1) sería
- *     enseñar como verificado un número sin sentido. Esas máquinas deben
- *     re-anclarse vía el evento de reemplazo
- *     (App\Services\HourmeterReplacementService), no por este backfill.
- *   - LD032: fuera de alcance por decisión del jefe (sec. 4 del spec) — sus
- *     números ya son coherentes y no se reinterpreta una nota manual
- *     modificando data real.
+ * REVISIÓN (2026-07-25, decisión del jefe tras revisar el primer intento):
+ * la versión anterior de este archivo filtraba por hourmeter_status='ok' y
+ * excluía LD032, y el "valor con la regla nueva" del audit se comparaba
+ * contra el cálculo clásico — pero HOY NINGUNA máquina tiene ancla, así que
+ * ese clásico ignora que el remaining_hours guardado es precisamente el dato
+ * verificado a mano del PM Service Report (para EX023, LD023, LD027, PW009:
+ * la diferencia con el clásico NO es corrupción, es la razón de ser del
+ * ancla). Sobrescribir esos remaining_hours habría repetido el error de A4
+ * en la dirección contraria. Este backfill YA NO TOCA remaining_hours en
+ * ninguna fila: solo siembra el ancla a partir del valor que ya está.
  *
- * Se ancla contra el remaining_hours guardado tal cual está hoy, incluidas
- * las filas que el audit marca "desalineado_con_regla_nueva" (EX023, LD023,
- * LD027, PW009, RL017): esa es intencionalmente la filosofía de la regla —
- * el dato del PM report manda sobre un recálculo en vivo — así que anclar
- * congela el snapshot confiable en lugar de sustituirlo por el clásico.
+ * Alcance: remaining_hours Y current_hours no nulos, EXCEPTO:
+ *   - MS-TEMP-01: remaining_hours=500 es un residuo sin sentido del
+ *     horómetro viejo (current_hours=1 contra last_service_hours=2800,
+ *     escalas incompatibles). Anclarlo enseñaría como verificado un número
+ *     inventado. Se reporta en deuda-detectada.md para que el cliente lo
+ *     confirme; se re-ancla como corresponde vía el evento de reemplazo
+ *     (App\Services\HourmeterReplacementService), no por este backfill.
+ *   - RL017: current_hours es NULL (no tiene ninguna lectura), así que ya
+ *     queda fuera del filtro sin necesidad de excluirlo a mano; su
+ *     remaining_hours=500 es el mismo tipo de residuo sin sentido y se
+ *     reporta igual en deuda-detectada.md.
+ *   - PJ001: remaining_hours ya es NULL, no hay nada que anclar.
  */
 return new class extends Migration
 {
     public function up(): void
     {
         DB::table('machines')
-            ->where('hourmeter_status', 'ok')
-            ->where('id_code', '!=', 'LD032')
             ->whereNotNull('remaining_hours')
             ->whereNotNull('current_hours')
+            ->where('id_code', '!=', 'MS-TEMP-01')
             ->whereNull('remaining_anchor_hours')
             ->update([
                 'remaining_anchor_hours' => DB::raw('remaining_hours'),
@@ -54,11 +59,14 @@ return new class extends Migration
 
     public function down(): void
     {
-        // Solo revierte lo que este backfill pudo haber puesto: no toca
-        // anclas fijadas después por el importador o por un reemplazo real.
+        // Mismo filtro que up(): solo limpia lo que este backfill pudo haber
+        // sembrado, sin tocar anclas fijadas después por el importador o por
+        // un evento de reemplazo real. remaining_hours nunca se tocó, así
+        // que no hay nada que restaurar ahí.
         DB::table('machines')
-            ->where('hourmeter_status', 'ok')
-            ->where('id_code', '!=', 'LD032')
+            ->whereNotNull('remaining_hours')
+            ->whereNotNull('current_hours')
+            ->where('id_code', '!=', 'MS-TEMP-01')
             ->update([
                 'remaining_anchor_hours' => null,
                 'remaining_anchor_at_hours' => null,
