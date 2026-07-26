@@ -9,9 +9,11 @@ use App\Livewire\Field\Login as FieldLogin;
 use App\Livewire\Field\ReportForm;
 use App\Models\Machine;
 use App\Models\Quote;
+use App\Models\WorkOrderAttachment;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Storage;
 use Maatwebsite\Excel\Facades\Excel;
 
 Route::get('/', fn () => redirect('/admin'));
@@ -35,6 +37,32 @@ Route::get('/quotes/{token}', function (string $token) {
 
 /*
 |--------------------------------------------------------------------------
+| Public quote file (hallazgo A5)
+|--------------------------------------------------------------------------
+| El archivo vive en disk('local') (privado) desde el fix de A5. Esta ruta
+| es la unica forma de descargarlo sin cuenta: valida el share_token (no un
+| path recibido del cliente -> sin riesgo de path traversal) y respeta el
+| vencimiento. Antes, quotes/show.blade.php enlazaba directo a la URL
+| publica de Storage::disk('public'), asi que una cotizacion vencida se
+| seguia descargando igual; con esta ruta, si expiro no se entrega el
+| archivo (404).
+*/
+Route::get('/quotes/{token}/archivo', function (string $token) {
+    $quote = Quote::query()->where('share_token', $token)->firstOrFail();
+
+    $expired = $quote->expires_at !== null && $quote->expires_at->isPast();
+
+    abort_if($expired, 404);
+    abort_if(blank($quote->file_path), 404);
+    abort_unless(Storage::disk('local')->exists($quote->file_path), 404);
+
+    $downloadName = trim($quote->title !== '' ? $quote->title : 'quote').'.'.pathinfo($quote->file_path, PATHINFO_EXTENSION);
+
+    return Storage::disk('local')->response($quote->file_path, $downloadName);
+})->name('quotes.public.file');
+
+/*
+|--------------------------------------------------------------------------
 | Fleet reports (PDF / Excel)
 |--------------------------------------------------------------------------
 | Rutas autenticadas normales (no acciones Livewire) para que el navegador
@@ -43,6 +71,31 @@ Route::get('/quotes/{token}', function (string $token) {
 | "view_costs".
 */
 Route::middleware(['auth', SetLocale::class])->group(function () {
+    /*
+     * Hallazgo A5: adjuntos de OT (fotos y FACTURAS = evidencia de costos)
+     * vivian en disk('public') sin ninguna capa de autorizacion (200 sin
+     * sesion). Se sirven por id/modelo via route model binding -> {attachment}
+     * jamas es un path recibido del cliente, sin riesgo de path traversal.
+     * Regla: view_fleet es la base (mismo permiso que ve la OT); type=invoice
+     * exige ademas view_costs, que es exactamente lo que pide el brief del
+     * cliente ("un rol sin view_costs no accede a una factura").
+     */
+    Route::get('/attachments/{attachment}/archivo', function (WorkOrderAttachment $attachment) {
+        $user = Auth::user();
+
+        abort_unless($user?->can('view_fleet'), 403);
+
+        if ($attachment->type === 'invoice') {
+            abort_unless($user->can('view_costs'), 403);
+        }
+
+        abort_unless(Storage::disk('local')->exists($attachment->path), 404);
+
+        $downloadName = $attachment->original_name ?: basename($attachment->path);
+
+        return Storage::disk('local')->response($attachment->path, $downloadName);
+    })->name('attachments.download');
+
     Route::get('/reports/fleet.pdf', function () {
         abort_unless(Auth::user()?->can('view_reports'), 403);
 

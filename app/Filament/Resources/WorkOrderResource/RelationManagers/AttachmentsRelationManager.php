@@ -2,13 +2,13 @@
 
 namespace App\Filament\Resources\WorkOrderResource\RelationManagers;
 
+use App\Rules\RejectsDangerousUploadExtensions;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Support\Facades\Storage;
 
 class AttachmentsRelationManager extends RelationManager
 {
@@ -34,10 +34,18 @@ class AttachmentsRelationManager extends RelationManager
                 ->required(),
             Forms\Components\FileUpload::make('path')
                 ->label(__('wo.file'))
-                ->disk('public')
+                // Hallazgo A5: fotos y, sobre todo, FACTURAS (evidencia de
+                // costos) vivían en el disco publico sin ninguna capa de
+                // autorizacion. Pasan al disco privado ("local", root
+                // storage/app/private) y se sirven por la ruta autorizada
+                // attachments.download (ver routes/web.php), que valida
+                // view_fleet siempre y view_costs para type=invoice.
+                ->disk('local')
                 ->directory('work-order-attachments')
                 ->preserveFilenames()
-                ->acceptedFileTypes(['image/*', 'application/pdf'])
+                ->acceptedFileTypes(['image/png', 'image/jpeg', 'image/webp', 'application/pdf'])
+                ->maxSize(10240)
+                ->rule(new RejectsDangerousUploadExtensions(['png', 'jpg', 'jpeg', 'webp', 'pdf']))
                 ->required()
                 ->columnSpanFull(),
         ]);
@@ -78,7 +86,10 @@ class AttachmentsRelationManager extends RelationManager
                 Tables\Actions\Action::make('download')
                     ->label(__('wo.download'))
                     ->icon('heroicon-o-arrow-down-tray')
-                    ->url(fn ($record) => Storage::disk('public')->url($record->path))
+                    // Ya no es una URL de storage adivinable: pasa por la
+                    // ruta autorizada que valida view_fleet/view_costs
+                    // segun el tipo (fix A5).
+                    ->url(fn ($record) => route('attachments.download', $record))
                     ->openUrlInNewTab(),
                 Tables\Actions\EditAction::make()
                     ->mutateFormDataUsing(fn (array $data) => static::withOriginalName($data)),

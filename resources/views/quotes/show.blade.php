@@ -88,7 +88,7 @@
                 </dl>
 
                 @if($quote->file_path)
-                    <a class="btn" href="{{ \Illuminate\Support\Facades\Storage::disk('public')->url($quote->file_path) }}" target="_blank" rel="noopener">
+                    <a class="btn" href="{{ route('quotes.public.file', $quote->share_token) }}" target="_blank" rel="noopener">
                         {{ __('mgmt.public_view_file') }}
                     </a>
                 @else

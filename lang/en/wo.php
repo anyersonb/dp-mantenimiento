@@ -59,6 +59,8 @@ return [
     'add_part' => 'Add part',
     'attachments_empty_heading' => 'No attachments yet',
     'attachments_empty_desc' => 'Upload photos of the repair or supplier invoices (images or PDF).',
+    'invalid_upload_extension' => 'This file does not have an allowed extension.',
+    'invalid_upload_name' => 'The file name is not valid.',
 
     // Completion
     'complete' => 'Complete',

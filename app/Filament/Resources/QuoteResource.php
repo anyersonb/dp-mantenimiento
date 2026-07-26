@@ -4,6 +4,7 @@ namespace App\Filament\Resources;
 
 use App\Filament\Resources\QuoteResource\Pages;
 use App\Models\Quote;
+use App\Rules\RejectsDangerousUploadExtensions;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
@@ -106,9 +107,16 @@ class QuoteResource extends Resource
                         ->label(__('mgmt.expires_at')),
                     Forms\Components\FileUpload::make('file_path')
                         ->label(__('mgmt.file'))
-                        ->disk('public')
+                        // Hallazgo A5: el archivo de cotizacion vivia en el
+                        // disco publico. Pasa al disco privado ("local") y
+                        // se sirve solo por el link publico con
+                        // share_token (ruta quotes.public.file), que
+                        // ademas respeta el vencimiento (expires_at).
+                        ->disk('local')
                         ->directory('quotes')
                         ->acceptedFileTypes(['application/pdf', 'image/png', 'image/jpeg'])
+                        ->maxSize(10240)
+                        ->rule(new RejectsDangerousUploadExtensions(['pdf', 'png', 'jpg', 'jpeg']))
                         ->columnSpanFull(),
                     Forms\Components\Placeholder::make('share_url')
                         ->label(__('mgmt.share_link'))

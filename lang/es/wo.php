@@ -59,6 +59,8 @@ return [
     'add_part' => 'Agregar parte',
     'attachments_empty_heading' => 'Aún no hay adjuntos',
     'attachments_empty_desc' => 'Sube fotos de la reparación o facturas de proveedores (imágenes o PDF).',
+    'invalid_upload_extension' => 'Este archivo no tiene una extensión permitida.',
+    'invalid_upload_name' => 'El nombre del archivo no es válido.',
 
     // Cierre
     'complete' => 'Completar',
