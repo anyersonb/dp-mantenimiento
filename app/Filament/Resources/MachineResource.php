@@ -151,13 +151,13 @@ class MachineResource extends Resource
                     Forms\Components\TextInput::make('hours_adjustment')
                         ->label(__('fleet.hours_adjustment'))->numeric()->default(0),
                     Forms\Components\TextInput::make('current_hours')
-                        ->label(__('fleet.current_hours'))->numeric()->suffix('h'),
+                        ->label(__('fleet.current_hours'))->numeric()->minValue(0)->suffix('h'),
                     Forms\Components\DatePicker::make('current_hours_date')
                         ->label(__('fleet.current_hours_date')),
                     Forms\Components\TextInput::make('service_interval_hours')
-                        ->label(__('fleet.service_interval'))->numeric()->default(500)->suffix('h'),
+                        ->label(__('fleet.service_interval'))->numeric()->minValue(0)->default(500)->suffix('h'),
                     Forms\Components\TextInput::make('last_service_hours')
-                        ->label(__('fleet.last_service_hours'))->numeric()->suffix('h'),
+                        ->label(__('fleet.last_service_hours'))->numeric()->minValue(0)->suffix('h'),
                     Forms\Components\DatePicker::make('last_service_date')
                         ->label(__('fleet.last_service_date')),
                     Forms\Components\TextInput::make('remaining_hours')

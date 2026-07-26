@@ -23,7 +23,7 @@ class ReadingsRelationManager extends RelationManager
     public function form(Form $form): Form
     {
         return $form->schema([
-            Forms\Components\TextInput::make('hours')->label(__('fleet.hours'))->numeric()->required()->suffix('h'),
+            Forms\Components\TextInput::make('hours')->label(__('fleet.hours'))->numeric()->minValue(0)->required()->suffix('h'),
             Forms\Components\DatePicker::make('read_at')->label(__('fleet.read_at'))->required()->default(now()),
             Forms\Components\Select::make('source')->label(__('fleet.source'))->options([
                 'fuel' => __('fleet.src_fuel'), 'maintenance' => __('fleet.src_maintenance'),

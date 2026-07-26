@@ -35,7 +35,7 @@ class PartsRelationManager extends RelationManager
             ]),
             Forms\Components\TextInput::make('oem_number')->label('OEM #'),
             Forms\Components\TextInput::make('napa_number')->label('NAPA #'),
-            Forms\Components\TextInput::make('change_interval_hours')->label(__('fleet.change_interval'))->numeric()->suffix('h'),
+            Forms\Components\TextInput::make('change_interval_hours')->label(__('fleet.change_interval'))->numeric()->minValue(0)->suffix('h'),
             Forms\Components\Textarea::make('detail')->label(__('fleet.detail'))->columnSpanFull()->rows(2),
         ]);
     }

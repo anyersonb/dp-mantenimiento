@@ -81,7 +81,7 @@ class MachineCategoryResource extends Resource
             Forms\Components\Hidden::make('slug'),
             Forms\Components\TextInput::make('prefix')->label(__('nav.prefix'))->maxLength(5),
             Forms\Components\TextInput::make('default_service_interval')->label(__('fleet.service_interval'))
-                ->numeric()->default(500)->suffix('h'),
+                ->numeric()->minValue(0)->default(500)->suffix('h'),
         ])->columns(2);
     }
 
