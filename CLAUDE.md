@@ -96,6 +96,47 @@ navegador, quedó sin restaurar 4 horas.
   rol taller le falta el permiso log_horometer"). Si falla, correr el seeder
   de arriba para reconverger.
 
+## Gate de reconciliación de hallazgos (Etapa 06)
+
+Nace de un fallo real de contabilidad: la Etapa 05 declaró 7 hallazgos altos,
+pero el informe de cierre (`informe-fixes.md`) acreditó 6 y el resumen final
+dijo "5 cerrados" — **A2 y A7 no aparecían ni una vez** en ese informe, porque
+los bloques de fix se armaron por hallazgo y esos dos nunca entraron en
+ninguno. Se perdieron en el conteo, no en el trabajo: nadie los cerró ni los
+rechazó explícitamente, simplemente no se mencionaron.
+
+**Regla:** al cierre de toda etapa, **cada hallazgo del informe original**
+mapea a **(a)** fix + test, o **(b)** una entrada explícita "abierto y
+aceptado" con su motivo. Se verifica **hallazgo por hallazgo, nunca por
+conteo agregado por severidad** ("6 de 7 altos" no dice cuál falta). Una
+etapa no se declara cerrada sin pasar este gate.
+
+## Notas de esquema (leer antes de escribir una consulta)
+
+Cada una de estas costó una consulta fallida o un borrado que no borró nada. **No las vuelvas a
+descubrir por tropiezo.**
+
+- **`machines` NO tiene `name` ni `code`.** El identificador de negocio es **`id_code`** (`EX010`,
+  `LD032`, `MS-TEMP-01`) y el texto libre es **`description`**. Una consulta con `WHERE code LIKE ...`
+  no falla silenciosamente: da `Unknown column`, y si va dentro de un `DELETE` **parece ejecutado y no
+  borra nada** — es la trampa peor, porque uno lee "ok" y asume que limpió.
+- **`condition` es palabra reservada en MySQL 8.** La columna `field_reports.condition` existe (enum
+  `ok` / `attention` / `critical`) y hay que citarla con backticks: `` `condition` ``. Sin backticks la
+  consulta revienta con error de sintaxis.
+- **`machines.current_hours` y `field_reports.hours` son `int unsigned`.** Un valor negativo **no da
+  error de validación: revienta contra la base** (`SQLSTATE 22003`). Es el origen del hallazgo A7 de la
+  Etapa 05: los formularios necesitan `->minValue(0)` porque la base no perdona.
+- **`field_reports.machine_id` es `NOT NULL` con clave foránea**, y también hay FK en `reported_by` y
+  `location_id`. **No hay borrado lógico** en estas tablas (`deleted_at` no existe). Al limpiar datos de
+  prueba, el orden es obligatorio: **hijas antes que la madre** →
+  `field_reports` → `horometer_readings` → `machines`.
+- **`model_has_roles.model_type` guarda la clase con contrabarras escapadas.** Filtrar por
+  `model_type = 'App\Models\User'` desde la línea de comandos rara vez coincide; filtrá por
+  `role_id` + `model_id`. Ojo: un `DELETE` de usuario hecho por SQL **deja la fila huérfana en el
+  pivote** y el listado de Roles muestra un conteo de usuarios inflado. Borrando por la app no pasa.
+- **La bitácora (`activity_log`) es append-only y no se limpia.** Las descripciones se guardan en
+  español fijo, sin importar el idioma del usuario que generó el evento.
+
 ## Comandos útiles
 
 ```
