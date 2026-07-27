@@ -30,6 +30,9 @@ class Machine extends Model
     protected $casts = [
         'current_hours_date' => 'date',
         'last_service_date' => 'date',
+        // Frontera de escala del horómetro (E6-13): las lecturas anteriores a
+        // esta fecha son de la escala vieja y no cuentan para el recálculo.
+        'hours_scale_since' => 'date',
         'needs_review' => 'boolean',
         'current_hours' => 'integer',
         'last_service_hours' => 'integer',
@@ -285,11 +288,26 @@ class Machine extends Model
         // espejo, para no ensuciar el modelo cuando esto es una simulación.
         $espejo = clone $this;
         $espejo->current_hours = $current;
+        $restantes = $espejo->calculateRemainingHours();
+
+        // Un número no se convierte en NULL por un recálculo que agrega
+        // evidencia. Hay máquinas cuyo `remaining_hours` viene del PM Service
+        // Report y la regla no puede reproducirlo porque falta el ancla o falta
+        // la lectura: MS-TEMP-01 (horómetro reemplazado, sin ancla que relacione
+        // las dos escalas) y RL017 (sin ninguna lectura), las dos con 500 h que
+        // **el reporte del cliente escribe explícitamente**. Vaciarlas sería
+        // borrar un dato verificado y dejar la pantalla en "—".
+        //
+        // Al editar o borrar una lectura (`allowLowering = true`) sí se permite,
+        // porque ahí se está quitando la evidencia que sostenía el valor.
+        if (! $allowLowering && $restantes === null && $this->remaining_hours !== null) {
+            $restantes = $this->remaining_hours;
+        }
 
         return [
             'current_hours' => $current,
             'current_hours_date' => $date,
-            'remaining_hours' => $espejo->calculateRemainingHours(),
+            'remaining_hours' => $restantes,
         ];
     }
 

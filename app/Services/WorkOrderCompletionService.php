@@ -6,6 +6,7 @@ use App\Exceptions\CannotCompleteWorkOrder;
 use App\Models\Alert;
 use App\Models\HorometerReading;
 use App\Models\WorkOrder;
+use App\Rules\CoherentHorometerReading;
 use App\Support\LocalizedText;
 
 class WorkOrderCompletionService
@@ -60,6 +61,23 @@ class WorkOrderCompletionService
         // OT, duplicando la lectura. Se compara por lo que de verdad define "la
         // misma lectura de cierre": misma máquina, mismo origen, misma fecha y
         // las mismas horas.
+        // Hallazgo E6-13, sexto camino de escritura de horómetro. Hoy estas horas
+        // salen de `current_hours`, que ya es el máximo de las lecturas, así que
+        // no deberían poder contradecir el historial. Pero "no debería poder" es
+        // exactamente el argumento que dejó pasar A8: se consulta la MISMA regla
+        // compartida y, si algún día la premisa cambia (una escala nueva, un
+        // `hours_at_open` cargado a mano por debajo del historial), el cierre se
+        // rechaza con motivo en vez de escribir una lectura imposible.
+        $problema = CoherentHorometerReading::problem($machine, $hours, (string) $serviceDate);
+
+        if ($problema !== null) {
+            throw CannotCompleteWorkOrder::withIncoherentHours(
+                $workOrder,
+                $hours,
+                __($problema['key'], $problema['params']),
+            );
+        }
+
         $alreadyLogged = HorometerReading::query()
             ->where('machine_id', $machine->id)
             ->where('source', 'workshop')

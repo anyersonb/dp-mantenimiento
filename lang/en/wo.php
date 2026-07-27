@@ -69,6 +69,8 @@ return [
     'hours_at_open' => 'Hours at open',
     'hours_at_open_help' => 'Hour-meter reading when the work order was opened. If left empty, the machine current hours are used. It is the only value that can close the service of a machine with no hour-meter on file.',
     'cannot_complete_no_hours' => 'Cannot complete without service hours',
+    'cannot_complete_incoherent_hours' => 'The closing hours contradict the history',
+    'cannot_complete_incoherent_hours_body' => 'Machine :machine cannot close the service at :hours h: :reason Fix the hour meter or the reading before closing.',
     'cannot_complete_no_hours_body' => 'Machine :machine has no hour-meter on file and this work order has no hours at open. Completing it would reset the service cycle without recording at what hours the service was done. Enter the hours in the "Hours at open" field or log an hour-meter reading for the machine, then try again.',
     'service_reset_note' => 'Service reset on completion of :code',
     'alert_detail_required' => 'The alert detail is required when the checklist result is "Alert".',

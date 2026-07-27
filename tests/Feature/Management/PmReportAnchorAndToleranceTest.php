@@ -107,18 +107,32 @@ class PmReportAnchorAndToleranceTest extends TestCase
 
         $this->assertContains('TOL01', array_column($result['updated'], 'id_code'));
 
+        // La lectura del cliente se guarda igual: es evidencia, y el dato es suyo.
         $this->assertDatabaseHas('horometer_readings', [
             'machine_id' => $machine->id,
             'hours' => 250,
             'source' => 'import',
         ]);
 
-        // Fase 2 del importador manda al final: el snapshot del reporte
-        // (incluida la lectura menor) se aplica igual, sin excepción.
+        // Hallazgo E6-13: esta parte del test afirmaba lo contrario —que el
+        // snapshot del reporte "se aplica igual" y bajaba current_hours a 250—.
+        // Eso ERA el defecto, escrito como expectativa: una lectura más baja o
+        // más vieja no puede hacer retroceder el horómetro de la máquina. Le pasó
+        // a EX027 en producción, con el reporte real del cliente.
+        //
+        // Comportamiento correcto: la máquina conserva sus 300 h, el ancla queda
+        // en el par verificado del reporte (330 h restantes a las 250 h) y las
+        // restantes se descuentan desde ahí: 330 - (300 - 250) = 280.
         $machine->refresh();
-        $this->assertSame(250, $machine->current_hours);
-        $this->assertSame(330, $machine->remaining_hours);
+        $this->assertSame(300, $machine->current_hours, 'una lectura más baja no baja el horómetro');
+        $this->assertSame(280, $machine->remaining_hours);
         $this->assertSame(330, $machine->remaining_anchor_hours);
         $this->assertSame(250, $machine->remaining_anchor_at_hours);
+
+        // Y el desfasaje no queda en silencio: alguien tiene que decidir cuál vale.
+        $this->assertNotEmpty(
+            array_filter($result['warnings'], fn ($w) => str_contains($w, 'TOL01')),
+            'una fila del reporte más vieja que el historial se tiene que declarar'
+        );
     }
 }

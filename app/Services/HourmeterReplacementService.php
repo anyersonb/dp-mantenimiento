@@ -34,6 +34,22 @@ class HourmeterReplacementService
             $machine->current_hours = $newInitialHours;
             $machine->current_hours_date = now();
 
+            // Hallazgo E6-13 (lo encontró el centinela de caminos de horómetro,
+            // y era un hueco propio). La columna `hours_scale_since` se agregó
+            // con E6-01..04 justamente para esto y **nadie la escribía**:
+            //
+            // Sin frontera de escala, las lecturas de la escala vieja siguen en
+            // el historial sin marca. La primera lectura nueva dispara el
+            // recálculo completo, éste se queda con la lectura más alta —que es
+            // la de la escala vieja— y la máquina vuelve de 20 h a 180 h. El
+            // recálculo estaba bien; le faltaba el dato.
+            //
+            // Granularidad: la columna es una fecha, así que una lectura de la
+            // escala vieja tomada HOY, antes del reemplazo, quedaría del lado
+            // nuevo. Se acepta a cambio de que una lectura del mismo día
+            // posterior al reemplazo sí cuente, que es el caso frecuente.
+            $machine->hours_scale_since = now()->toDateString();
+
             // Re-ancla el seguimiento de servicio en la escala nueva: a partir
             // de aquí last_service_hours se expresa en la lectura del
             // horómetro nuevo, y el ancla de remaining_hours arranca en el

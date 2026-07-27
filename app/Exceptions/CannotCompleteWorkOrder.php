@@ -29,4 +29,18 @@ class CannotCompleteWorkOrder extends RuntimeException
             'machine' => $workOrder->machine?->id_code ?? '—',
         ]));
     }
+
+    /**
+     * Hallazgo E6-13: las horas del cierre también pasan por la regla de
+     * coherencia compartida. Un cierre no puede escribir una lectura que
+     * contradiga el historial de la máquina.
+     */
+    public static function withIncoherentHours(WorkOrder $workOrder, int $hours, string $motivo): self
+    {
+        return new self($workOrder, __('wo.cannot_complete_incoherent_hours_body', [
+            'machine' => $workOrder->machine?->id_code ?? '—',
+            'hours' => $hours,
+            'reason' => $motivo,
+        ]));
+    }
 }

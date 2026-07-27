@@ -10,6 +10,7 @@ use App\Models\Machine;
 use App\Models\User;
 use Database\Seeders\RolesAndPermissionsSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Livewire\Features\SupportTesting\Testable;
 use Livewire\Livewire;
 use Spatie\Activitylog\Models\Activity;
 use Tests\TestCase;
@@ -82,7 +83,7 @@ class HorometerReadingEditAndDeleteTest extends TestCase
             ->firstOrFail();
     }
 
-    private function asResponsible(): \Livewire\Features\SupportTesting\Testable
+    private function asResponsible(): Testable
     {
         return Livewire::actingAs(User::where('email', 'responsable@dp.local')->firstOrFail())
             ->test(ReadingsRelationManager::class, [

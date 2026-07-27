@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\HorometerReading;
 use App\Models\Machine;
 use App\Models\User;
+use App\Rules\CoherentHorometerReading;
 use App\Support\LocalizedText;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -60,11 +61,41 @@ class PmServiceReportImporter
         $unmatched = [];
         $warnings = $rows['warnings'];
 
-        // Si el reporte trae el mismo id_code más de una vez (ej. correcciones
-        // al final del archivo), se queda con la última ocurrencia.
+        // Hallazgo E6-13. Antes, con el mismo id_code repetido "ganaba la última
+        // ocurrencia del archivo", asumiendo que las correcciones van al final.
+        // El reporte real del 24/07/2026 demuestra que eso es falso y peligroso:
+        //
+        //   EX027 → #1 400 h del 22/jul (resta 100) · #2 275 h del 17/jun (resta 304)
+        //   RL016 → #1  26 h del 28/may (resta 475) · #2 3564 h del 18/mar (resta 500)
+        //
+        // Con la regla vieja ganaban las #2, o sea la lectura MÁS VIEJA en los
+        // dos casos: EX027 retrocedía 125 h y RL016 volvía a la escala anterior
+        // de su horómetro reemplazado. Ahora gana la de **fecha de lectura más
+        // nueva** y el duplicado se declara como warning para que un humano lo
+        // vea, porque un mismo archivo con dos lecturas distintas para la misma
+        // máquina es un problema del reporte, no un detalle de implementación.
         $byIdCode = [];
         foreach ($rows['records'] as $record) {
-            $byIdCode[$record['id_code']] = $record;
+            $anterior = $byIdCode[$record['id_code']] ?? null;
+
+            if ($anterior === null) {
+                $byIdCode[$record['id_code']] = $record;
+
+                continue;
+            }
+
+            $gana = $this->readingIsNewer($record, $anterior) ? $record : $anterior;
+            $pierde = $gana === $record ? $anterior : $record;
+
+            $warnings[] = __('mgmt.import_duplicate_row', [
+                'machine' => $record['id_code'],
+                'kept_hours' => $gana['latest_reading']['hours'] ?? '—',
+                'kept_date' => $gana['latest_reading']['date'] ?? '—',
+                'dropped_hours' => $pierde['latest_reading']['hours'] ?? '—',
+                'dropped_date' => $pierde['latest_reading']['date'] ?? '—',
+            ]);
+
+            $byIdCode[$record['id_code']] = $gana;
         }
 
         $machines = Machine::query()
@@ -82,8 +113,16 @@ class PmServiceReportImporter
             }
 
             try {
-                $result = DB::transaction(fn () => $this->applyToMachine($machine, $record, $causer, $originalFilename));
-                $warnings = array_merge($warnings, $record['row_warnings']);
+                // Los avisos de la aplicación (E6-13: filas que contradicen el
+                // historial) salen por referencia: son del import, no del parseo.
+                // OJO: `fn () =>` captura por VALOR, así que con una arrow
+                // function los avisos por referencia se perdían en silencio y el
+                // import informaba cero warnings teniendo warnings.
+                $avisosDeLaFila = [];
+                $result = DB::transaction(function () use ($machine, $record, $causer, $originalFilename, &$avisosDeLaFila) {
+                    return $this->applyToMachine($machine, $record, $causer, $originalFilename, $avisosDeLaFila);
+                });
+                $warnings = array_merge($warnings, $record['row_warnings'], $avisosDeLaFila);
 
                 if ($result !== null) {
                     $updated[] = $result;
@@ -122,12 +161,36 @@ class PmServiceReportImporter
     }
 
     /**
+     * ¿La lectura de $a es más nueva que la de $b? Sin fecha legible, la que
+     * tenga fecha gana; si ninguna tiene, gana el valor de horas más alto, que
+     * es la única pista de orden que queda cuando el reporte no trae fechas.
+     *
+     * @param  array<string, mixed>  $a
+     * @param  array<string, mixed>  $b
+     */
+    private function readingIsNewer(array $a, array $b): bool
+    {
+        $fechaA = $a['latest_reading']['date'] ?? null;
+        $fechaB = $b['latest_reading']['date'] ?? null;
+
+        if ($fechaA !== null && $fechaB !== null) {
+            return strtotime((string) $fechaA) > strtotime((string) $fechaB);
+        }
+
+        if ($fechaA !== $fechaB) {
+            return $fechaA !== null;
+        }
+
+        return (int) ($a['latest_reading']['hours'] ?? 0) > (int) ($b['latest_reading']['hours'] ?? 0);
+    }
+
+    /**
      * Aplica un registro parseado del reporte a una máquina existente.
      * Solo pisa los campos para los que el reporte trajo un valor legible.
      *
      * @return ?array{id_code: string, current_hours: ?int, remaining_hours: ?int} null si la fila coincidió con la máquina pero no traía ningún dato legible (nada que actualizar).
      */
-    private function applyToMachine(Machine $machine, array $record, ?User $causer, ?string $originalFilename): ?array
+    private function applyToMachine(Machine $machine, array $record, ?User $causer, ?string $originalFilename, array &$avisos = []): ?array
     {
         // Fase 1: campos que no disparan el observer de HorometerReading pero
         // que su cálculo en vivo SÍ usa (last_service_hours, hours_adjustment).
@@ -155,8 +218,35 @@ class PmServiceReportImporter
         // driver (ej. SQLite en tests), lo que rompería la igualdad exacta.
         // Dispara HorometerReadingObserver, que actualiza current_hours y
         // hace un primer cálculo de remaining_hours.
+        $lecturaAceptada = true;
+
         if ($record['latest_reading']['hours'] !== null) {
             $readAt = $record['latest_reading']['date'] ?? now()->toDateString();
+
+            // Hallazgo E6-13: el importador era el QUINTO camino de escritura de
+            // horómetro sin la regla de coherencia. Se consulta la MISMA regla
+            // que usan el panel y el camino de campo (`CoherentHorometerReading`),
+            // no una copia: es la cuarta vez que un defecto aparece por tener la
+            // regla en un solo lugar (C3, A4, E6-03, y ahora esta).
+            //
+            // Una fila incoherente NO se descarta en silencio ni se fuerza: se
+            // omite la lectura y se declara como warning, porque el dato es del
+            // cliente y la decisión de corregirlo es suya.
+            $problema = CoherentHorometerReading::problem(
+                $machine,
+                (int) $record['latest_reading']['hours'],
+                (string) $readAt,
+            );
+
+            if ($problema !== null) {
+                $lecturaAceptada = false;
+                $avisos[] = __('mgmt.import_incoherent_reading', [
+                    'machine' => $machine->id_code,
+                    'hours' => $record['latest_reading']['hours'],
+                    'date' => $readAt,
+                    'reason' => __($problema['key'], $problema['params']),
+                ]);
+            }
 
             $exists = HorometerReading::query()
                 ->where('machine_id', $machine->id)
@@ -164,7 +254,7 @@ class PmServiceReportImporter
                 ->whereDate('read_at', $readAt)
                 ->exists();
 
-            if (! $exists) {
+            if ($lecturaAceptada && ! $exists) {
                 HorometerReading::create([
                     'machine_id' => $machine->id,
                     'read_at' => $readAt,
@@ -182,36 +272,67 @@ class PmServiceReportImporter
             }
         }
 
-        // Fase 2: el snapshot del reporte manda al final (misma regla del
-        // FleetSeeder: se prioriza remaining_hours del reporte por sobre el
-        // cálculo en vivo). Se fuerza también current_hours/current_hours_date
-        // por si el observer no los tocó (ej. lectura no estrictamente mayor
-        // a la actual).
+        // Fase 2: el ancla verificada del reporte (regla-horometro.md, sec. 2.1 y
+        // 5). El par (horas del reporte, restantes del reporte) es la referencia
+        // desde la cual se descuenta, y **no depende de fechas**: sirve igual si
+        // después aparece una lectura más alta.
+        //
+        // Hallazgo E6-13: acá estaba el defecto. Se forzaba
+        // `current_hours = <horas del reporte>` "por si el observer no los tocó
+        // (ej. lectura no estrictamente mayor a la actual)" — o sea que una fila
+        // con una lectura MÁS VIEJA hacía retroceder el horómetro de la máquina,
+        // en silencio. Es lo que le pasó a EX027: quedó en 275 h del 17/jun
+        // teniendo una lectura de 341 h del 2/jul, y el reporte del 24/07 la
+        // pone en 400 h del 22/jul.
+        //
+        // Ahora `current_hours` y `remaining_hours` los decide el recálculo
+        // completo con `allowLowering: false`: la lectura del reporte es
+        // evidencia que se agrega, no una orden de bajar.
         $postAttrs = [];
-        if ($record['latest_reading']['hours'] !== null) {
-            $postAttrs['current_hours'] = $record['latest_reading']['hours'];
-        }
-        if ($record['latest_reading']['date'] !== null) {
-            $postAttrs['current_hours_date'] = $record['latest_reading']['date'];
-        }
-        if ($record['remaining_hours'] !== null) {
-            $postAttrs['remaining_hours'] = $record['remaining_hours'];
 
-            // Fija el ancla verificada (regla-horometro.md, sec. 2.1 y 5): el
-            // dato del reporte manda, y una lectura de campo posterior
-            // descuenta desde este par en vez de recalcular desde cero. Se
-            // ancla contra el current_hours del propio reporte (no el que ya
-            // tuviera la máquina), que es al que corresponde este remaining.
+        if ($record['remaining_hours'] !== null) {
             $postAttrs['remaining_anchor_hours'] = $record['remaining_hours'];
             $postAttrs['remaining_anchor_at_hours'] = $record['latest_reading']['hours']
                 ?? $machine->current_hours;
+
+            // Sin lectura y sin horas previas no hay ancla que sostenga el
+            // número, pero el dato del cliente no se pierde: se guarda tal cual
+            // (es el caso de RL017, que el reporte declara con 500 h restantes y
+            // ninguna lectura).
+            if ($postAttrs['remaining_anchor_at_hours'] === null) {
+                $postAttrs['remaining_hours'] = $record['remaining_hours'];
+            }
         }
+
         if ($postAttrs !== []) {
             $machine->refresh();
             $machine->update($postAttrs);
         }
 
-        if ($preAttrs === [] && $postAttrs === []) {
+        $machine->refresh();
+
+        $horasAntes = $machine->current_hours;
+        $machine->recalculateHoursFromReadings(allowLowering: false);
+
+        // Si el reporte trae una lectura y el recálculo NO la tomó como valor
+        // actual, es porque la máquina ya tenía evidencia más alta: se declara,
+        // porque significa que el reporte del cliente está desactualizado para
+        // esa máquina y alguien tiene que decidir cuál vale.
+        if ($lecturaAceptada
+            && $record['latest_reading']['hours'] !== null
+            && $machine->current_hours !== null
+            && (int) $record['latest_reading']['hours'] < (int) $machine->current_hours) {
+            $avisos[] = __('mgmt.import_stale_reading', [
+                'machine' => $machine->id_code,
+                'report_hours' => $record['latest_reading']['hours'],
+                'report_date' => $record['latest_reading']['date'] ?? '—',
+                'kept_hours' => $machine->current_hours,
+            ]);
+        }
+
+        $huboRecalculo = $horasAntes !== $machine->current_hours;
+
+        if ($preAttrs === [] && $postAttrs === [] && ! $huboRecalculo) {
             // La fila coincidió con una máquina existente pero no traía
             // ningún dato legible (ej. "NOT IN SERVICE" sin lecturas, o
             // "No Info Available" en las 3 columnas): no hay nada que
