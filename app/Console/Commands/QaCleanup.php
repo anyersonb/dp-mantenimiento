@@ -11,6 +11,7 @@ use App\Models\User;
 use App\Models\WorkOrder;
 use App\Models\WorkOrderAttachment;
 use Illuminate\Console\Command;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Storage;
 use Spatie\Activitylog\Models\Activity;
 
@@ -56,10 +57,15 @@ class QaCleanup extends Command
         'machines' => 99,
         'needs_review' => 35,
         'work_orders' => 1,
-        'alerts' => 5,
-        'anchors' => 62,
+        // 5 -> 6: EX027 cruzó el umbral de servicio al cargar el PM report del
+        // 24/07/2026 y su alerta es legítima (hallazgo E6-15).
+        'alerts' => 6,
+        // 62 -> 63: el reporte del 24/07 dejó ancla verificada en una máquina
+        // que no la tenía.
+        'anchors' => 63,
         'users' => 7,
-        'horometer_readings' => 93,
+        // 93 -> 121: las 28 lecturas del PM report del 24/07/2026.
+        'horometer_readings' => 121,
         'field_reports' => 0,
         'work_order_attachments' => 0,
     ];
@@ -190,7 +196,7 @@ class QaCleanup extends Command
     }
 
     /**
-     * @param  \Illuminate\Support\Collection<int, int>  $workOrderIds
+     * @param  Collection<int, int>  $workOrderIds
      */
     private function purgeAttachments($workOrderIds, bool $dryRun): int
     {
@@ -221,7 +227,7 @@ class QaCleanup extends Command
     }
 
     /**
-     * @param  \Illuminate\Support\Collection<int, int>  $userIds
+     * @param  Collection<int, int>  $userIds
      */
     private function purgeUsers($userIds, bool $dryRun): int
     {
@@ -298,7 +304,7 @@ class QaCleanup extends Command
 
         $this->newLine();
         $this->line($matchesAll
-            ? 'Coincide con la línea base conocida (99 máquinas · 35 needs_review · 1 OT · 5 alertas · 62 anclas · 7 usuarios · 93 lecturas · 0 reportes de campo · 0 adjuntos de OT).'
+            ? 'Coincide con la línea base conocida (99 máquinas · 35 needs_review · 1 OT · 6 alertas · 63 anclas · 7 usuarios · 121 lecturas · 0 reportes de campo · 0 adjuntos de OT).'
             : 'NO coincide con la línea base — revisar las filas marcadas "<-- DIFIERE" arriba.');
     }
 

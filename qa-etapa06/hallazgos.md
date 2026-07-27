@@ -23,6 +23,9 @@ sin test se pierde, aunque esté descrito en un informe.** Cada fila cierra con 
 | **E6-14** | **Alto** | Aprobar una máquina la saca de `needs_review` **sin exigir lectura inicial**: AC-001 quedó aprobada, activa y sin horómetro | ABIERTO — fix propuesto, sin implementar | — | — |
 | **E6-15** | **Alto** | El motor de alertas vivía dentro del observer de lecturas: un cambio de `remaining_hours` por otro camino cruzaba el umbral **sin levantar alerta** | **CERRADO** | `a1c1007d` `App\Services\ServiceAlertEngine`, una implementación que consumen el observer y el importador | dentro de `ImporterRejectsRegressiveReadingsTest` (2 casos) |
 | **E6-16** | Medio | `config('app.locale')` es `en` en una instalación cuyo cliente trabaja en español: consola, jobs y todo lo que corre fuera de una sesión sale en inglés | ABIERTO | — | — |
+| **E6-17** | **Alto** | Dos adjuntos con el mismo nombre de archivo **se pisan**: `preserveFilenames()` sobre un único directorio compartido. Con facturas, es pérdida silenciosa de evidencia de costo | ABIERTO | — | — |
+| **E6-18** | Bajo | `WorkOrder` no declara `dontSubmitEmptyLogs()`: guardar campos no auditados deja asientos de bitácora vacíos (`old: []`, `attributes: []`) | ABIERTO | — | — |
+| **E6-19** | **Alto** | El taller tiene `log_horometer` y **ningún camino de interfaz** para registrar una lectura. E6-08 le pide una lectura que no puede hacer | ABIERTO — fix propuesto, sin implementar | — | — |
 | A7 | Alto | Falta de piso en campos numéricos que alimentan columnas `unsigned` | **CERRADO** | `ac57c9ae` | `MachineNumericFloorTest` + `UnsignedColumnFloorSentinelTest` |
 
 ## E6-07 — el duplicado que no dice nada
@@ -324,3 +327,111 @@ cascada) está probado de verdad y no por casualidad del motor.
 
 El procedimiento quedó en `CLAUDE.md` como paso del gate de cierre de etapa. No se migra
 la suite: es una corrida de control.
+
+## E6-19 — el taller tiene el permiso y no tiene la puerta
+
+**Verificado navegando desde el menú con la cuenta `taller@dp.local`, no leyendo código.**
+
+| Dónde | Qué ve el taller |
+|---|---|
+| Panel → Flota | la lista, con la acción **"Ver"** y nada más (no tiene `manage_machines`) |
+| Panel → una máquina | la pestaña "Historial de horómetro" **existe y no ofrece ningún botón de crear** |
+| App de campo (`/field`) | **nada**: solo "Ir al panel", "Inicio" y "Salir" |
+| Panel → OT | sus 3 órdenes, con "Editar" y "Completar" |
+
+La app de campo decide su menú con `log_fuel`, `field_report` y `confirm_location`/`move_fleet`.
+**`log_horometer` no gobierna ninguna opción**, así que el permiso que el taller sí tiene no
+le abre ninguna puerta.
+
+**La consecuencia es concreta y la escribí yo:** el mensaje de rechazo de E6-08 le dice
+*"Cargá las horas en el campo Horas al abrir **o registrá una lectura de horómetro para la
+máquina**"*, y la segunda mitad de esa frase es imposible para el rol al que se le muestra.
+
+**No es un callejón sin salida**, y esto corrige la hipótesis con la que entré a la sesión:
+el campo "Horas al abrir" que se agregó con E6-08 **sí** es editable por el taller, y por ahí
+cerró QA-OT-02 (verificado abajo). Lo que falta es el camino de la lectura como tal.
+
+**Fix propuesto, no implementado:**
+
+1. **Camino de campo para el taller**: agregar al menú de `/field` una opción "Registrar
+   horómetro" gobernada por `log_horometer` — el permiso ya existe y hoy no hace nada. Es la
+   opción correcta: el que está frente a la máquina lee el horómetro y lo carga.
+2. **O** dar al taller acceso de solo-lectura-más-alta al relation manager de lecturas
+   (crear sí, editar/borrar no), separando el permiso de crear del de administrar.
+3. **En cualquier caso**, corregir el texto del rechazo para que no ofrezca un camino que el
+   rol no tiene.
+
+La 1 es la que resuelve el problema de fondo; la 3 es de esta semana.
+
+## E6-17 — dos adjuntos con el mismo nombre se pisan
+
+`FileUpload` usa `preserveFilenames()` y guarda todo en un único directorio
+`work-order-attachments/`. Comprobado directo sobre el disco: guardar dos veces el mismo
+nombre deja **un solo archivo, con el contenido del segundo**.
+
+Con facturas eso es pérdida de evidencia de costo, y el nombre repetido es lo más probable
+del mundo: dos talleres subiendo `factura.pdf`, o el mismo proveedor con su plantilla. Las
+dos filas de `work_order_attachments` quedan además apuntando al mismo archivo, así que la
+primera OT muestra la factura de la segunda.
+
+**Fix propuesto:** directorio por OT (`work-order-attachments/{work_order_id}/`) o nombre
+único conservando el original en la columna `original_name`, que ya existe justamente para
+eso. Es el mismo criterio de A5: el archivo es la evidencia.
+
+## Sesión 2 — taller, de punta a punta
+
+Todo verificado en base de datos, nunca por el mensaje de pantalla.
+
+### Controles negativos del rol
+
+| Control | Resultado |
+|---|---|
+| Botón "Crear" en el listado de OT | **no aparece** |
+| `/admin/work-orders/create` por URL | **403** |
+| Selección masiva en la tabla | **no existe** |
+| Borrar una OT | **no aparece** (solo administrador) |
+| Costos en el formulario | `parts_cost` visible y **deshabilitado** |
+
+### QA-OT-02 — la máquina sin horómetro
+
+1. El taller intenta completar → **rechazada**, con el mensaje completo en pantalla y en
+   español. En base: la OT **siguió abierta** y `remaining_hours` de la máquina **siguió en
+   NULL**. Es E6-08 funcionando en el navegador, con el rol real.
+2. El taller carga **2450 h** en "Horas al abrir", guarda y completa.
+3. En base: OT `completed`, `hours_at_open=2450`, mano de obra 3,50 h; la máquina quedó con
+   `current_hours=2450`, `last_service_hours=2450`, fecha de hoy y `remaining=500`; y la
+   **lectura de cierre** de 2450 h `source=workshop` **sellada con el taller**
+   (`recorded_by=6`), que es el sello de E6-08.
+
+### QA-OT-01 — el flujo completo
+
+Checklist ("Nivel de aceite" = ok), repuesto (`FLT-2201`, 2 × 48,50) con **`parts_cost`
+recalculado solo a 97,00**, mano de obra 5 h, resolución escrita, y la factura adjunta.
+
+Al cerrar: `last_service_hours=1460`, `remaining=500`, lectura de cierre `source=workshop`
+del taller, y **la alerta abierta de la máquina pasó a `resolved`**.
+
+### Verificación A5, primer ejercicio real
+
+`work_order_attachments` estaba en 0. Después de subir la factura:
+
+| Pregunta | Respuesta medida |
+|---|---|
+| ¿A qué disco escribió? | `disk('local')`, raíz `storage/app/private` |
+| ¿Está en el disco público? | **no** (`Storage::disk('public')->exists()` = false) |
+| ¿Hay copia en `public/storage`? | **no** |
+| URL autorizada sin sesión | **302** al login |
+| URL pública adivinable | **403** |
+
+**A5 aguanta.** El único detalle es que el 302 va al login **de campo** y no al del panel,
+que es E6-11.
+
+### Commit B, ejercitado
+
+| Momento | Acciones visibles en el adjunto |
+|---|---|
+| OT **abierta**, taller | Descargar · Editar · **Borrar** → borró su propia foto, "Borrado" |
+| OT **cerrada**, taller | Descargar · Editar — **sin Borrar** |
+| OT **cerrada**, administrador | Descargar · Editar — **sin Borrar**, y sin selección masiva |
+
+La regla por estado se cumple en pantalla, incluido el administrador.
