@@ -19,6 +19,10 @@ sin test se pierde, aunque esté descrito en un informe.** Cada fila cierra con 
 | **E6-10** | Medio | Texto ya traducido **persistido**: 6 alertas en inglés, 93 notas de lectura y 4 descripciones de bitácora en español. Cambiar el idioma no las cambia | **CERRADO** | `LocalizedText` + cast `AsLocalizedText` en alertas, notas y bitácora; los 9 escritores guardan clave + parámetros; migración que reescribe lo ya guardado | `PersistedTextIsRenderedForTheReaderTest` (8 tests, incluido un centinela de escritores) |
 | **E6-11** | Bajo | Con la sesión vencida, exportar lleva al login de **campo** (`/field/login`), no al del panel | ABIERTO | — | — |
 | **E6-12** | **Medio** | El selector "Asignada a" de la OT ofrece los 7 usuarios, incluidos los roles que no pueden ejecutar OT (gerencia, operador de cisterna) | **CERRADO** | El desplegable sigue al permiso `execute_work_order` (scope de spatie: por rol y directo) | `AssigneeIsLimitedToExecutorsTest` |
+| **E6-13** | **Alto** | El importador escribía `current_hours` con la lectura del reporte aunque fuera más vieja, y con un `id_code` repetido se quedaba con la última ocurrencia del archivo. Quinto camino sin la regla de coherencia | **CERRADO** | `3e59376f` regla compartida + gana la lectura más nueva + recálculo con `allowLowering: false` + frontera de escala en el reemplazo | `ImporterRejectsRegressiveReadingsTest` (7) · `ReplacedHourmeterKeepsItsScaleTest` (3) · `HorometerWritePathSentinelTest` (2) |
+| **E6-14** | **Alto** | Aprobar una máquina la saca de `needs_review` **sin exigir lectura inicial**: AC-001 quedó aprobada, activa y sin horómetro | ABIERTO — fix propuesto, sin implementar | — | — |
+| **E6-15** | **Alto** | El motor de alertas vivía dentro del observer de lecturas: un cambio de `remaining_hours` por otro camino cruzaba el umbral **sin levantar alerta** | **CERRADO** | `a1c1007d` `App\Services\ServiceAlertEngine`, una implementación que consumen el observer y el importador | dentro de `ImporterRejectsRegressiveReadingsTest` (2 casos) |
+| **E6-16** | Medio | `config('app.locale')` es `en` en una instalación cuyo cliente trabaja en español: consola, jobs y todo lo que corre fuera de una sesión sale en inglés | ABIERTO | — | — |
 | A7 | Alto | Falta de piso en campos numéricos que alimentan columnas `unsigned` | **CERRADO** | `ac57c9ae` | `MachineNumericFloorTest` + `UnsignedColumnFloorSentinelTest` |
 
 ## E6-07 — el duplicado que no dice nada
@@ -214,3 +218,109 @@ horómetro nuevo) y RL017 necesita una lectura. Las dos son preguntas para el cl
 
 **Y RL017 es una de las 6 que E6-08 dejó al descubierto:** no tiene horas y **tampoco** tiene la marca
 `needs_review`, así que en el panel se ve como una máquina normal.
+
+## E6-14 — aprobar no exige lectura inicial
+
+**AC-001, medido en la bitácora y en la base:**
+
+| Cuándo | Qué pasó |
+|---|---|
+| 19/07 05:28 | creada por la carga (sin causer) |
+| 19/07 06:05 | **aprobada** por el administrador, evento `approved` |
+| hoy | `needs_review=false`, `status='unknown'`, `current_hours=NULL`, **cero lecturas** |
+
+Aprobar solo pone `needs_review = false`. No pregunta por el horómetro, no exige una
+lectura, no cambia el estado de la máquina. La máquina sale de la lista de revisión y
+**se ve como una máquina normal** teniendo el dato central en blanco.
+
+**Por qué es Alto aunque sea "de proceso":** el cliente tiene 35 máquinas en revisión y
+28 de ellas no tienen `current_hours`. Cuando confirme esa lista, aprobar sin más
+fabrica de golpe **28 máquinas sin horas que se ven normales**, que es exactamente la
+población de E6-08: ahí el cierre de una OT preventiva no puede registrar a qué horas se
+hizo el servicio. Hoy ya hay 6 así (MS003, RL009, RL010, RL011, RL017, AC-001), y son
+las que nadie está mirando porque no tienen la marca.
+
+De las dos máquinas con evento `approved` en la bitácora, una (3038E) tenía lectura y la
+otra (AC-001) no. O sea que la aprobación no distingue: aprobó las dos igual.
+
+**Fix propuesto, no implementado** (esperando decisión):
+
+1. **Aprobar exige horómetro.** Si la máquina no tiene `current_hours` ni ninguna
+   lectura, la acción pide las horas en el mismo diálogo y las registra como lectura
+   inicial (`source='import'` o uno nuevo, `verified=true`, con el causer). Así la
+   aprobación produce el dato en vez de saltearlo.
+2. **O bien** aprobar deja la máquina marcada como **incompleta** —un estado o una
+   columna `data_complete=false`— para que salga en un listado propio y no se confunda
+   con una máquina lista. Es la opción barata si el cliente no tiene las horas al
+   momento de aprobar.
+3. En los dos casos: la acción masiva de aprobar ("Aprobar seleccionadas") tiene que
+   respetar la misma regla, porque es por donde van a entrar las 35.
+
+La 1 es la correcta y la 2 es la que no bloquea al cliente. Se pueden combinar: exigir
+horas cuando el usuario las tenga, permitir "aprobar sin horas" con la marca explícita.
+
+## E6-15 — la alerta que no se levantaba
+
+El motor estaba dentro de `HorometerReadingObserver`, así que solo corría cuando nacía,
+se editaba o se borraba una lectura. Cualquier otro camino que cambiara
+`remaining_hours` dejaba la máquina cruzando el umbral **sin alerta**.
+
+**Encontrado con datos reales, no razonándolo.** Al cargar el PM report del 24/07, EX027
+quedó con **exactamente 100 h restantes —el umbral— y sin alerta**. El motivo es el
+orden: la lectura de 400 h se crea primero y dispara el motor con el ancla vieja (179 h
+restantes, por encima del umbral), y recién después el importador escribe el ancla del
+reporte, que la baja a 100. Nadie volvía a preguntar.
+
+Cerrado sacando el motor a `App\Services\ServiceAlertEngine`, una sola implementación
+que consumen el observer y el importador. Verificado en la base: las 7 máquinas bajo el
+umbral tienen exactamente una alerta abierta.
+
+## Lo que hay que llevarle al cliente
+
+Cuatro cosas concretas que salieron de sus propios archivos del 21 y 24 de julio:
+
+1. **Tres máquinas pasadas de servicio hoy:** LD023 (62 h), LD027 (38 h) y LD034 (28 h).
+   Su reporte las marca **PAST DUE** con esas palabras. Ya quedan en 0 h restantes y con
+   alerta en el panel.
+2. **RL016 tiene el horómetro reemplazado y sin registrar.** Su historial tiene 3564 h
+   (18/mar) y 26 h (28/may): son dos escalas. Hace falta que confirme la fecha del
+   reemplazo para registrarlo por la acción del panel; hasta entonces el sistema
+   conserva la escala vieja y rechaza las filas de la nueva.
+3. **Dos máquinas aparecen duplicadas en el reporte del 24/07** con lecturas distintas:
+   EX027 (400 h del 22/jul y 275 h del 17/jun) y RL016 (26 h del 28/may y 3564 h del
+   18/mar). El sistema ya se queda con la más nueva y lo declara, pero el archivo
+   conviene corregirlo en origen.
+4. **19 máquinas del sistema no están en el Info Book del 21/07**, y **8 de ellas no
+   tienen ni la marca de revisión**: 3038E, MS003, PJ001, RL002, RL009, RL010, RL011,
+   SC002. Las otras 11 son las temporales y los marcadores `INFO-TMP-0x`. Esa es la lista
+   para la acción "descartar".
+
+## Corrida de control contra MySQL (gate de cierre de etapa)
+
+La suite corre en SQLite y la aplicación en MySQL. **Las 257 pruebas pasan en los dos
+motores**, y se comprobó que la corrida de MySQL fue real (las 30 tablas quedaron creadas
+en `dp_mantenimiento_test`, porque `phpunit.xml` declara `DB_CONNECTION=sqlite` y podría
+haber pisado la variable).
+
+Que esté verde en los dos no significa que los dos midan lo mismo. Sonda directa:
+
+| Caso | SQLite (la suite) | MySQL (producción) |
+|---|---|---|
+| Negativo en `unsignedInteger` | **ACEPTA** | RECHAZA `22003` |
+| Texto más largo que `varchar(n)` | **ACEPTA** | RECHAZA `22001` |
+| Fecha inválida `2026-02-31` | **ACEPTA** | RECHAZA `22007` |
+| `NOT NULL` sin valor | RECHAZA | RECHAZA |
+| Clave foránea inexistente | RECHAZA | RECHAZA |
+| `ON DELETE CASCADE` | aplica | aplica |
+
+**Tu sospecha era correcta y ahora está medida:** el hallazgo A7 —escribir `-5` en una
+columna `unsigned`— **era invisible para la suite y siempre lo iba a ser**. Lo mismo vale
+para cualquier `maxLength()` que falte en un formulario y para una fecha imposible: verde
+en test, 500 en producción.
+
+La buena noticia es el otro lado de la tabla: **las claves foráneas y las cascadas sí se
+comportan igual en los dos**, así que el mecanismo de E6-05 (SoftDeletes evitando la
+cascada) está probado de verdad y no por casualidad del motor.
+
+El procedimiento quedó en `CLAUDE.md` como paso del gate de cierre de etapa. No se migra
+la suite: es una corrida de control.

@@ -212,6 +212,43 @@ cobertura, la unidad no es "el componente" sino **"el componente en esa página"
 Corolario práctico: antes de afirmar que algo no se puede hacer desde el panel,
 buscar el componente con grep y listar sus puntos de montaje, no una pantalla.
 
+## Gate de cierre de etapa: una corrida de control contra MySQL
+
+**La suite corre sobre SQLite en memoria y la aplicación vive en MySQL.** Eso
+está bien para la velocidad del día a día, pero significa que hay clases de
+error que la suite **no puede reportar**, por más verde que esté. Medido con una
+sonda sobre los dos motores:
+
+| Caso | SQLite (la suite) | MySQL (producción) |
+|---|---|---|
+| Negativo en `unsignedInteger` | **ACEPTA** | RECHAZA `SQLSTATE 22003` |
+| Texto más largo que `varchar(n)` | **ACEPTA** (no aplica largos) | RECHAZA `SQLSTATE 22001` |
+| Fecha inválida (`2026-02-31`) | **ACEPTA** | RECHAZA `SQLSTATE 22007` |
+| `NOT NULL` sin valor | RECHAZA | RECHAZA |
+| Clave foránea inexistente | RECHAZA | RECHAZA |
+| `ON DELETE CASCADE` | aplica | aplica |
+
+Las tres primeras son huecos reales de la red: **el hallazgo A7 (`-5` en una
+columna `unsigned`) era invisible para la suite y siempre lo iba a ser.** Un
+`maxLength()` que falte en un formulario es lo mismo: verde en tests, 500 en
+producción.
+
+Por eso, **antes de cerrar una etapa se corre la suite una vez contra MySQL**:
+
+```
+G:/laragon/bin/mysql/mysql-8.0.30-winx64/bin/mysql.exe -uroot \
+  -e "CREATE DATABASE IF NOT EXISTS dp_mantenimiento_test CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
+
+DB_CONNECTION=mysql DB_DATABASE=dp_mantenimiento_test DB_USERNAME=root DB_PASSWORD= \
+  php -d xdebug.mode=off vendor/bin/phpunit
+```
+
+**No se migra la suite a MySQL**: es una corrida de control, no el modo normal.
+Y hay que **comprobar que de verdad corrió contra MySQL** —`SHOW TABLES` en
+`dp_mantenimiento_test` tiene que devolver las tablas—, porque `phpunit.xml`
+declara `DB_CONNECTION=sqlite` y un `<env>` sin `force` puede pisar lo que se
+pasa por línea de comandos. Última corrida: **257/257 en los dos motores**.
+
 ## Automatizar el panel con Playwright: trampas ya pagadas
 
 Cada una costó una corrida de 30 s a 30 min. **Están todas verificadas contra el
