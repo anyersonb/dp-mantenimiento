@@ -2,10 +2,9 @@
 
 namespace App\Observers;
 
-use App\Models\Alert;
 use App\Models\HorometerReading;
 use App\Models\Machine;
-use App\Support\LocalizedText;
+use App\Services\ServiceAlertEngine;
 use Illuminate\Support\Facades\Auth;
 
 class HorometerReadingObserver
@@ -77,35 +76,11 @@ class HorometerReadingObserver
 
         $machine->recalculateHoursFromReadings($allowLowering);
 
-        $this->maybeRaiseServiceAlert($machine);
-    }
-
-    protected function maybeRaiseServiceAlert(Machine $machine): void
-    {
-        if ($machine->remaining_hours === null || $machine->remaining_hours > Machine::ALERT_THRESHOLD) {
-            return;
-        }
-
-        $hasOpenAlert = Alert::query()
-            ->where('machine_id', $machine->id)
-            ->where('type', 'service')
-            ->where('status', 'open')
-            ->exists();
-
-        if ($hasOpenAlert) {
-            return;
-        }
-
-        Alert::create([
-            'machine_id' => $machine->id,
-            'type' => 'service',
-            'title' => LocalizedText::of('alerts.auto_title', ['machine' => $machine->id_code]),
-            'message' => LocalizedText::of('alerts.auto_message', [
-                'machine' => $machine->id_code,
-                'hours' => $machine->remaining_hours,
-            ]),
-            'remaining_hours' => $machine->remaining_hours,
-            'status' => 'open',
-        ]);
+        // Hallazgo E6-15: el motor de alerta salió de acá a
+        // App\Services\ServiceAlertEngine, porque vivir dentro de este observer
+        // significaba que solo se evaluaba en eventos de lectura. El importador
+        // cambia `remaining_hours` por el ancla del reporte y dejaba a la máquina
+        // cruzando el umbral sin alerta (le pasó a EX027 con 100 h justas).
+        ServiceAlertEngine::evaluate($machine);
     }
 }

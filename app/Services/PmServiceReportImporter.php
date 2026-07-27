@@ -196,6 +196,42 @@ class PmServiceReportImporter
         // que su cálculo en vivo SÍ usa (last_service_hours, hours_adjustment).
         // Se aplican antes de crear la lectura para que, si el observer
         // recalcula remaining_hours, lo haga con los datos correctos.
+        // Hallazgo E6-13, segunda vuelta. La coherencia se evalúa ANTES de aplicar
+        // cualquier campo, porque una fila incoherente no es "una lectura que
+        // sobra": es una fila que **no corresponde a esta máquina tal como está
+        // hoy**, y aplicarla por partes mezcla escalas.
+        //
+        // Lo encontré en la corrida real, no razonándolo. RL016 llega con la fila
+        // entera en la escala NUEVA del horómetro (último servicio 0 h, lectura
+        // 26 h, restantes 475 h) mientras el sistema todavía tiene la escala vieja
+        // (3564 h). Rechazando solo la lectura pero aplicando el resto, las
+        // restantes quedaron en **−3064 h** = 475 − (3564 − 0): la máquina
+        // declarada pasada de servicio por una cuenta entre dos escalas distintas.
+        //
+        // Se rechaza la fila completa y se declara. El caso real detrás de esto es
+        // un reemplazo de horómetro sin registrar, y quien lo registra es una
+        // persona con la acción del panel, no un importador adivinando.
+        if ($record['latest_reading']['hours'] !== null) {
+            $readAtCoherencia = $record['latest_reading']['date'] ?? now()->toDateString();
+
+            $problema = CoherentHorometerReading::problem(
+                $machine,
+                (int) $record['latest_reading']['hours'],
+                (string) $readAtCoherencia,
+            );
+
+            if ($problema !== null) {
+                $avisos[] = __('mgmt.import_incoherent_reading', [
+                    'machine' => $machine->id_code,
+                    'hours' => $record['latest_reading']['hours'],
+                    'date' => $readAtCoherencia,
+                    'reason' => __($problema['key'], $problema['params']),
+                ]);
+
+                return null;
+            }
+        }
+
         $preAttrs = [];
         if ($record['last_service']['hours'] !== null) {
             $preAttrs['last_service_hours'] = $record['last_service']['hours'];
@@ -218,35 +254,11 @@ class PmServiceReportImporter
         // driver (ej. SQLite en tests), lo que rompería la igualdad exacta.
         // Dispara HorometerReadingObserver, que actualiza current_hours y
         // hace un primer cálculo de remaining_hours.
+        // La coherencia ya se validó arriba: acá la fila es aplicable.
         $lecturaAceptada = true;
 
         if ($record['latest_reading']['hours'] !== null) {
             $readAt = $record['latest_reading']['date'] ?? now()->toDateString();
-
-            // Hallazgo E6-13: el importador era el QUINTO camino de escritura de
-            // horómetro sin la regla de coherencia. Se consulta la MISMA regla
-            // que usan el panel y el camino de campo (`CoherentHorometerReading`),
-            // no una copia: es la cuarta vez que un defecto aparece por tener la
-            // regla en un solo lugar (C3, A4, E6-03, y ahora esta).
-            //
-            // Una fila incoherente NO se descarta en silencio ni se fuerza: se
-            // omite la lectura y se declara como warning, porque el dato es del
-            // cliente y la decisión de corregirlo es suya.
-            $problema = CoherentHorometerReading::problem(
-                $machine,
-                (int) $record['latest_reading']['hours'],
-                (string) $readAt,
-            );
-
-            if ($problema !== null) {
-                $lecturaAceptada = false;
-                $avisos[] = __('mgmt.import_incoherent_reading', [
-                    'machine' => $machine->id_code,
-                    'hours' => $record['latest_reading']['hours'],
-                    'date' => $readAt,
-                    'reason' => __($problema['key'], $problema['params']),
-                ]);
-            }
 
             $exists = HorometerReading::query()
                 ->where('machine_id', $machine->id)
@@ -254,7 +266,7 @@ class PmServiceReportImporter
                 ->whereDate('read_at', $readAt)
                 ->exists();
 
-            if ($lecturaAceptada && ! $exists) {
+            if (! $exists) {
                 HorometerReading::create([
                     'machine_id' => $machine->id,
                     'read_at' => $readAt,
@@ -290,7 +302,14 @@ class PmServiceReportImporter
         // evidencia que se agrega, no una orden de bajar.
         $postAttrs = [];
 
-        if ($record['remaining_hours'] !== null) {
+        // El ancla y la lectura son **el mismo dato visto de dos maneras**: si la
+        // lectura se rechazó por incoherente, el ancla de esa misma fila tampoco
+        // se puede aplicar. Costó verlo en la corrida real: RL016 rechazó su
+        // lectura de 26 h (tenía 3564 h de la escala vieja registradas) pero el
+        // ancla 475@26 se aplicó igual, y las restantes quedaron en −3063 h, o sea
+        // la máquina declarada "pasada de servicio" por un dato que el propio
+        // importador había desechado.
+        if ($record['remaining_hours'] !== null && $lecturaAceptada) {
             $postAttrs['remaining_anchor_hours'] = $record['remaining_hours'];
             $postAttrs['remaining_anchor_at_hours'] = $record['latest_reading']['hours']
                 ?? $machine->current_hours;
@@ -313,6 +332,13 @@ class PmServiceReportImporter
 
         $horasAntes = $machine->current_hours;
         $machine->recalculateHoursFromReadings(allowLowering: false);
+
+        // Hallazgo E6-15: el ancla del reporte puede cruzar el umbral de servicio
+        // sin que haya un evento de lectura después, y entonces la alerta no se
+        // levantaba. Le pasó a EX027 en la corrida real: quedó con 100 h justas
+        // —el umbral— y sin alerta, porque cuando nació la lectura de 400 h el
+        // ancla todavía era la vieja y daba 179 h.
+        ServiceAlertEngine::evaluate($machine);
 
         // Si el reporte trae una lectura y el recálculo NO la tomó como valor
         // actual, es porque la máquina ya tenía evidencia más alta: se declara,

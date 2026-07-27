@@ -114,6 +114,62 @@ class ImporterRejectsRegressiveReadingsTest extends TestCase
             'el duplicado en el archivo tiene que quedar declarado'
         );
 
+        // Hallazgo E6-15: con 100 h restantes está EN el umbral, así que tiene
+        // que haber alerta. No la había: el motor solo corría en eventos de
+        // lectura, y cuando nació la de 400 h el ancla todavía era la vieja
+        // (179 h restantes, por encima del umbral). Nadie volvía a preguntar.
+        $this->assertDatabaseHas('alerts', [
+            'machine_id' => $machine->id,
+            'type' => 'service',
+            'status' => 'open',
+        ]);
+
+        @unlink($ruta);
+    }
+
+    /**
+     * Hallazgo E6-15 aislado: lo que cruza el umbral es el ANCLA del reporte, no
+     * la lectura. Si el motor de alertas solo escucha lecturas, esta máquina se
+     * queda sin aviso.
+     */
+    public function test_the_report_anchor_crossing_the_threshold_raises_the_alert(): void
+    {
+        $machine = $this->machine('ALERT-01', [
+            'current_hours' => 1000,
+            'current_hours_date' => '2026-07-01',
+            'last_service_hours' => 100,
+            'remaining_anchor_hours' => 400,
+            'remaining_anchor_at_hours' => 1000,
+            'remaining_hours' => 400,
+        ]);
+
+        HorometerReading::create([
+            'machine_id' => $machine->id,
+            'hours' => 1000,
+            'read_at' => '2026-07-01',
+            'source' => 'import',
+        ]);
+
+        $this->assertDatabaseMissing('alerts', ['machine_id' => $machine->id]);
+
+        // La lectura sube 50 h (con el ancla vieja daría 350 h restantes: sin
+        // alerta), pero el reporte declara 30 h restantes a esas horas.
+        $ruta = $this->fixture([
+            ['id' => 'ALERT-01', 'last' => '100 Hrs 1/01/26', 'reading' => '1050 Hrs 7/24/26', 'remaining' => '30 Hrs'],
+        ]);
+
+        app(PmServiceReportImporter::class)->import($ruta, null, 'pm_7242026.xlsx');
+
+        $machine->refresh();
+
+        $this->assertSame(30, $machine->remaining_hours);
+        $this->assertDatabaseHas('alerts', [
+            'machine_id' => $machine->id,
+            'type' => 'service',
+            'status' => 'open',
+            'remaining_hours' => 30,
+        ]);
+
         @unlink($ruta);
     }
 
@@ -264,6 +320,65 @@ class ImporterRejectsRegressiveReadingsTest extends TestCase
             'hours' => 8777,
             'source' => 'import',
         ]);
+
+        @unlink($ruta);
+    }
+
+    /**
+     * El ancla y la lectura son el mismo dato visto de dos maneras: si la lectura
+     * se rechaza, el ancla de esa fila tampoco entra.
+     *
+     * Salió de la corrida real sobre la base del cliente, no de un razonamiento:
+     * RL016 rechazó su lectura de 26 h —tenía 3564 h de la escala vieja
+     * registradas— y el ancla 475@26 se aplicó igual, dejando las restantes en
+     * **−3063 h** y la máquina declarada "pasada de servicio" por un dato que el
+     * propio importador había desechado.
+     */
+    public function test_a_rejected_reading_does_not_apply_its_anchor_either(): void
+    {
+        $machine = $this->machine('RL016B', [
+            'current_hours' => 3564,
+            'current_hours_date' => '2026-03-18',
+            'last_service_hours' => 3000,
+            'remaining_hours' => 500,
+        ]);
+
+        HorometerReading::create([
+            'machine_id' => $machine->id,
+            'hours' => 3564,
+            'read_at' => '2026-03-18',
+            'source' => 'import',
+        ]);
+
+        // Estado de partida REAL, después de que el observer recalculó con la
+        // lectura del montaje. Es lo que la fila rechazada no puede alterar.
+        $machine->refresh();
+        $horasAntes = $machine->current_hours;
+        $restantesAntes = $machine->remaining_hours;
+        $anclaAntes = $machine->remaining_anchor_at_hours;
+        $ultimoServicioAntes = $machine->last_service_hours;
+
+        // Escala nueva del horómetro sin el reemplazo registrado: la fila entera
+        // (último servicio 0 h, lectura 26 h, restantes 475 h) es de la escala
+        // nueva y el sistema está en la vieja.
+        $ruta = $this->fixture([
+            ['id' => 'RL016B', 'last' => '0 Hrs 1/01/26', 'reading' => '26 Hrs 5/28/26', 'remaining' => '475 Hrs'],
+        ]);
+
+        $resultado = app(PmServiceReportImporter::class)->import($ruta, null, 'pm_7242026.xlsx');
+
+        $machine->refresh();
+
+        // Nada de la fila entra: ni la lectura, ni el ancla, ni el último
+        // servicio. Aplicarla por partes daba -3064 h de restantes.
+        $this->assertSame($horasAntes, $machine->current_hours);
+        $this->assertSame($restantesAntes, $machine->remaining_hours);
+        $this->assertSame($anclaAntes, $machine->remaining_anchor_at_hours);
+        $this->assertSame($ultimoServicioAntes, $machine->last_service_hours, 'el último servicio de la escala nueva no entra');
+        $this->assertDatabaseMissing('horometer_readings', ['machine_id' => $machine->id, 'hours' => 26]);
+
+        // Y se declara, con el motivo.
+        $this->assertNotEmpty(array_filter($resultado['warnings'], fn ($w) => str_contains($w, 'RL016B')));
 
         @unlink($ruta);
     }
