@@ -22,7 +22,10 @@ return [
     'assigned_to' => 'Asignada a',
     'execution_mode' => 'Modalidad',
     'workshop' => 'Taller',
-    'onsite' => 'On-site',
+    // Era la única cadena idéntica en los dos idiomas (barrido 2026-07-28).
+    // "En obra" es como lo dice la gente de campo de DP; se conserva el
+    // "on-site" entre paréntesis porque así figura en los papeles del cliente.
+    'onsite' => 'En obra (on-site)',
     'description_help' => 'Describe qué tipo de tarea se realizará.',
     'opened_at' => 'Abierta el',
     'completed_at' => 'Completada el',

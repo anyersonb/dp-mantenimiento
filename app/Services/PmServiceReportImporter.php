@@ -127,7 +127,10 @@ class PmServiceReportImporter
                 if ($result !== null) {
                     $updated[] = $result;
                 } else {
-                    $warnings[] = "{$idCode} (fila {$record['row']}): coincide pero el reporte no trae ninguna lectura legible para esta fila, no se actualizó nada.";
+                    $warnings[] = __('mgmt.import_warn_no_reading', [
+                        'machine' => $idCode,
+                        'row' => $record['row'],
+                    ]);
                 }
             } catch (\Throwable $e) {
                 Log::error('pm_report_import.machine_update_failed', [
@@ -135,7 +138,11 @@ class PmServiceReportImporter
                     'row' => $record['row'],
                     'error' => $e->getMessage(),
                 ]);
-                $warnings[] = "{$idCode} (fila {$record['row']}): error al actualizar — {$e->getMessage()}";
+                $warnings[] = __('mgmt.import_warn_update_failed', [
+                    'machine' => $idCode,
+                    'row' => $record['row'],
+                    'error' => $e->getMessage(),
+                ]);
             }
         }
 
@@ -421,7 +428,7 @@ class PmServiceReportImporter
 
                 $idCode = $this->extractIdCode($a);
                 if ($idCode === null) {
-                    $warnings[] = "Fila {$r}: no se pudo identificar un ID de máquina en \"{$a}\", se omite.";
+                    $warnings[] = __('mgmt.import_warn_no_id', ['row' => $r, 'text' => $a]);
 
                     continue;
                 }
@@ -443,13 +450,19 @@ class PmServiceReportImporter
             $fuel = $this->parseFuel($this->cell($sheet, "M{$r}"));
 
             if ($lastService['unparseable']) {
-                $rowWarnings[] = "{$idCode} (fila {$r}): último servicio ilegible (\"{$lastService['raw']}\"), se conserva el valor actual.";
+                $rowWarnings[] = __('mgmt.import_warn_unreadable_last_service', [
+                    'machine' => $idCode, 'row' => $r, 'raw' => $lastService['raw'],
+                ]);
             }
             if ($latestReading['unparseable']) {
-                $rowWarnings[] = "{$idCode} (fila {$r}): última lectura ilegible (\"{$latestReading['raw']}\"), se conserva el valor actual.";
+                $rowWarnings[] = __('mgmt.import_warn_unreadable_latest_reading', [
+                    'machine' => $idCode, 'row' => $r, 'raw' => $latestReading['raw'],
+                ]);
             }
             if ($remaining['unparseable']) {
-                $rowWarnings[] = "{$idCode} (fila {$r}): horas restantes ilegibles (\"{$remaining['raw']}\"), se conserva el valor actual.";
+                $rowWarnings[] = __('mgmt.import_warn_unreadable_remaining', [
+                    'machine' => $idCode, 'row' => $r, 'raw' => $remaining['raw'],
+                ]);
             }
 
             $hoursAdjustment = $this->extractHoursAdjustment($a);
@@ -467,7 +480,10 @@ class PmServiceReportImporter
         }
 
         if ($pendingDescription !== null) {
-            $warnings[] = "Fila {$pendingDescription['row']}: máquina \"{$pendingDescription['id_code']}\" no tiene fila de datos (fin de archivo), se omite.";
+            $warnings[] = __('mgmt.import_warn_orphan_description', [
+                'row' => $pendingDescription['row'],
+                'machine' => $pendingDescription['id_code'],
+            ]);
         }
 
         return ['records' => $records, 'warnings' => $warnings];

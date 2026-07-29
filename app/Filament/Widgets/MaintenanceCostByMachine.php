@@ -42,7 +42,8 @@ class MaintenanceCostByMachine extends BaseWidget
             )
             ->columns([
                 Tables\Columns\TextColumn::make('id_code')->label(__('fleet.id_code'))->weight('bold'),
-                Tables\Columns\TextColumn::make('category.name')->label(__('fleet.category'))->badge(),
+                Tables\Columns\TextColumn::make('category.name')->label(__('fleet.category'))->badge()
+                    ->formatStateUsing(fn ($state, $record) => $record->category?->display_name ?? $state),
                 Tables\Columns\TextColumn::make('location.name')->label(__('fleet.location'))->badge()->color('gray'),
                 Tables\Columns\TextColumn::make('completed_service_count')->label(__('mgmt.service_count'))->alignCenter(),
                 Tables\Columns\TextColumn::make('completed_parts_cost')

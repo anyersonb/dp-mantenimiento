@@ -19,10 +19,17 @@ return [
     'audit_log' => 'Bitácora',
     'audit_logs' => 'Bitácora',
     'date' => 'Fecha',
+    'date_from' => 'Desde',
+    'date_until' => 'Hasta',
     'causer' => 'Usuario',
     'event' => 'Evento',
     'description' => 'Descripción',
     'subject_type' => 'Tipo de registro',
+    // Tipos de registro de la bitácora. La clave es el nombre de la clase del
+    // modelo en snake_case; si falta una, se muestra el nombre de la clase.
+    'subject_machine' => 'Máquina',
+    'subject_work_order' => 'Orden de trabajo',
+    'subject_horometer_reading' => 'Lectura de horómetro',
     'subject_id' => 'Registro #',
     'changes' => 'Cambios',
     'properties' => 'Detalle',
@@ -93,4 +100,19 @@ return [
     'import_duplicate_row' => ':machine aparece más de una vez en el reporte: se toma la lectura de :kept_hours h del :kept_date y se descarta la de :dropped_hours h del :dropped_date. Revisá el archivo con el cliente.',
     'import_incoherent_reading' => ':machine: la lectura de :hours h del :date contradice el historial (:reason). La lectura NO se cargó; el resto de la fila sí.',
     'import_stale_reading' => ':machine: el reporte trae :report_hours h del :report_date, más viejo que las :kept_hours h que ya tenía la máquina. Se conservan las :kept_hours h y las restantes se recalculan desde el ancla del reporte.',
+
+    /*
+     * Avisos del importador. Estaban escritos en español fijo dentro de
+     * PmServiceReportImporter, así que un usuario en inglés los recibía en
+     * español mientras el resto de la interfaz estaba traducida (y al revés no
+     * había forma de verlos en otro idioma). Se renderizan en el idioma de
+     * quien corre el import.
+     */
+    'import_warn_no_reading' => ':machine (fila :row): coincide pero el reporte no trae ninguna lectura legible para esta fila, no se actualizó nada.',
+    'import_warn_update_failed' => ':machine (fila :row): error al actualizar — :error',
+    'import_warn_no_id' => 'Fila :row: no se pudo identificar un ID de máquina en ":text", se omite.',
+    'import_warn_unreadable_last_service' => ':machine (fila :row): último servicio ilegible (":raw"), se conserva el valor actual.',
+    'import_warn_unreadable_latest_reading' => ':machine (fila :row): última lectura ilegible (":raw"), se conserva el valor actual.',
+    'import_warn_unreadable_remaining' => ':machine (fila :row): horas restantes ilegibles (":raw"), se conserva el valor actual.',
+    'import_warn_orphan_description' => 'Fila :row: la máquina ":machine" no tiene fila de datos (fin de archivo), se omite.',
 ];

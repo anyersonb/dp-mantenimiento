@@ -27,7 +27,8 @@ class ViewMachine extends ViewRecord
                 ->columns(3)
                 ->schema([
                     Components\TextEntry::make('id_code')->label(__('fleet.id_code'))->weight('bold'),
-                    Components\TextEntry::make('category.name')->label(__('fleet.category'))->badge(),
+                    Components\TextEntry::make('category.name')->label(__('fleet.category'))->badge()
+                        ->formatStateUsing(fn ($state, $record) => $record->category?->display_name ?? $state),
                     Components\TextEntry::make('make.name')->label(__('fleet.make')),
                     Components\TextEntry::make('model')->label(__('fleet.model')),
                     Components\TextEntry::make('serial')->label(__('fleet.serial')),

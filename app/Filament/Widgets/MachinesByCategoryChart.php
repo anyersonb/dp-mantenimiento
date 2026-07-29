@@ -33,7 +33,9 @@ class MachinesByCategoryChart extends ChartWidget
                     '#06b6d4', '#a855f7', '#eab308', '#22c55e', '#64748b',
                 ],
             ]],
-            'labels' => $categories->pluck('name')->all(),
+            // display_name traduce la categoría al idioma del usuario y cae al
+            // nombre guardado si falta la clave (MachineCategory::displayName()).
+            'labels' => $categories->pluck('display_name')->all(),
         ];
     }
 

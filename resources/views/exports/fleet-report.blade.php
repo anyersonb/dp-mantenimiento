@@ -51,7 +51,7 @@
             @foreach($machines as $machine)
                 <tr>
                     <td>{{ $machine->id_code }}</td>
-                    <td>{{ $machine->category?->name }}</td>
+                    <td>{{ $machine->category?->display_name }}</td>
                     <td>{{ $machine->make?->name }}</td>
                     <td>{{ $machine->model }}</td>
                     <td>{{ $machine->location?->name }}</td>

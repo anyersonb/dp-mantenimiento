@@ -99,7 +99,19 @@ class ActivityResource extends Resource
                     ->label(__('mgmt.description'))->wrap(),
                 Tables\Columns\TextColumn::make('subject_type')
                     ->label(__('mgmt.subject_type'))
-                    ->formatStateUsing(fn (?string $state) => $state ? Str::afterLast($state, '\\') : '—')
+                    // Mostraba el nombre pelado de la clase ("HorometerReading").
+                    // Se traduce por clase y, si aparece un modelo nuevo sin
+                    // clave, se cae al nombre corto de antes en vez de vaciarse.
+                    ->formatStateUsing(function (?string $state): string {
+                        if ($state === null) {
+                            return '—';
+                        }
+
+                        $key = 'mgmt.subject_'.Str::snake(Str::afterLast($state, '\\'));
+                        $translated = __($key);
+
+                        return $translated === $key ? Str::afterLast($state, '\\') : $translated;
+                    })
                     ->badge()->color('gray'),
                 Tables\Columns\TextColumn::make('subject_id')
                     ->label(__('mgmt.subject_id')),
@@ -108,8 +120,10 @@ class ActivityResource extends Resource
             ->filters([
                 Tables\Filters\Filter::make('created_at')
                     ->form([
-                        DatePicker::make('from')->label(__('mgmt.date')),
-                        DatePicker::make('until')->label('—'),
+                        DatePicker::make('from')->label(__('mgmt.date_from')),
+                        // Estaba con la etiqueta literal "—", o sea sin nombre
+                        // en ningún idioma: no se entendía qué filtraba.
+                        DatePicker::make('until')->label(__('mgmt.date_until')),
                     ])
                     ->query(function (Builder $query, array $data) {
                         return $query
@@ -118,13 +132,15 @@ class ActivityResource extends Resource
                     }),
                 Tables\Filters\SelectFilter::make('subject_type')
                     ->label(__('mgmt.subject_type'))
+                    // Mostraba el nombre crudo de la clase ("HorometerReading"),
+                    // que no es idioma de ningún usuario.
                     ->options([
-                        Machine::class => 'Machine',
-                        WorkOrder::class => 'WorkOrder',
+                        Machine::class => __('mgmt.subject_machine'),
+                        WorkOrder::class => __('mgmt.subject_work_order'),
                         // Agregado con E6-04: las lecturas de horómetro ahora
                         // dejan asiento. Sin esta opción el auditor no puede
                         // filtrarlas, que es justo el caso de uso del hallazgo.
-                        HorometerReading::class => 'HorometerReading',
+                        HorometerReading::class => __('mgmt.subject_horometer_reading'),
                     ]),
             ])
             ->actions([

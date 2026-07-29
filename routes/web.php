@@ -25,15 +25,24 @@ Route::get('/', fn () => redirect('/admin'));
 | Administradores generan un link compartible (share_token) para que
 | cualquier persona (aunque no tenga cuenta) vea/descargue una cotización.
 | Sin middleware "auth" a propósito.
+|
+| SÍ lleva SetLocale, aunque no lleve "auth". Encontrado en el barrido del
+| 2026-07-28: estas dos rutas eran las únicas que quedaban fuera de SetLocale
+| (el grupo autenticado, el de campo y el fallback ya lo tenían), así que la
+| cotización —que es justo la página que el administrador comparte con
+| terceros— y su 404 se renderizaban SIEMPRE en el APP_LOCALE del servidor.
+| Comprobado en produccion: /admin/ruta-inexistente daba el 404 en español y
+| /quotes/token-invalido el mismo 404 en inglés.
 */
-Route::get('/quotes/{token}', function (string $token) {
-    $quote = Quote::query()->where('share_token', $token)->firstOrFail();
+Route::middleware(SetLocale::class)->group(function () {
+    Route::get('/quotes/{token}', function (string $token) {
+        $quote = Quote::query()->where('share_token', $token)->firstOrFail();
 
-    return view('quotes.show', [
-        'quote' => $quote,
-        'expired' => $quote->expires_at !== null && $quote->expires_at->isPast(),
-    ]);
-})->name('quotes.public');
+        return view('quotes.show', [
+            'quote' => $quote,
+            'expired' => $quote->expires_at !== null && $quote->expires_at->isPast(),
+        ]);
+    })->name('quotes.public');
 
 /*
 |--------------------------------------------------------------------------
@@ -47,19 +56,20 @@ Route::get('/quotes/{token}', function (string $token) {
 | seguia descargando igual; con esta ruta, si expiro no se entrega el
 | archivo (404).
 */
-Route::get('/quotes/{token}/archivo', function (string $token) {
-    $quote = Quote::query()->where('share_token', $token)->firstOrFail();
+    Route::get('/quotes/{token}/archivo', function (string $token) {
+        $quote = Quote::query()->where('share_token', $token)->firstOrFail();
 
-    $expired = $quote->expires_at !== null && $quote->expires_at->isPast();
+        $expired = $quote->expires_at !== null && $quote->expires_at->isPast();
 
-    abort_if($expired, 404);
-    abort_if(blank($quote->file_path), 404);
-    abort_unless(Storage::disk('local')->exists($quote->file_path), 404);
+        abort_if($expired, 404);
+        abort_if(blank($quote->file_path), 404);
+        abort_unless(Storage::disk('local')->exists($quote->file_path), 404);
 
-    $downloadName = trim($quote->title !== '' ? $quote->title : 'quote').'.'.pathinfo($quote->file_path, PATHINFO_EXTENSION);
+        $downloadName = trim($quote->title !== '' ? $quote->title : 'quote').'.'.pathinfo($quote->file_path, PATHINFO_EXTENSION);
 
-    return Storage::disk('local')->response($quote->file_path, $downloadName);
-})->name('quotes.public.file');
+        return Storage::disk('local')->response($quote->file_path, $downloadName);
+    })->name('quotes.public.file');
+});
 
 /*
 |--------------------------------------------------------------------------

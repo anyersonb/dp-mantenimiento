@@ -19,10 +19,17 @@ return [
     'audit_log' => 'Audit log',
     'audit_logs' => 'Audit log',
     'date' => 'Date',
+    'date_from' => 'From',
+    'date_until' => 'Until',
     'causer' => 'User',
     'event' => 'Event',
     'description' => 'Description',
     'subject_type' => 'Record type',
+    // Audit log record types. The key is the model class name in snake_case;
+    // a missing key falls back to the class name.
+    'subject_machine' => 'Machine',
+    'subject_work_order' => 'Work order',
+    'subject_horometer_reading' => 'Hour-meter reading',
     'subject_id' => 'Record #',
     'changes' => 'Changes',
     'properties' => 'Details',
@@ -93,4 +100,18 @@ return [
     'import_duplicate_row' => ':machine appears more than once in the report: the :kept_hours h reading of :kept_date is used and the :dropped_hours h reading of :dropped_date is dropped. Review the file with the client.',
     'import_incoherent_reading' => ':machine: the :hours h reading of :date contradicts the history (:reason). The reading was NOT loaded; the rest of the row was.',
     'import_stale_reading' => ':machine: the report brings :report_hours h from :report_date, older than the :kept_hours h the machine already had. The :kept_hours h are kept and remaining hours are recomputed from the report anchor.',
+
+    /*
+     * Importer warnings. These were hardcoded in Spanish inside
+     * PmServiceReportImporter, so an English user got them in Spanish while the
+     * rest of the UI was translated. They now render in the language of
+     * whoever runs the import.
+     */
+    'import_warn_no_reading' => ':machine (row :row): matched, but the report has no readable reading for this row; nothing was updated.',
+    'import_warn_update_failed' => ':machine (row :row): update failed — :error',
+    'import_warn_no_id' => 'Row :row: could not identify a machine ID in ":text"; skipped.',
+    'import_warn_unreadable_last_service' => ':machine (row :row): last service unreadable (":raw"); the current value is kept.',
+    'import_warn_unreadable_latest_reading' => ':machine (row :row): latest reading unreadable (":raw"); the current value is kept.',
+    'import_warn_unreadable_remaining' => ':machine (row :row): remaining hours unreadable (":raw"); the current value is kept.',
+    'import_warn_orphan_description' => 'Row :row: machine ":machine" has no data row (end of file); skipped.',
 ];

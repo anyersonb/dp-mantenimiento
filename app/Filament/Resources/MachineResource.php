@@ -132,12 +132,20 @@ class MachineResource extends Resource
                 ->schema([
                     Forms\Components\TextInput::make('id_code')
                         ->label(__('fleet.id_code'))->required()->maxLength(50)
+                        // Filament arma el :attribute del mensaje de validación
+                        // con lcfirst(label), y con la etiqueta "ID" eso daba
+                        // "El campo iD es obligatorio.". Se fija a mano.
+                        ->validationAttribute(__('fleet.id_code'))
                         // Hallazgo E6-07: sin esto, un id_code repetido era un
                         // 500 mudo (verificado con QA-CIS-01 en la Sesión 1).
                         ->unique(ignoreRecord: true),
                     Forms\Components\Select::make('machine_category_id')
                         ->label(__('fleet.category'))
-                        ->relationship('category', 'name')->searchable()->preload(),
+                        ->relationship('category', 'name')->searchable()->preload()
+                        // El nombre canónico sigue siendo el de la base; lo que
+                        // se muestra va en el idioma del usuario. Ver
+                        // MachineCategory::displayName().
+                        ->getOptionLabelFromRecordUsing(fn ($record) => $record->display_name),
                     Forms\Components\Select::make('make_id')
                         ->label(__('fleet.make'))
                         ->relationship('make', 'name')->searchable()->preload()->createOptionForm([
@@ -273,7 +281,8 @@ class MachineResource extends Resource
                 Tables\Columns\TextColumn::make('id_code')
                     ->label(__('fleet.id_code'))->searchable()->sortable()->weight('bold'),
                 Tables\Columns\TextColumn::make('category.name')
-                    ->label(__('fleet.category'))->badge()->sortable()->toggleable(),
+                    ->label(__('fleet.category'))->badge()->sortable()->toggleable()
+                    ->formatStateUsing(fn ($state, Machine $record) => $record->category?->display_name ?? $state),
                 Tables\Columns\TextColumn::make('make.name')
                     ->label(__('fleet.make'))->sortable()->toggleable(),
                 Tables\Columns\TextColumn::make('model')->label(__('fleet.model'))->searchable()->toggleable(),
@@ -319,12 +328,14 @@ class MachineResource extends Resource
             ])
             ->defaultSort('id_code')
             ->groups([
-                Tables\Grouping\Group::make('category.name')->label(__('fleet.category')),
+                Tables\Grouping\Group::make('category.name')->label(__('fleet.category'))
+                    ->getTitleFromRecordUsing(fn (Machine $record) => $record->category?->display_name ?? '—'),
                 Tables\Grouping\Group::make('location.name')->label(__('fleet.location')),
             ])
             ->filters([
                 Tables\Filters\SelectFilter::make('machine_category_id')
-                    ->label(__('fleet.category'))->relationship('category', 'name')->multiple()->preload(),
+                    ->label(__('fleet.category'))->relationship('category', 'name')->multiple()->preload()
+                    ->getOptionLabelFromRecordUsing(fn ($record) => $record->display_name),
                 Tables\Filters\SelectFilter::make('current_location_id')
                     ->label(__('fleet.location'))->relationship('location', 'name')->multiple()->preload(),
                 Tables\Filters\SelectFilter::make('status')

@@ -5,6 +5,26 @@
 
     RewriteEngine On
 
+    # Forzar HTTPS.
+    #
+    # Encontrado al validar el primer despliegue real (2026-07-27):
+    # http://app.dpdevelopment.com/admin/login devolvia 200 y servia el
+    # formulario de login EN TEXTO PLANO. Aparte del riesgo obvio, esto choca
+    # con SESSION_SECURE_COOKIE=true: sin redireccion, quien entre por http://
+    # se queda con un login roto EN SILENCIO, porque el navegador no guarda ni
+    # envia la cookie de sesion y el formulario vuelve al login sin decir por
+    # que. La advertencia ya estaba escrita en el CLAUDE.md; faltaba el
+    # mecanismo.
+    #
+    # Va antes que todo lo demas para que la redireccion ocurra sin ejecutar
+    # PHP. La segunda condicion cubre el caso de HTTPS terminado en un proxy
+    # delante del servidor. La tercera exceptua el desarrollo local
+    # (dp-mantenimiento.test, localhost), que corre por http a proposito.
+    RewriteCond %{HTTPS} !=on
+    RewriteCond %{HTTP:X-Forwarded-Proto} !https
+    RewriteCond %{HTTP_HOST} !^(localhost|127\.0\.0\.1|.+\.test)(:[0-9]+)?$ [NC]
+    RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+
     # Handle Authorization Header
     RewriteCond %{HTTP:Authorization} .
     RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
