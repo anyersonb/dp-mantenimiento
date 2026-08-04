@@ -16,7 +16,7 @@ declare(strict_types=1);
 return [
 
     'air-compressor' => 'Air Compressor',
-    'broom-tractor' => 'Broom Tractor',
+    'broom-tractor' => 'Broom / Sweeper',
     'cold-planer' => 'Cold Planer',
     'crusher' => 'Crusher',
     'dozer' => 'Dozer',
@@ -29,9 +29,13 @@ return [
     'other' => 'Other',
     'paver' => 'Paver',
     'por-clasificar' => 'Unclassified',
-    'pump' => 'Pump',
+    'pump' => 'Water Pump',
     'roller' => 'Roller',
-    'screen-plant' => 'Screen / Plant',
+    // The key is the slug of the STORED name, and the stored one is
+    // "Screen/Plant": Str::slug('Screen/Plant') === 'screenplant', with no
+    // dash. The previous key ('screen-plant') matched nothing, so this
+    // category showed up untranslated in both languages.
+    'screenplant' => 'Screener',
     'skid-steer' => 'Skid Steer',
     'sweeper' => 'Sweeper',
     'tractor' => 'Tractor',

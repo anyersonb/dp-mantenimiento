@@ -79,12 +79,17 @@ return [
     // Partes
     'parts_catalog' => 'Catálogo de partes',
     'part' => 'Parte',
+    'parts' => 'Partes',
     'part_category' => 'Tipo',
     'change_interval' => 'Intervalo de cambio',
     'detail' => 'Detalle',
 
     // Lecturas
     'horometer_history' => 'Historial de horómetro',
+    // Ver la nota en el archivo en inglés: sin estas dos, los modales de esta
+    // sección salen con "horometer reading" en cualquier idioma.
+    'reading_singular' => 'Lectura de horómetro',
+    'reading_plural' => 'Lecturas de horómetro',
     'hours' => 'Horas',
     'read_at' => 'Fecha',
     'source' => 'Origen',

@@ -22,6 +22,21 @@ class PartsRelationManager extends RelationManager
     }
 
     /**
+     * Mismo defecto que en ReadingsRelationManager (E6-06): sin estos dos,
+     * Filament deriva la etiqueta del nombre de la clase y salía el literal
+     * "machine part" sin traducir en los botones y modales de esta sección.
+     */
+    protected static function getModelLabel(): ?string
+    {
+        return __('fleet.part');
+    }
+
+    protected static function getPluralModelLabel(): ?string
+    {
+        return __('fleet.parts');
+    }
+
+    /**
      * Categorías de repuesto, traducidas al idioma de quien lee.
      *
      * Las claves son los valores que se guardan en `machine_parts.category`

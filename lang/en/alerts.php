@@ -12,7 +12,7 @@ return [
     'acknowledge' => 'Acknowledge',
     'resolve' => 'Resolve',
     'empty_heading' => 'No alerts',
-    'empty_desc' => 'Service, checklist and hour-meter alerts will show up here.',
+    'empty_desc' => 'Service, checklist and hourmeter alerts will show up here.',
 
     'status_open' => 'Open',
     'status_acknowledged' => 'Acknowledged',
@@ -20,7 +20,7 @@ return [
 
     'type_service' => 'Service',
     'type_checklist' => 'Checklist',
-    'type_hourmeter' => 'Hour-meter',
+    'type_hourmeter' => 'Hourmeter',
     'type_other' => 'Other',
 
     'auto_title' => 'Service due soon: :machine',

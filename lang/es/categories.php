@@ -11,29 +11,33 @@ declare(strict_types=1);
 return [
 
     'air-compressor' => 'Compresor de aire',
-    'broom-tractor' => 'Tractor barredor',
-    'cold-planer' => 'Fresadora de asfalto',
-    'crusher' => 'Chancadora',
+    'broom-tractor' => 'Escoba',
+    'cold-planer' => 'Mileadora',
+    'crusher' => 'Trituradora',
     'dozer' => 'Bulldozer',
-    'dump-truck' => 'Volquete',
+    'dump-truck' => 'Camión de volteo',
     'excavator' => 'Excavadora',
-    'fuel-truck' => 'Camión cisterna de combustible',
-    'gen-set' => 'Grupo electrógeno',
+    'fuel-truck' => 'Camión de combustible',
+    'gen-set' => 'Generador',
     'grader' => 'Motoniveladora',
     'light-tower' => 'Torre de iluminación',
     'other' => 'Otro',
     'por-clasificar' => 'Por clasificar',
     'paver' => 'Pavimentadora',
-    'pump' => 'Bomba',
+    'pump' => 'Bomba de agua',
     'roller' => 'Rodillo compactador',
-    'screen-plant' => 'Zaranda / Planta',
+    // La clave es el slug del nombre GUARDADO, y el guardado es "Screen/Plant":
+    // Str::slug('Screen/Plant') === 'screenplant', sin guion. La clave anterior
+    // ('screen-plant') no casaba con nada, así que esta categoría se mostraba
+    // sin traducir en los dos idiomas.
+    'screenplant' => 'Zaranda / Planta',
     'skid-steer' => 'Minicargador',
     'sweeper' => 'Barredora',
     'tractor' => 'Tractor',
     'truck-tractor' => 'Tractocamión',
     'tv-truck' => 'Camión de videoinspección',
     'vacuum-truck' => 'Camión de succión',
-    'water-truck' => 'Camión cisterna de agua',
+    'water-truck' => 'Camión de agua',
     'wheel-loader' => 'Cargador frontal',
 
 ];

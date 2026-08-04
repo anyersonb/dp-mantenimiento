@@ -94,7 +94,13 @@ class MachineCategoryResource extends Resource
     {
         return $table
             ->columns([
-                Tables\Columns\TextColumn::make('name')->label(__('fleet.category'))->searchable()->sortable()->weight('bold'),
+                // Se muestra el nombre traducido (lang/{es,en}/categories.php) y
+                // no el canónico en inglés: esta tabla era la única pantalla del
+                // panel donde la categoría salía sin traducir, así que el cliente
+                // veía "Broom Tractor" acá y "Escoba" en la máquina. Se ordena y
+                // se busca por `name`, que es el valor real de la columna.
+                Tables\Columns\TextColumn::make('name')->label(__('fleet.category'))->searchable()->sortable()->weight('bold')
+                    ->formatStateUsing(fn ($state, MachineCategory $record) => $record->display_name ?: $state),
                 Tables\Columns\TextColumn::make('prefix')->label(__('nav.prefix'))->badge(),
                 Tables\Columns\TextColumn::make('default_service_interval')->label(__('fleet.service_interval'))
                     ->formatStateUsing(fn ($state) => $state.' h'),

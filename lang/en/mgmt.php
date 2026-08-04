@@ -29,7 +29,7 @@ return [
     // a missing key falls back to the class name.
     'subject_machine' => 'Machine',
     'subject_work_order' => 'Work order',
-    'subject_horometer_reading' => 'Hour-meter reading',
+    'subject_horometer_reading' => 'Hourmeter reading',
     'subject_id' => 'Record #',
     'changes' => 'Changes',
     'properties' => 'Details',

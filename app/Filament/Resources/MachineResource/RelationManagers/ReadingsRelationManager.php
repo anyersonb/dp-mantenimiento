@@ -22,6 +22,23 @@ class ReadingsRelationManager extends RelationManager
         return __('fleet.horometer_history');
     }
 
+    /**
+     * Sin estos dos, Filament arma la etiqueta desde el nombre de la clase del
+     * modelo y le sale **"horometer reading"** en cualquier idioma: es el texto
+     * que aparecía en "Create horometer reading", en el título del modal de
+     * editar y en el de borrar (hallazgo E6-06, reportado por el cliente el
+     * 2026-08-03 — además está mal escrito: la palabra es "hourmeter").
+     */
+    protected static function getModelLabel(): ?string
+    {
+        return __('fleet.reading_singular');
+    }
+
+    protected static function getPluralModelLabel(): ?string
+    {
+        return __('fleet.reading_plural');
+    }
+
     public function form(Form $form): Form
     {
         return $form->schema([

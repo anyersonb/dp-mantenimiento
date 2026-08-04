@@ -27,7 +27,7 @@ return [
     'location' => 'Location',
     'description' => 'Description',
     'status' => 'Status',
-    'hourmeter_status' => 'Hour-meter',
+    'hourmeter_status' => 'Hourmeter',
     'hours_adjustment' => 'Hours adjustment',
     'current_hours' => 'Current hours',
     'current_hours_date' => 'Reading date',
@@ -79,12 +79,17 @@ return [
     // Parts
     'parts_catalog' => 'Parts catalog',
     'part' => 'Part',
+    'parts' => 'Parts',
     'part_category' => 'Type',
     'change_interval' => 'Change interval',
     'detail' => 'Detail',
 
     // Readings
-    'horometer_history' => 'Hour-meter history',
+    'horometer_history' => 'Hourmeter history',
+    // Etiquetas del modelo del relation manager de lecturas: sin ellas Filament
+    // escribe "horometer reading" (derivado de la clase) en los modales.
+    'reading_singular' => 'Hourmeter reading',
+    'reading_plural' => 'Hourmeter readings',
     'hours' => 'Hours',
     'read_at' => 'Date',
     'source' => 'Source',
@@ -100,7 +105,7 @@ return [
     'discard_reason' => 'Reason for discarding',
     'discarded_ok' => 'Machine discarded. Its history was kept.',
     'delete_heading' => 'Delete machine :machine',
-    'delete_warning' => 'WARNING: this is NOT a retirement. Deleting :machine also removes, in cascade: :work_orders work order(s) with their costs, :readings hour-meter reading(s), :alerts alert(s) and :parts catalogue part(s). To retire a machine use the Inactive status, or the Discard action if it is under review.',
+    'delete_warning' => 'WARNING: this is NOT a retirement. Deleting :machine also removes, in cascade: :work_orders work order(s) with their costs, :readings hourmeter reading(s), :alerts alert(s) and :parts catalogue part(s). To retire a machine use the Inactive status, or the Discard action if it is under review.',
     'delete_confirm_button' => 'Yes, delete and lose the history',
 
     'imported_reading_note' => 'Reading imported from the PM Service Report',

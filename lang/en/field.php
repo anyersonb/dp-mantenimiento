@@ -28,7 +28,7 @@ return [
     'machine_change' => 'Change',
     'validation_required_machine' => 'Select a machine.',
     'hours_regressive' => 'The reading (:hours h) is lower than the last one recorded (:current h). Check the value before submitting.',
-    'hours_above_next' => 'The reading (:hours h) is higher than a later one already recorded (:next h). An hour-meter cannot go down over time: check the date or the value.',
+    'hours_above_next' => 'The reading (:hours h) is higher than a later one already recorded (:next h). An hourmeter cannot go down over time: check the date or the value.',
 
     // Geolocation
     'geolocation_capturing' => 'Getting your location…',
@@ -37,7 +37,7 @@ return [
     // Fuel
     'fuel_title' => 'Log fuel',
     'fuel_gallons' => 'Gallons',
-    'fuel_hours' => 'Hour-meter reading',
+    'fuel_hours' => 'Hourmeter reading',
     'fuel_note' => 'Note (optional)',
     'fuel_note_placeholder' => 'Anything worth mentioning…',
     'fuel_submit' => 'Save',
@@ -51,7 +51,7 @@ return [
     'report_condition_ok' => 'OK',
     'report_condition_attention' => 'Needs attention',
     'report_condition_critical' => 'Critical',
-    'report_hours' => 'Hour-meter reading (optional)',
+    'report_hours' => 'Hourmeter reading (optional)',
     'report_notes' => 'Notes',
     'report_submit' => 'Send report',
     'report_success' => 'Report sent ✓',
@@ -62,7 +62,7 @@ return [
     'foreman_my_machines' => 'Machines at my site',
     'foreman_no_machines' => 'No machines assigned to this site yet.',
     'foreman_new_location' => 'Location',
-    'foreman_hours' => 'Hour-meter reading (optional)',
+    'foreman_hours' => 'Hourmeter reading (optional)',
     'foreman_submit' => 'Update',
     'foreman_success' => 'Updated ✓',
 ];

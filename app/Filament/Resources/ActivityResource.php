@@ -75,6 +75,28 @@ class ActivityResource extends Resource
         return $form->schema([]);
     }
 
+    /**
+     * Nombre del tipo de sujeto en el idioma de quien lee.
+     *
+     * La clave se arma con el nombre corto de la clase en snake_case
+     * (`App\Models\HorometerReading` -> `mgmt.subject_horometer_reading`) y, si
+     * un modelo nuevo todavía no tiene clave, cae al nombre corto de la clase en
+     * vez de vaciarse. La usan la columna de la tabla y el detalle del registro:
+     * antes eran dos formatos distintos para el mismo dato.
+     */
+    protected static function subjectTypeLabel(?string $state): string
+    {
+        if ($state === null) {
+            return '—';
+        }
+
+        $short = Str::afterLast($state, '\\');
+        $key = 'mgmt.subject_'.Str::snake($short);
+        $translated = __($key);
+
+        return $translated === $key ? $short : $translated;
+    }
+
     public static function table(Table $table): Table
     {
         return $table
@@ -102,16 +124,7 @@ class ActivityResource extends Resource
                     // Mostraba el nombre pelado de la clase ("HorometerReading").
                     // Se traduce por clase y, si aparece un modelo nuevo sin
                     // clave, se cae al nombre corto de antes en vez de vaciarse.
-                    ->formatStateUsing(function (?string $state): string {
-                        if ($state === null) {
-                            return '—';
-                        }
-
-                        $key = 'mgmt.subject_'.Str::snake(Str::afterLast($state, '\\'));
-                        $translated = __($key);
-
-                        return $translated === $key ? Str::afterLast($state, '\\') : $translated;
-                    })
+                    ->formatStateUsing(fn (?string $state): string => static::subjectTypeLabel($state))
                     ->badge()->color('gray'),
                 Tables\Columns\TextColumn::make('subject_id')
                     ->label(__('mgmt.subject_id')),
@@ -154,9 +167,14 @@ class ActivityResource extends Resource
                                 InfolistComponents\TextEntry::make('event')
                                     ->label(__('mgmt.event'))
                                     ->formatStateUsing(fn (?string $state) => $state ? __('mgmt.event_'.$state) : '—'),
+                                // Acá seguía saliendo el nombre crudo de la clase
+                                // ("HorometerReading") mientras la columna de la
+                                // lista ya venía traducida: la misma fila se leía
+                                // distinto según si estabas en la tabla o en el
+                                // detalle. Una sola función para las dos.
                                 InfolistComponents\TextEntry::make('subject_type')
                                     ->label(__('mgmt.subject_type'))
-                                    ->formatStateUsing(fn (?string $state) => $state ? Str::afterLast($state, '\\') : '—'),
+                                    ->formatStateUsing(fn (?string $state): string => static::subjectTypeLabel($state)),
                                 InfolistComponents\TextEntry::make('subject_id')->label(__('mgmt.subject_id')),
                                 InfolistComponents\TextEntry::make('description')->label(__('mgmt.description'))->columnSpanFull(),
                             ]),

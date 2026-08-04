@@ -25,7 +25,7 @@ return [
     'perm_manage_quotes' => 'Manage quotes',
     'perm_create_work_order' => 'Create work orders',
     'perm_execute_work_order' => 'Execute work orders',
-    'perm_log_horometer' => 'Log hour-meter',
+    'perm_log_horometer' => 'Log hourmeter',
     'perm_log_fuel' => 'Log fuel',
     'perm_field_report' => 'Field report',
     'perm_confirm_location' => 'Confirm location',
