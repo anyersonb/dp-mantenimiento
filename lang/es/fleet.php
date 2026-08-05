@@ -110,4 +110,8 @@ return [
 
     'imported_reading_note' => 'Lectura importada del PM Service Report',
     'imported_reading_from_file_note' => 'Lectura importada del PM Service Report (:file)',
+
+    // Filtro por número de máquina (pedido del cliente 2026-08-05)
+    'machine_number' => 'N.º de máquina',
+    'machine_number_placeholder' => 'Ej.: EX010, o solo EX',
 ];

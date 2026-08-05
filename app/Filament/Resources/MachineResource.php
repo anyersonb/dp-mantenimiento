@@ -333,18 +333,46 @@ class MachineResource extends Resource
                 Tables\Grouping\Group::make('location.name')->label(__('fleet.location')),
             ])
             ->filters([
+                // Filtro por número de máquina (pedido del cliente 2026-08-05).
+                // La caja de búsqueda de la tabla ya encuentra por `id_code`,
+                // pero la búsqueda no se combina con los demás filtros ni queda
+                // registrada como filtro aplicado, y los reportes se arman
+                // justamente a partir de los filtros. Acepta un fragmento, así
+                // que "EX" trae todas las excavadoras y "EX010" solo esa.
+                Tables\Filters\Filter::make('id_code')
+                    ->form([
+                        Forms\Components\TextInput::make('id_code')
+                            ->label(__('fleet.machine_number'))
+                            ->placeholder(__('fleet.machine_number_placeholder')),
+                    ])
+                    // Los parámetros se llaman `$query` y `$data` porque Filament
+                    // los inyecta POR NOMBRE. Con `fn (Builder $q, array $data)`
+                    // el filtro no filtraba nada y no daba ningún error: la tabla
+                    // seguía mostrando las 99 máquinas como si el filtro no
+                    // existiera. Lo cazó el test, no la pantalla.
+                    ->query(function (Builder $query, array $data): Builder {
+                        return $query->when(
+                            filled($data['id_code'] ?? null),
+                            fn (Builder $query) => $query->where('id_code', 'like', '%'.trim($data['id_code']).'%'),
+                        );
+                    })
+                    ->indicateUsing(fn (array $data) => filled($data['id_code'] ?? null)
+                        ? __('fleet.machine_number').': '.trim($data['id_code'])
+                        : null),
                 Tables\Filters\SelectFilter::make('machine_category_id')
                     ->label(__('fleet.category'))->relationship('category', 'name')->multiple()->preload()
                     ->getOptionLabelFromRecordUsing(fn ($record) => $record->display_name),
                 Tables\Filters\SelectFilter::make('current_location_id')
                     ->label(__('fleet.location'))->relationship('location', 'name')->multiple()->preload(),
+                // Las opciones salen de Machine::STATUSES y no de una lista escrita
+                // a mano: así estaba y faltaba `unknown`, o sea que las 29 máquinas
+                // en ese estado (de 99) no se podían encontrar con este filtro.
                 Tables\Filters\SelectFilter::make('status')
-                    ->label(__('fleet.status'))->options([
-                        'active' => __('fleet.status_active'),
-                        'not_in_service' => __('fleet.status_not_in_service'),
-                        'down' => __('fleet.status_down'),
-                        'inactive' => __('fleet.status_inactive'),
-                    ]),
+                    ->label(__('fleet.status'))
+                    ->multiple()
+                    ->options(collect(Machine::STATUSES)
+                        ->mapWithKeys(fn (string $s) => [$s => __('fleet.status_'.$s)])
+                        ->all()),
                 Tables\Filters\Filter::make('due_soon')
                     ->label(__('fleet.due_soon'))->toggle()
                     ->query(fn (Builder $q) => $q->where('status', 'active')

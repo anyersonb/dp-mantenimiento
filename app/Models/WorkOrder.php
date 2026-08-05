@@ -34,7 +34,7 @@ class WorkOrder extends Model
     public function getActivitylogOptions(): LogOptions
     {
         return LogOptions::defaults()
-            ->logOnly(['code', 'status', 'assigned_to', 'parts_cost'])
+            ->logOnly(['code', 'status', 'assigned_to', 'completed_by', 'parts_cost'])
             ->logOnlyDirty();
     }
 
@@ -103,6 +103,24 @@ class WorkOrder extends Model
     public function assignee(): BelongsTo
     {
         return $this->belongsTo(User::class, 'assigned_to');
+    }
+
+    /**
+     * Quién ejecutó el cierre de la OT. No confundir con `assignee()`: ver el
+     * comentario de App\Observers\WorkOrderObserver::saving().
+     */
+    public function completer(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'completed_by');
+    }
+
+    /**
+     * La obra donde se hizo el trabajo, congelada al abrir la OT. No es lo mismo
+     * que `machine->location`, que es dónde está la máquina ahora.
+     */
+    public function location(): BelongsTo
+    {
+        return $this->belongsTo(Location::class);
     }
 
     public function parts(): HasMany

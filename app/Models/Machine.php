@@ -48,6 +48,23 @@ class Machine extends Model
     public const ALERT_THRESHOLD = 100;
 
     /**
+     * Los estados posibles de una máquina, en el mismo orden y con los mismos
+     * valores que el enum de la columna `machines.status`.
+     *
+     * **Existe porque la lista ya se desincronizó dos veces.** Encontrado el
+     * 2026-08-05 armando el reporte por categoría: el enum tiene cinco estados y
+     * tanto el filtro de la tabla de máquinas como el primer borrador del reporte
+     * enumeraban solo cuatro, dejando `unknown` afuera. En la flota real eso son
+     * **29 máquinas de 99**: el filtro no podía encontrarlas y el desglose del
+     * reporte sumaba 72 sobre un total de 101 sin avisar de nada.
+     *
+     * Toda pantalla que ofrezca estados o los desglose lee de acá, y
+     * `MachineStatusOptionsAreCompleteTest` compara esta constante contra el enum
+     * real de la base para que un estado nuevo no vuelva a quedarse sin pantalla.
+     */
+    public const STATUSES = ['active', 'not_in_service', 'down', 'inactive', 'unknown'];
+
+    /**
      * Recuento de lo que se destruiría si esta máquina se borrara de verdad.
      *
      * Alimenta el diálogo de confirmación (hallazgo E6-05): todas las FK que

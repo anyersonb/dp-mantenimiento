@@ -1,5 +1,6 @@
 <?php
 
+use App\Exports\CostReportExport;
 use App\Exports\FleetExport;
 use App\Http\Middleware\SetLocale;
 use App\Livewire\Field\ForemanBoard;
@@ -10,6 +11,9 @@ use App\Livewire\Field\ReportForm;
 use App\Models\Machine;
 use App\Models\Quote;
 use App\Models\WorkOrderAttachment;
+use App\Services\Reports\CategoryInventoryReportBuilder;
+use App\Services\Reports\CostReportBuilder;
+use App\Services\Reports\CostReportFilters;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
@@ -136,6 +140,62 @@ Route::middleware(['auth', SetLocale::class])->group(function () {
 
         return Excel::download(new FleetExport($includeCosts), 'fleet-status-'.now()->format('Ymd-His').'.xlsx');
     })->name('reports.fleet.xlsx');
+
+    /*
+    |----------------------------------------------------------------------
+    | Reporte de costos de mantenimiento (pedido del cliente 2026-08-05)
+    |----------------------------------------------------------------------
+    | Los dos formatos leen los filtros del MISMO query string y los pasan
+    | por el MISMO CostReportFilters/CostReportBuilder que usa la pantalla
+    | del panel, así que el PDF, el Excel y lo que el usuario vio antes de
+    | apretar el botón no pueden dar totales distintos.
+    |
+    | Doble permiso a propósito: `view_reports` para pedir un reporte y
+    | `view_costs` para que ese reporte traiga dinero. Hoy los cuatro roles
+    | del panel que tienen el primero tienen también el segundo, pero la
+    | matriz se edita por pantalla (RoleResource) y esto tiene que seguir
+    | siendo cierto después de que alguien la edite.
+    */
+    Route::get('/reports/costs.pdf', function () {
+        abort_unless(Auth::user()?->can('view_reports') && Auth::user()?->can('view_costs'), 403);
+
+        $report = CostReportBuilder::build(CostReportFilters::fromArray(request()->query()));
+
+        $pdf = Pdf::loadView('exports.cost-report', [
+            'report' => $report,
+            'generatedAt' => now()->format('Y-m-d H:i'),
+            'generatedBy' => Auth::user()?->name,
+            'logoPath' => public_path('images/dp-logo.jpg'),
+        ])->setPaper('a4', 'landscape');
+
+        return $pdf->download('maintenance-costs-'.now()->format('Ymd-His').'.pdf');
+    })->name('reports.costs.pdf');
+
+    Route::get('/reports/costs.xlsx', function () {
+        abort_unless(Auth::user()?->can('view_reports') && Auth::user()?->can('view_costs'), 403);
+
+        return Excel::download(
+            new CostReportExport(CostReportFilters::fromArray(request()->query())),
+            'maintenance-costs-'.now()->format('Ymd-His').'.xlsx',
+        );
+    })->name('reports.costs.xlsx');
+
+    /*
+    | Inventario por categoría. Sin `view_costs`: no lleva ni una cifra de
+    | dinero, así que negárselo a quien puede ver reportes no protegería nada.
+    */
+    Route::get('/reports/categories.pdf', function () {
+        abort_unless(Auth::user()?->can('view_reports'), 403);
+
+        $pdf = Pdf::loadView('exports.category-report', [
+            'report' => CategoryInventoryReportBuilder::build(),
+            'generatedAt' => now()->format('Y-m-d H:i'),
+            'generatedBy' => Auth::user()?->name,
+            'logoPath' => public_path('images/dp-logo.jpg'),
+        ]);
+
+        return $pdf->download('fleet-by-category-'.now()->format('Ymd-His').'.pdf');
+    })->name('reports.categories.pdf');
 });
 
 // Cambio de idioma (EN/ES) — guarda preferencia del usuario y en sesión

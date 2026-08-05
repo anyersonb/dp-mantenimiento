@@ -84,6 +84,17 @@ class LocationResource extends Resource
                 // le muestra al usuario el motivo; antes era un 500 mudo.
                 ->rule(fn (?Model $record) => new UniqueSlugFrom('locations', $record?->getKey())),
             Forms\Components\Hidden::make('slug'),
+            // Número de trabajo de la obra (pedido del cliente 2026-08-05).
+            // Obligatorio y único. La columna en la base es nullable a propósito
+            // —ver la migración— así que las obras cargadas antes de este campo
+            // quedan sin número hasta que alguien las edite, y en ese momento el
+            // formulario lo exige. `unique(ignoreRecord: true)` para que editar
+            // una obra no choque contra su propio número.
+            Forms\Components\TextInput::make('job_number')->label(__('nav.job_number'))
+                ->helperText(__('nav.job_number_help'))
+                ->required()
+                ->maxLength(255)
+                ->unique(ignoreRecord: true),
             Forms\Components\Select::make('type')->label(__('nav.type'))
                 ->options(['yard' => __('nav.yard'), 'jobsite' => __('nav.jobsite')])->default('jobsite')->required(),
             Forms\Components\TextInput::make('address')->label(__('nav.address'))->columnSpanFull(),
@@ -97,11 +108,22 @@ class LocationResource extends Resource
     {
         return $table
             ->columns([
+                Tables\Columns\TextColumn::make('job_number')->label(__('nav.job_number'))
+                    ->searchable()->sortable()->badge()->color('warning')
+                    // Las obras cargadas antes de que existiera el campo se ven
+                    // pendientes en la lista, en vez de aparentar estar completas.
+                    ->placeholder(__('nav.job_number_missing')),
                 Tables\Columns\TextColumn::make('name')->label(__('nav.location_name'))->searchable()->sortable()->weight('bold'),
                 Tables\Columns\TextColumn::make('type')->label(__('nav.type'))->badge()
                     ->formatStateUsing(fn ($state) => __('nav.'.$state)),
                 Tables\Columns\TextColumn::make('machines_count')->label(__('fleet.machines'))->counts('machines')->badge()->color('info'),
                 Tables\Columns\IconColumn::make('active')->label(__('nav.active'))->boolean(),
+            ])
+            ->filters([
+                // Para que DP pueda ver de un tiro cuáles le faltan por cargar.
+                Tables\Filters\Filter::make('sin_job_number')
+                    ->label(__('nav.filter_missing_job_number'))
+                    ->query(fn ($query) => $query->whereNull('job_number')),
             ])
             ->defaultSort('name')
             ->actions([Tables\Actions\EditAction::make()])
