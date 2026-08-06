@@ -23,7 +23,7 @@ sin test se pierde, aunque esté descrito en un informe.** Cada fila cierra con 
 | **E6-14** | **Alto** | Aprobar una máquina la saca de `needs_review` **sin exigir lectura inicial**: AC-001 quedó aprobada, activa y sin horómetro | ABIERTO — fix propuesto, sin implementar | — | — |
 | **E6-15** | **Alto** | El motor de alertas vivía dentro del observer de lecturas: un cambio de `remaining_hours` por otro camino cruzaba el umbral **sin levantar alerta** | **CERRADO** | `a1c1007d` `App\Services\ServiceAlertEngine`, una implementación que consumen el observer y el importador | dentro de `ImporterRejectsRegressiveReadingsTest` (2 casos) |
 | **E6-16** | Medio | `config('app.locale')` es `en` en una instalación cuyo cliente trabaja en español: consola, jobs y todo lo que corre fuera de una sesión sale en inglés | ABIERTO | — | — |
-| **E6-17** | **Alto** | Dos adjuntos con el mismo nombre de archivo **se pisan**: `preserveFilenames()` sobre un único directorio compartido. Con facturas, es pérdida silenciosa de evidencia de costo | ABIERTO | — | — |
+| **E6-17** | **Alto** | Dos adjuntos con el mismo nombre de archivo **se pisan**: `preserveFilenames()` sobre un único directorio compartido. Con facturas, es pérdida silenciosa de evidencia de costo | **CERRADO** | Un subdirectorio por archivo dentro del de su OT (`work-order-attachments/{ot}/{ulid}/`), conservando el nombre original | `AttachmentsDoNotOverwriteEachOtherTest` (4 tests, **3 rojos** sin el fix) |
 | **E6-18** | Bajo | `WorkOrder` no declara `dontSubmitEmptyLogs()`: guardar campos no auditados deja asientos de bitácora vacíos (`old: []`, `attributes: []`) | ABIERTO | — | — |
 | **E6-19** | **Alto** | El taller tiene `log_horometer` y **ningún camino de interfaz** para registrar una lectura. E6-08 le pide una lectura que no puede hacer | ABIERTO — fix propuesto, sin implementar | — | — |
 | A7 | Alto | Falta de piso en campos numéricos que alimentan columnas `unsigned` | **CERRADO** | `ac57c9ae` | `MachineNumericFloorTest` + `UnsignedColumnFloorSentinelTest` |
@@ -377,6 +377,39 @@ primera OT muestra la factura de la segunda.
 **Fix propuesto:** directorio por OT (`work-order-attachments/{work_order_id}/`) o nombre
 único conservando el original en la columna `original_name`, que ya existe justamente para
 eso. Es el mismo criterio de A5: el archivo es la evidencia.
+
+### Cómo quedó cerrado (2026-08-06)
+
+Se hicieron **las dos cosas del fix propuesto a la vez**, y con la unicidad puesta en la
+carpeta en vez de en el nombre:
+`work-order-attachments/{work_order_id}/{ulid}/{nombre-original}`.
+
+- **Directorio por OT**: el archivo queda atribuido a su orden de trabajo con solo mirar la
+  ruta, que es lo que hacía falta para auditar una factura.
+- **Un subdirectorio ULID por archivo**: dos `factura.pdf` **en la misma OT** tampoco
+  chocan, que es el caso que el "directorio por OT" solo no cubría.
+- **`preserveFilenames()` se conserva**: el nombre que ve quien administra —y el que recibe
+  al descargar— sigue siendo el que traía el archivo. La unicidad no le cuesta el nombre.
+- **Sin migración y sin tocar lo ya guardado**: la descarga lee `path` de la base, así que
+  las filas viejas del directorio plano se siguen sirviendo igual.
+
+**Lo que midieron los tests** (disco y base, nunca el mensaje de pantalla — el defecto
+decía "Creado" igual): mismo nombre en dos OT distintas, mismo nombre en la misma OT, el
+nombre humano conservado, y un centinela de que la ruta sigue bajo el directorio de su OT.
+**Verificado que 3 de los 4 se ponen rojos con el código viejo**; el cuarto (nombre humano)
+pasa en los dos, porque eso no era lo que el defecto rompía.
+
+**Trampa del montaje, vale para el próximo test de subidas:** `UploadedFile::fake()->create($nombre, $kb)`
+**reporta** los kilobytes pero escribe el archivo **vacío**. La primera versión del test
+comparaba tamaños y leía `0` en los dos lados: habría dado por bueno el pisado. Hay que
+subir contenido real con `createWithContent()` —con la firma `%PDF-1.4` al principio, o la
+validación de tipo lo rechaza— y comparar el contenido que quedó en el disco.
+
+**El resto de las subidas del panel ya estaban bien**, revisado en la misma pasada: las
+imágenes y la galería de máquina (`MachineResource`) y el archivo de cotización
+(`QuoteResource`) **no** usan `preserveFilenames()`, así que Filament les pone nombre
+aleatorio y nunca chocaron. El defecto era exclusivo de los adjuntos de OT, que son
+justamente los que llevan las facturas.
 
 ## Sesión 2 — taller, de punta a punta
 

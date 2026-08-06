@@ -11,6 +11,7 @@ use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Str;
 
 class AttachmentsRelationManager extends RelationManager
 {
@@ -45,7 +46,35 @@ class AttachmentsRelationManager extends RelationManager
                 // attachments.download (ver routes/web.php), que valida
                 // view_fleet siempre y view_costs para type=invoice.
                 ->disk('local')
-                ->directory('work-order-attachments')
+                /*
+                 * Hallazgo E6-17 — dos adjuntos con el mismo nombre se pisaban.
+                 *
+                 * Antes: `directory('work-order-attachments')` + preserveFilenames,
+                 * o sea TODAS las OT compartiendo un único directorio con el
+                 * nombre que trae el archivo. Comprobado sobre el disco: subir
+                 * dos veces `factura.pdf` dejaba UN solo archivo, con el
+                 * contenido del segundo, y las dos filas de
+                 * `work_order_attachments` apuntando ahí — la primera OT
+                 * mostraba la factura de la otra. Con facturas eso es pérdida
+                 * silenciosa de evidencia de costo, y el nombre repetido es lo
+                 * más probable del mundo (dos talleres subiendo "factura.pdf",
+                 * o el mismo proveedor con su plantilla).
+                 *
+                 * Ahora cada archivo cae en su propio subdirectorio, dentro del
+                 * de su OT: work-order-attachments/{ot}/{ulid}/factura.pdf.
+                 * Se sigue conservando el nombre original en el disco (y en
+                 * `original_name`, que es el que se ve en la tabla y el que se
+                 * usa para descargar): la unicidad la da la carpeta, no un
+                 * nombre mutilado. El ULID además ordena por tiempo de subida.
+                 *
+                 * Las filas viejas no se tocan: el enlace de descarga lee
+                 * `path` de la base, así que los archivos ya guardados en el
+                 * directorio plano se siguen sirviendo igual. No hace falta
+                 * migración.
+                 */
+                ->directory(fn (): string => 'work-order-attachments/'
+                    .$this->getOwnerRecord()->getKey()
+                    .'/'.strtolower((string) Str::ulid()))
                 ->preserveFilenames()
                 ->acceptedFileTypes(['image/png', 'image/jpeg', 'image/webp', 'application/pdf'])
                 ->maxSize(10240)
