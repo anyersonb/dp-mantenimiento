@@ -32,6 +32,12 @@ class SensitiveUploadsAuthorizationTest extends TestCase
     {
         parent::setUp();
 
+        // El módulo de cotizaciones está apagado por defecto desde el
+        // 2026-08-06 (config/features.php). Se enciende acá para no perder la
+        // cobertura del hallazgo A5 (disco privado + vencimiento del link) si
+        // alguna vez se reactiva. Los adjuntos de OT no dependen del flag.
+        config(['features.quotes' => true]);
+
         $this->seed(RolesAndPermissionsSeeder::class);
         Storage::fake('local');
     }

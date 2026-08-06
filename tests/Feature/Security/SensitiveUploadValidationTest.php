@@ -30,6 +30,11 @@ class SensitiveUploadValidationTest extends TestCase
     {
         parent::setUp();
 
+        // Cotizaciones apagado por defecto desde el 2026-08-06
+        // (config/features.php). Sin esto, CreateQuote::class aborta 403 al
+        // montar y los dos tests de abajo dejarian de auditar la subida.
+        config(['features.quotes' => true]);
+
         $this->seed(RolesAndPermissionsSeeder::class);
         Storage::fake('local');
     }

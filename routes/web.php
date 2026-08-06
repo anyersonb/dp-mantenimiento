@@ -37,9 +37,19 @@ Route::get('/', fn () => redirect('/admin'));
 | terceros— y su 404 se renderizaban SIEMPRE en el APP_LOCALE del servidor.
 | Comprobado en produccion: /admin/ruta-inexistente daba el 404 en español y
 | /quotes/token-invalido el mismo 404 en inglés.
+|
+| APAGADAS desde el 2026-08-06: el módulo de cotizaciones ya no se usa (ver
+| config/features.php). Las rutas se dejan REGISTRADAS y devolviendo 404 en
+| vez de eliminarlas, por dos motivos: 404 es la respuesta correcta para los
+| links que el administrador ya repartió a terceros (el recurso dejó de
+| existir, no "se movió"), y así `route('quotes.public')` sigue resolviendo
+| donde ya se usa —vistas, Quote::share_url— sin romper con
+| RouteNotFoundException. El 404 se evalúa ANTES de tocar la base.
 */
 Route::middleware(SetLocale::class)->group(function () {
     Route::get('/quotes/{token}', function (string $token) {
+        abort_unless(config('features.quotes'), 404);
+
         $quote = Quote::query()->where('share_token', $token)->firstOrFail();
 
         return view('quotes.show', [
@@ -61,6 +71,8 @@ Route::middleware(SetLocale::class)->group(function () {
 | archivo (404).
 */
     Route::get('/quotes/{token}/archivo', function (string $token) {
+        abort_unless(config('features.quotes'), 404);
+
         $quote = Quote::query()->where('share_token', $token)->firstOrFail();
 
         $expired = $quote->expires_at !== null && $quote->expires_at->isPast();

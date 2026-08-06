@@ -54,8 +54,16 @@ class SmokeTest extends TestCase
         $this->actingAs($user)->get('/admin/machines')->assertOk();
     }
 
-    public function test_quotes_resource_boots_for_admin(): void
+    /**
+     * El módulo de cotizaciones está apagado por defecto desde el 2026-08-06
+     * (config/features.php). El flag se enciende acá para seguir comprobando
+     * que el Resource arranca sin errores si se reactiva; el default apagado
+     * lo cubre QuotesModuleIsOffTest.
+     */
+    public function test_quotes_resource_boots_for_admin_when_the_module_is_enabled(): void
     {
+        config(['features.quotes' => true]);
+
         $admin = User::where('email', 'admin@dp.local')->firstOrFail();
 
         $this->actingAs($admin)->get('/admin/quotes')->assertOk();
@@ -63,6 +71,8 @@ class SmokeTest extends TestCase
 
     public function test_quotes_resource_is_forbidden_for_gerencia(): void
     {
+        config(['features.quotes' => true]);
+
         $gerencia = User::where('email', 'gerencia@dp.local')->firstOrFail();
 
         $this->actingAs($gerencia)->get('/admin/quotes')->assertForbidden();

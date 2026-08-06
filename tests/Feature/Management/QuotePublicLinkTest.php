@@ -14,6 +14,12 @@ use Tests\TestCase;
  * El link público de una cotización (/quotes/{share_token}) no requiere
  * cuenta en el sistema: cualquier persona con el link puede ver/descargar
  * el archivo, salvo que haya vencido (expires_at en el pasado).
+ *
+ * OJO (2026-08-06): el módulo está APAGADO en la configuración por defecto
+ * (`features.quotes = false`, ver config/features.php). Este test lo enciende
+ * a mano porque cubre el comportamiento del módulo, no el default: si algún
+ * día se reactiva, la red sigue puesta. Que apagado NO se llegue a nada lo
+ * verifica QuotesModuleIsOffTest.
  */
 class QuotePublicLinkTest extends TestCase
 {
@@ -22,6 +28,8 @@ class QuotePublicLinkTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+
+        config(['features.quotes' => true]);
 
         $this->seed(RolesAndPermissionsSeeder::class);
         Storage::fake('public');

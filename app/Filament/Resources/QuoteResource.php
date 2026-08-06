@@ -17,6 +17,16 @@ use Illuminate\Support\HtmlString;
 /**
  * Cotizaciones adjuntadas por el administrador y compartidas por link
  * público (Quote::share_url), sin necesidad de cuenta en el sistema.
+ *
+ * MÓDULO APAGADO (2026-08-06, pedido del cliente: "ya no es necesario el
+ * módulo de cotizaciones"). El interruptor es `config('features.quotes')`,
+ * false por defecto — ver config/features.php para el motivo y cómo
+ * reactivarlo. Nada se borró: modelo, tabla `quotes` y archivos quedan.
+ *
+ * Con el flag apagado este Resource no aparece en el menú y sus tres páginas
+ * responden 403. El gate va DENTRO de los can*() (y no solo en
+ * shouldRegisterNavigation) porque sacar algo del menú no es una barrera:
+ * es exactamente el hueco del hallazgo C1 — la URL directa seguía abierta.
  */
 class QuoteResource extends Resource
 {
@@ -25,6 +35,19 @@ class QuoteResource extends Resource
     protected static ?string $navigationIcon = 'heroicon-o-document-currency-dollar';
 
     protected static ?int $navigationSort = 2;
+
+    /**
+     * ¿Está encendido el módulo? Única fuente para el menú y para los can*().
+     */
+    public static function moduleEnabled(): bool
+    {
+        return (bool) config('features.quotes');
+    }
+
+    public static function shouldRegisterNavigation(): bool
+    {
+        return static::moduleEnabled() && parent::shouldRegisterNavigation();
+    }
 
     public static function getNavigationLabel(): string
     {
@@ -48,7 +71,7 @@ class QuoteResource extends Resource
 
     public static function canViewAny(): bool
     {
-        return Auth::user()?->can('manage_quotes') ?? false;
+        return static::moduleEnabled() && (Auth::user()?->can('manage_quotes') ?? false);
     }
 
     /*
@@ -61,27 +84,27 @@ class QuoteResource extends Resource
      */
     public static function canCreate(): bool
     {
-        return Auth::user()?->can('manage_quotes') ?? false;
+        return static::moduleEnabled() && (Auth::user()?->can('manage_quotes') ?? false);
     }
 
     public static function canView(Model $record): bool
     {
-        return Auth::user()?->can('manage_quotes') ?? false;
+        return static::moduleEnabled() && (Auth::user()?->can('manage_quotes') ?? false);
     }
 
     public static function canEdit(Model $record): bool
     {
-        return Auth::user()?->can('manage_quotes') ?? false;
+        return static::moduleEnabled() && (Auth::user()?->can('manage_quotes') ?? false);
     }
 
     public static function canDelete(Model $record): bool
     {
-        return Auth::user()?->can('manage_quotes') ?? false;
+        return static::moduleEnabled() && (Auth::user()?->can('manage_quotes') ?? false);
     }
 
     public static function canDeleteAny(): bool
     {
-        return Auth::user()?->can('manage_quotes') ?? false;
+        return static::moduleEnabled() && (Auth::user()?->can('manage_quotes') ?? false);
     }
 
     public static function form(Form $form): Form
