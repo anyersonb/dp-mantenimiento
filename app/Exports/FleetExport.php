@@ -67,7 +67,7 @@ class FleetExport implements FromCollection, ShouldAutoSize, WithHeadings, WithM
             $machine->category?->name,
             $machine->make?->name,
             $machine->model,
-            $machine->location?->name,
+            $machine->location?->display_name,
             $machine->current_hours,
             $machine->computed_remaining_hours,
             __('fleet.status_'.$machine->status),

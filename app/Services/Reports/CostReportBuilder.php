@@ -163,6 +163,11 @@ class CostReportBuilder
             // Dónde. Congelado al abrir la OT.
             'location' => $wo->location?->name,
             'location_job_number' => $wo->location?->job_number,
+            // Rótulo con el número primero ("JOB-100 — Blount Rd"), consistente
+            // con Location::displayName() en el resto del panel (pedido del
+            // cliente 2026-08-06). 'location' y 'location_job_number' se dejan
+            // intactos: el Excel los usa como columnas separadas.
+            'location_label' => $wo->location?->display_name,
 
             'description' => $wo->description,
             'resolution' => $wo->resolution,

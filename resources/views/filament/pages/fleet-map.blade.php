@@ -13,7 +13,11 @@
         @php
             $locations = $this->locations;
             $locationsJson = json_encode($locations->map(fn ($l) => [
-                'name' => $l->name,
+                // Pedido del cliente 2026-08-06: la obra se identifica por su
+                // n.º de trabajo, no solo por el nombre. `label` ya viene
+                // formado como "{job_number} — {name}" (o solo el nombre si
+                // la obra todavía no tiene número cargado).
+                'label' => $l->display_name,
                 'type' => $l->type,
                 'lat' => (float) $l->latitude,
                 'lng' => (float) $l->longitude,
@@ -52,7 +56,7 @@
                             iconSize: [28, 28],
                         });
                         L.marker([loc.lat, loc.lng], { icon }).addTo(map)
-                            .bindPopup('&lt;strong&gt;' + loc.name + '&lt;/strong&gt;&lt;br&gt;' + loc.type + '&lt;br&gt;' + loc.machines + ' active machine(s)');
+                            .bindPopup('&lt;strong&gt;' + loc.label + '&lt;/strong&gt;&lt;br&gt;' + loc.type + '&lt;br&gt;' + loc.machines + ' active machine(s)');
                         bounds.push([loc.lat, loc.lng]);
                     });
 

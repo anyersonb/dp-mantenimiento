@@ -55,6 +55,15 @@
         .dp-note { margin-top: 0.75rem; font-size: 0.75rem; color: rgb(107 114 128); }
 
         .dark .dp-rep-title, .dark .dp-kpi-value, .dark .dp-strong { color: rgb(255 255 255); }
+        /* El texto atenuado necesita su propio tono en oscuro. Medido en el
+           navegador contra el fondo real del panel (zinc-900, rgb(24 24 27) —
+           NO el gray-900 de la paleta): gray-500 da 3.66:1 y gray-600 da
+           2.34:1, ambos por debajo del 4.5:1 que pide WCAG AA para texto
+           chico. gray-400 es el tono que este mismo archivo ya usa para lo
+           atenuado en oscuro (.dp-kpi-foot, .dp-detail-figures) y mide 6.1:1.
+           Sin esta regla heredaban el color del modo claro. */
+        .dark .dp-rep-sub, .dark .dp-kpi-label, .dark .dp-desc,
+        .dark .dp-note, .dark .dp-empty { color: rgb(156 163 175); }
         .dark .dp-kpi { background: rgba(255, 255, 255, 0.05); }
         .dark .dp-table thead tr { border-bottom-color: rgba(255, 255, 255, 0.1); }
         .dark .dp-table tbody tr { border-bottom-color: rgba(255, 255, 255, 0.05); }
@@ -62,9 +71,107 @@
         .dark .dp-warn { background: rgba(245, 158, 11, 0.1); border-color: rgba(245, 158, 11, 0.2); }
         .dark .dp-warn-title { color: rgb(252 211 77); }
         .dark .dp-warn ul { color: rgba(253, 230, 138, 0.9); }
+
+        /* Botón de impresión: nace del pedido "viewable online without
+           exporting" — imprime la misma vista que ya está en pantalla, sin
+           bajar el PDF. Estilo a mano porque .dp-* es todo lo que hay. */
+        .dp-print-bar { display: flex; justify-content: flex-end; margin-bottom: 0.75rem; }
+        .dp-print-btn { display: inline-flex; align-items: center; gap: 0.375rem;
+            border-radius: 0.5rem; border: 1px solid rgb(209 213 219);
+            background: rgb(255 255 255); color: rgb(55 65 81);
+            padding: 0.375rem 0.75rem; font-size: 0.8125rem; font-weight: 500;
+            cursor: pointer; }
+        .dark .dp-print-btn { background: rgba(255, 255, 255, 0.05); border-color: rgba(255, 255, 255, 0.15); color: rgb(229 231 235); }
+
+        /* Detalle por máquina, colapsado por defecto (<details> nativo: cero
+           JS, cero query nueva al abrir — el contenido ya está en el HTML). */
+        .dp-detail-list { margin-top: 1rem; }
+        .dp-detail { border: 1px solid rgb(229 231 235); border-radius: 0.5rem;
+            margin-bottom: 0.5rem; overflow: hidden; }
+        .dp-detail summary { cursor: pointer; padding: 0.625rem 0.75rem;
+            font-weight: 600; color: rgb(3 7 18); background: rgb(249 250 251);
+            list-style: none; display: flex; justify-content: space-between;
+            gap: 0.75rem; flex-wrap: wrap; }
+        .dp-detail summary .dp-detail-figures { font-weight: 400; font-size: 0.8125rem; color: rgb(107 114 128); }
+        .dp-detail-body { padding: 0.75rem; }
+        .dp-wo { border: 1px solid rgb(229 231 235); border-radius: 0.375rem; padding: 0.625rem 0.75rem; margin-bottom: 0.5rem; }
+        .dp-wo-title { font-weight: 600; color: rgb(3 7 18); margin-bottom: 0.25rem; }
+        .dp-wo-meta { font-size: 0.8125rem; color: rgb(75 85 99); margin-bottom: 0.25rem; }
+        .dp-wo-meta b { color: rgb(3 7 18); }
+        .dp-badge { display: inline-block; border-radius: 9999px; padding: 0.0625rem 0.5rem; font-size: 0.6875rem; font-weight: 600; }
+        .dp-badge-ok { background: rgb(220 252 231); color: rgb(22 101 52); }
+        .dp-badge-alert { background: rgb(254 240 138); color: rgb(113 63 18); }
+        .dp-badge-muted { background: rgb(243 244 246); color: rgb(107 114 128); }
+        .dp-alerts { background: rgb(254 242 242); border: 1px solid rgb(254 202 202); color: rgb(153 27 27);
+            padding: 0.375rem 0.5rem; font-size: 0.8125rem; border-radius: 0.375rem; margin-top: 0.25rem; }
+        .dp-alerts ul { margin: 0; padding-left: 1.1rem; }
+
+        .dark .dp-detail { border-color: rgba(255, 255, 255, 0.1); }
+        .dark .dp-detail summary { background: rgba(255, 255, 255, 0.05); color: rgb(255 255 255); }
+        .dark .dp-detail summary .dp-detail-figures { color: rgb(156 163 175); }
+        .dark .dp-wo { border-color: rgba(255, 255, 255, 0.08); }
+        .dark .dp-wo-title { color: rgb(255 255 255); }
+        /* Va ANTES de la regla del <b>: el selector con `b` tiene más
+           especificidad, así que las negritas siguen saliendo en blanco. */
+        .dark .dp-wo-meta { color: rgb(156 163 175); }
+        .dark .dp-wo-meta b { color: rgb(255 255 255); }
+        .dark .dp-alerts { background: rgba(239, 68, 68, 0.1); border-color: rgba(239, 68, 68, 0.25); color: rgb(252 165 165); }
+
+        /* Al imprimir: se oculta el chrome del panel que no tiene sentido en
+           papel y la tabla resumen deja de scrollear y se muestra completa.
+           Abrir el detalle NO se resuelve con CSS: un <details> cerrado
+           esconde su contenido en el pseudo-elemento interno
+           `::details-content`, que el navegador oculta con
+           `content-visibility`, y ningún `display` puesto en un hijo lo pisa.
+           Comprobado: `.dp-detail-body { display: block !important; }` NO
+           revela nada. Por eso el <details> se abre/cierra de VERDAD
+           (`el.open = true`) en los listeners `beforeprint`/`afterprint` más
+           abajo, y acá no queda ninguna regla que aparente resolverlo sin
+           hacerlo. */
+        @media print {
+            .dp-print-bar, .fi-sidebar, .fi-topbar, .fi-header-actions, nav { display: none !important; }
+            .dp-scroll { overflow: visible !important; }
+            .dp-detail summary { cursor: default; }
+        }
     </style>
 
     {{ $this->form }}
+
+    <div class="dp-print-bar">
+        <button type="button" class="dp-print-btn" onclick="window.print()">
+            <x-heroicon-o-printer style="width:1rem;height:1rem;" />
+            {{ __('reports.print') }}
+        </button>
+    </div>
+
+    {{-- Abre todos los <details> del detalle antes de imprimir (así el PDF del
+         navegador incluye lo que el cliente pidió poder leer sin exportar) y
+         restaura el estado que tenían en pantalla al volver. Va en @push y no
+         inline: un <script> dentro del propio template de esta página
+         Livewire se re-evalúa en cada morph de los filtros ->live(); en el
+         stack de la capa, el layout lo renderiza una sola vez, en la carga
+         inicial — el mismo motivo por el que fleet-map.blade.php empuja su
+         script de Leaflet en vez de inlinearlo. --}}
+    @push('scripts')
+        <script>
+            if (!window.__dpReportsPrintBound) {
+                window.__dpReportsPrintBound = true;
+
+                let dpDetailOpenState = [];
+
+                window.addEventListener('beforeprint', () => {
+                    const details = document.querySelectorAll('.dp-detail-list details.dp-detail');
+                    dpDetailOpenState = Array.from(details).map((el) => el.open);
+                    details.forEach((el) => { el.open = true; });
+                });
+
+                window.addEventListener('afterprint', () => {
+                    const details = document.querySelectorAll('.dp-detail-list details.dp-detail');
+                    details.forEach((el, index) => { el.open = dpDetailOpenState[index] ?? false; });
+                });
+            }
+        </script>
+    @endpush
 
     @php
         $report = $this->selectedReport();
@@ -166,6 +273,130 @@
                             </tr>
                         </tfoot>
                     </table>
+                </div>
+
+                {{-- Detalle por máquina, colapsado por defecto. Pedido del cliente
+                     2026-08-06 ("viewable online without exporting"): reusa el mismo
+                     $block/$wo que ya armó CostReportBuilder para la fila de arriba y
+                     para el PDF/Excel — no hay una segunda consulta ni una segunda
+                     fuente de totales. El checklist NO se expande ítem por ítem (son
+                     ~61 por OT); solo su resultado resumido, igual que en el PDF. --}}
+                <h3 class="dp-rep-title" style="margin-top:1.25rem;">{{ __('reports.detail') }}</h3>
+
+                <div class="dp-detail-list">
+                    @foreach($data['machines'] as $block)
+                        <details class="dp-detail">
+                            <summary>
+                                <span>
+                                    {{ $block['machine_id_code'] }}
+                                    @if($block['machine_description'])
+                                        <span class="dp-desc">— {{ $block['machine_description'] }}</span>
+                                    @endif
+                                </span>
+                                <span class="dp-detail-figures">
+                                    {{ $block['work_order_count'] }} {{ __('reports.work_orders') }}
+                                    &nbsp;·&nbsp; {{ number_format($block['labor_hours'], 1) }} h
+                                    &nbsp;·&nbsp; ${{ number_format($block['parts_total'], 2) }}
+                                </span>
+                            </summary>
+
+                            <div class="dp-detail-body">
+                                @foreach($block['work_orders'] as $wo)
+                                    <div class="dp-wo">
+                                        <div class="dp-wo-title">
+                                            {{ $wo['code'] }} — {{ __('wo.'.$wo['type']) }}
+                                            · {{ __('wo.'.$wo['status']) }}
+                                        </div>
+                                        <div class="dp-wo-meta">
+                                            <b>{{ __('reports.completed_by') }}:</b>
+                                            {{ $wo['completed_by'] ?? __('reports.not_recorded') }}
+                                            @if($wo['assigned_to'])
+                                                &nbsp;(<b>{{ __('wo.assigned_to') }}:</b> {{ $wo['assigned_to'] }})
+                                            @endif
+                                        </div>
+                                        <div class="dp-wo-meta">
+                                            <b>{{ __('reports.location') }}:</b>
+                                            {{ $wo['location'] ? $wo['location_label'] : __('reports.not_recorded') }}
+                                            &nbsp;|&nbsp;
+                                            <b>{{ __('wo.opened_at') }}:</b> {{ $wo['opened_at'] ?? '—' }}
+                                            &nbsp;|&nbsp;
+                                            <b>{{ __('wo.completed_at') }}:</b> {{ $wo['completed_at'] ?? '—' }}
+                                            &nbsp;|&nbsp;
+                                            <b>{{ __('wo.labor_hours') }}:</b> {{ number_format($wo['labor_hours'], 1) }} h
+                                        </div>
+
+                                        {{-- Resumen del checklist, nunca los ~61 ítems. --}}
+                                        <div class="dp-wo-meta">
+                                            <b>{{ __('reports.checklist') }}:</b>
+                                            @if($wo['checklist_total'] > 0)
+                                                @if($wo['checklist_alert'] > 0)
+                                                    <span class="dp-badge dp-badge-alert">{{ __('reports.checklist_alert_badge') }}</span>
+                                                @else
+                                                    <span class="dp-badge dp-badge-ok">{{ __('reports.checklist_ok_badge') }}</span>
+                                                @endif
+                                                &nbsp;{{ $wo['checklist_total'] }} {{ __('reports.items') }} —
+                                                {{ $wo['checklist_ok'] }} {{ __('checklist.result_ok') }},
+                                                {{ $wo['checklist_alert'] }} {{ __('checklist.result_alert') }},
+                                                {{ $wo['checklist_na'] }} {{ __('checklist.result_na') }}
+                                            @else
+                                                <span class="dp-badge dp-badge-muted">{{ __('reports.no_checklist') }}</span>
+                                            @endif
+                                        </div>
+                                        @if($wo['checklist_alerts'] !== [])
+                                            <div class="dp-alerts">
+                                                <ul>
+                                                    @foreach($wo['checklist_alerts'] as $alert)
+                                                        <li>{{ $alert['label'] }}@if($alert['detail']): {{ $alert['detail'] }}@endif</li>
+                                                    @endforeach
+                                                </ul>
+                                            </div>
+                                        @endif
+
+                                        @if($wo['parts'] !== [])
+                                            <div class="dp-scroll" style="margin-top:0.5rem;">
+                                                <table class="dp-table">
+                                                    <thead>
+                                                        <tr>
+                                                            <th>{{ __('reports.part_number') }}</th>
+                                                            <th>{{ __('reports.part_description') }}</th>
+                                                            <th class="dp-num">{{ __('reports.quantity') }}</th>
+                                                            <th class="dp-num">{{ __('reports.unit_cost') }}</th>
+                                                            <th class="dp-num">{{ __('reports.subtotal') }}</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        @foreach($wo['parts'] as $part)
+                                                            <tr>
+                                                                <td>{{ $part['part_number'] ?? '—' }}</td>
+                                                                <td>{{ $part['description'] ?? '—' }}</td>
+                                                                <td class="dp-num">{{ rtrim(rtrim(number_format($part['quantity'], 2), '0'), '.') }}</td>
+                                                                <td class="dp-num">
+                                                                    @if($part['unit_cost'] === null)
+                                                                        <span class="dp-zero">{{ __('reports.no_cost_loaded') }}</span>
+                                                                    @else
+                                                                        ${{ number_format($part['unit_cost'], 2) }}
+                                                                    @endif
+                                                                </td>
+                                                                <td class="dp-num">${{ number_format($part['subtotal'], 2) }}</td>
+                                                            </tr>
+                                                        @endforeach
+                                                    </tbody>
+                                                    <tfoot>
+                                                        <tr>
+                                                            <td colspan="4">{{ __('reports.wo_total') }}</td>
+                                                            <td class="dp-num">${{ number_format($wo['parts_total'], 2) }}</td>
+                                                        </tr>
+                                                    </tfoot>
+                                                </table>
+                                            </div>
+                                        @else
+                                            <div class="dp-wo-meta dp-zero">{{ __('reports.no_parts') }}</div>
+                                        @endif
+                                    </div>
+                                @endforeach
+                            </div>
+                        </details>
+                    @endforeach
                 </div>
 
                 <p class="dp-note">{{ __('reports.detail_in_files') }}</p>

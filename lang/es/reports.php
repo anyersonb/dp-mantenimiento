@@ -54,7 +54,10 @@ return [
 
     // Detalle
     'detail' => 'Detalle por orden de trabajo',
-    'detail_in_files' => 'El detalle completo (quién, dónde, checklist y repuestos uno por uno) va en el PDF y en el Excel.',
+    'detail_in_files' => 'Desplegá cada máquina para ver su detalle completo (quién, dónde, checklist y repuestos uno por uno). El mismo detalle también está en el PDF y en el Excel.',
+    'print' => 'Imprimir',
+    'checklist_ok_badge' => 'Aprobado',
+    'checklist_alert_badge' => 'Con observaciones',
     'location' => 'Obra',
     'checklist' => 'Checklist',
     'checklist_total' => 'Ítems de checklist',

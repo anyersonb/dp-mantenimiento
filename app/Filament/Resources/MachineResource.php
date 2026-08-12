@@ -160,7 +160,14 @@ class MachineResource extends Resource
                     Forms\Components\TextInput::make('year')->numeric()->label(__('fleet.year')),
                     Forms\Components\Select::make('current_location_id')
                         ->label(__('fleet.location'))
-                        ->relationship('location', 'name')->searchable()->preload(),
+                        // Sin ->relationship(): ésa arma la búsqueda contra la
+                        // columna `name` en SQL y `display_name` no existe ahí.
+                        // Con ->getSearchResultsUsing() explícito, la búsqueda
+                        // encuentra tanto por número de trabajo como por nombre.
+                        ->options(fn () => Location::locationSelectOptions())
+                        ->getSearchResultsUsing(fn (string $search) => Location::locationSelectOptions($search))
+                        ->getOptionLabelUsing(fn ($value) => Location::find($value)?->display_name)
+                        ->searchable()->preload(),
                     Forms\Components\Textarea::make('description')
                         ->label(__('fleet.description'))->columnSpanFull()->rows(2),
                 ]),
@@ -287,7 +294,8 @@ class MachineResource extends Resource
                     ->label(__('fleet.make'))->sortable()->toggleable(),
                 Tables\Columns\TextColumn::make('model')->label(__('fleet.model'))->searchable()->toggleable(),
                 Tables\Columns\TextColumn::make('location.name')
-                    ->label(__('fleet.location'))->badge()->color('gray')->sortable(),
+                    ->label(__('fleet.location'))->badge()->color('gray')->sortable()
+                    ->formatStateUsing(fn ($state, Machine $record) => $record->location?->display_name ?? $state),
                 Tables\Columns\TextColumn::make('current_hours')
                     ->label(__('fleet.current_hours'))->numeric()->sortable()
                     ->formatStateUsing(fn ($state, Machine $r) => $state !== null ? number_format($state).' h' : '—'),
@@ -330,7 +338,8 @@ class MachineResource extends Resource
             ->groups([
                 Tables\Grouping\Group::make('category.name')->label(__('fleet.category'))
                     ->getTitleFromRecordUsing(fn (Machine $record) => $record->category?->display_name ?? '—'),
-                Tables\Grouping\Group::make('location.name')->label(__('fleet.location')),
+                Tables\Grouping\Group::make('location.name')->label(__('fleet.location'))
+                    ->getTitleFromRecordUsing(fn (Machine $record) => $record->location?->display_name ?? '—'),
             ])
             ->filters([
                 // Filtro por número de máquina (pedido del cliente 2026-08-05).
@@ -363,7 +372,9 @@ class MachineResource extends Resource
                     ->label(__('fleet.category'))->relationship('category', 'name')->multiple()->preload()
                     ->getOptionLabelFromRecordUsing(fn ($record) => $record->display_name),
                 Tables\Filters\SelectFilter::make('current_location_id')
-                    ->label(__('fleet.location'))->relationship('location', 'name')->multiple()->preload(),
+                    ->label(__('fleet.location'))
+                    ->options(fn () => Location::locationSelectOptions())
+                    ->multiple()->preload(),
                 // Las opciones salen de Machine::STATUSES y no de una lista escrita
                 // a mano: así estaba y faltaba `unknown`, o sea que las 29 máquinas
                 // en ese estado (de 99) no se podían encontrar con este filtro.
@@ -454,7 +465,7 @@ class MachineResource extends Resource
                     ->form([
                         Forms\Components\Select::make('current_location_id')
                             ->label(__('mgmt.move_to'))
-                            ->options(fn () => Location::query()->where('active', true)->pluck('name', 'id'))
+                            ->options(fn () => Location::locationSelectOptions(activeOnly: true))
                             ->searchable()
                             ->required(),
                     ])
@@ -550,7 +561,7 @@ class MachineResource extends Resource
                         ->form([
                             Forms\Components\Select::make('current_location_id')
                                 ->label(__('mgmt.move_to'))
-                                ->options(fn () => Location::query()->where('active', true)->pluck('name', 'id'))
+                                ->options(fn () => Location::locationSelectOptions(activeOnly: true))
                                 ->searchable()
                                 ->required(),
                         ])

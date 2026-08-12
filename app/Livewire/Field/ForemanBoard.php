@@ -155,18 +155,18 @@ class ForemanBoard extends Component
     public function getAllowedLocationsProperty()
     {
         if (Auth::user()->can('move_fleet')) {
-            return Location::orderBy('name')->get(['id', 'name']);
+            return Location::orderBy('job_number')->orderBy('name')->get(['id', 'job_number', 'name']);
         }
 
         $machine = $this->machineId ? Machine::find($this->machineId) : null;
 
         if (! $machine || ! $machine->current_location_id) {
-            return Location::query()->whereRaw('1 = 0')->get(['id', 'name']);
+            return Location::query()->whereRaw('1 = 0')->get(['id', 'job_number', 'name']);
         }
 
         return Location::query()
             ->where('id', $machine->current_location_id)
-            ->get(['id', 'name']);
+            ->get(['id', 'job_number', 'name']);
     }
 
     public function getMyMachinesProperty()

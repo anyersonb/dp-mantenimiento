@@ -54,7 +54,10 @@ return [
 
     // Detail
     'detail' => 'Work order detail',
-    'detail_in_files' => 'The full detail (who, where, checklist and each part) is in the PDF and the Excel file.',
+    'detail_in_files' => 'Expand each machine to see its full detail (who, where, checklist and each part). The same detail is also in the PDF and the Excel file.',
+    'print' => 'Print',
+    'checklist_ok_badge' => 'Approved',
+    'checklist_alert_badge' => 'With findings',
     'location' => 'Job site',
     'checklist' => 'Checklist',
     'checklist_total' => 'Checklist items',

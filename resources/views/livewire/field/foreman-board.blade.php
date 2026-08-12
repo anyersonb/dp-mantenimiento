@@ -33,7 +33,7 @@
             <select id="locationId" wire:model="locationId">
                 <option value="">—</option>
                 @foreach ($locations as $loc)
-                    <option value="{{ $loc->id }}">{{ $loc->name }}</option>
+                    <option value="{{ $loc->id }}">{{ $loc->display_name }}</option>
                 @endforeach
             </select>
             @error('locationId') <div class="error-msg">{{ $message }}</div> @enderror
@@ -53,7 +53,7 @@
         @forelse ($myMachines as $m)
             <div style="display:flex; justify-content:space-between; padding:.5rem 0; border-bottom:1px solid #f1f5f9;">
                 <strong>{{ $m->id_code }}</strong>
-                <span class="muted">{{ $m->location?->name ?? '—' }}</span>
+                <span class="muted">{{ $m->location?->display_name ?? '—' }}</span>
             </div>
         @empty
             <p class="muted">{{ __('field.foreman_no_machines') }}</p>

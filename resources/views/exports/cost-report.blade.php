@@ -187,7 +187,7 @@
                         &nbsp;|&nbsp;
                         <b>{{ __('reports.location') }}:</b>
                         @if($wo['location'])
-                            {{ $wo['location'] }}@if($wo['location_job_number']) ({{ __('nav.job_number') }} {{ $wo['location_job_number'] }})@endif
+                            {{ $wo['location_label'] }}
                         @else
                             <span class="muted">{{ __('reports.not_recorded') }}</span>
                         @endif

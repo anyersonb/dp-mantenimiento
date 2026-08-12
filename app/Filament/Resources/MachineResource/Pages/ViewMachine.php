@@ -33,7 +33,8 @@ class ViewMachine extends ViewRecord
                     Components\TextEntry::make('model')->label(__('fleet.model')),
                     Components\TextEntry::make('serial')->label(__('fleet.serial')),
                     Components\TextEntry::make('year')->label(__('fleet.year')),
-                    Components\TextEntry::make('location.name')->label(__('fleet.location'))->badge()->color('gray'),
+                    Components\TextEntry::make('location.name')->label(__('fleet.location'))->badge()->color('gray')
+                        ->formatStateUsing(fn ($state, $record) => $record->location?->display_name ?? $state),
                     Components\TextEntry::make('description')->label(__('fleet.description'))->columnSpan(2),
                 ]),
 

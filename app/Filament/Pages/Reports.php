@@ -162,7 +162,7 @@ class Reports extends Page implements HasForms
                             ->label(__('reports.locations'))
                             ->helperText(__('reports.location_help'))
                             ->multiple()->preload()->live()
-                            ->options(fn () => Location::query()->orderBy('name')->pluck('name', 'id')->all()),
+                            ->options(fn () => Location::locationSelectOptions()),
                         Forms\Components\Select::make('completed_by')
                             ->label(__('reports.completed_by'))
                             ->helperText(__('reports.completed_by_help'))

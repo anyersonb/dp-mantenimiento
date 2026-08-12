@@ -4,6 +4,7 @@ namespace Tests\Feature\Management;
 
 use App\Filament\Resources\LocationResource\Pages\CreateLocation;
 use App\Filament\Resources\LocationResource\Pages\EditLocation;
+use App\Filament\Resources\MachineResource\Pages\CreateMachine;
 use App\Models\Location;
 use App\Models\User;
 use Database\Seeders\RolesAndPermissionsSeeder;
@@ -140,5 +141,106 @@ class LocationJobNumberTest extends TestCase
         Location::create(['name' => 'Vieja 2', 'slug' => 'vieja-2']);
 
         $this->assertSame(2, Location::whereNull('job_number')->count());
+    }
+
+    /* ------------------------------------------------------------------ *
+     * display_name: pedido del cliente 2026-08-06 ("everything is job
+     * numbers"). El número va PRIMERO porque es el identificador que usa el
+     * cliente, y una obra sin número todavía (dato faltante real) se ve por
+     * su nombre solo — nunca con un guion suelto ni "Not set" dentro de un
+     * rótulo que se usa en selects, tablas y mapas.
+     * ------------------------------------------------------------------ */
+
+    public function test_display_name_puts_the_job_number_first_when_it_exists(): void
+    {
+        $location = Location::create([
+            'name' => 'Blount Rd',
+            'slug' => 'blount-rd-'.uniqid(),
+            'job_number' => 'JOB-555',
+        ]);
+
+        $this->assertSame('JOB-555 — Blount Rd', $location->display_name);
+    }
+
+    public function test_display_name_falls_back_to_the_name_alone_without_a_job_number(): void
+    {
+        $location = Location::create(['name' => 'Obra Sin Número', 'slug' => 'obra-sin-numero-'.uniqid()]);
+
+        $this->assertNull($location->job_number);
+        $this->assertSame('Obra Sin Número', $location->display_name);
+        // Nunca un guion suelto ni un "Not set" mezclado en el rótulo: en un
+        // <select> eso se lee como un registro roto, no como dato pendiente.
+        $this->assertStringNotContainsString('—', $location->display_name);
+        $this->assertStringNotContainsString('Not set', $location->display_name);
+    }
+
+    /* ------------------------------------------------------------------ *
+     * Buscador de obra por número: QA no pudo determinar del lado del
+     * navegador si tipear "2411" filtraba de verdad el <select> de Filament
+     * (no distinguió un bug real de un artefacto de Playwright con ese
+     * widget). Se cubre del lado servidor, sobre el mismo callable que
+     * Filament invoca al buscar.
+     * ------------------------------------------------------------------ */
+
+    public function test_location_select_options_finds_a_job_site_by_its_job_number(): void
+    {
+        $blount = Location::create(['name' => 'Blount Rd', 'slug' => 'blount-rd-'.uniqid(), 'job_number' => '2411']);
+        $davie = Location::create(['name' => 'Davie Yd', 'slug' => 'davie-yd-'.uniqid(), 'job_number' => '2415']);
+
+        $results = Location::locationSelectOptions('2411');
+
+        $this->assertSame([$blount->id => '2411 — Blount Rd'], $results);
+        $this->assertArrayNotHasKey($davie->id, $results);
+    }
+
+    public function test_location_select_options_finds_a_job_site_by_its_name_too(): void
+    {
+        $blount = Location::create(['name' => 'Blount Rd', 'slug' => 'blount-rd-'.uniqid(), 'job_number' => '2411']);
+        Location::create(['name' => 'Davie Yd', 'slug' => 'davie-yd-'.uniqid(), 'job_number' => '2415']);
+
+        $results = Location::locationSelectOptions('Blount');
+
+        $this->assertSame([$blount->id => '2411 — Blount Rd'], $results);
+    }
+
+    public function test_location_select_options_returns_nothing_for_a_number_that_does_not_match(): void
+    {
+        Location::create(['name' => 'Blount Rd', 'slug' => 'blount-rd-'.uniqid(), 'job_number' => '2411']);
+        Location::create(['name' => 'Davie Yd', 'slug' => 'davie-yd-'.uniqid(), 'job_number' => '2415']);
+
+        $this->assertSame([], Location::locationSelectOptions('9999'));
+    }
+
+    /**
+     * La misma búsqueda, pero invocada exactamente como Filament la invoca:
+     * a través de `Select::getSearchResults()` del componente real montado
+     * en el formulario de "Crear máquina" — no una llamada directa al método
+     * estático que podría estar bien mientras el cableado en el Select
+     * estuviera roto y este test no lo notaría.
+     */
+    public function test_the_machine_forms_location_select_search_is_wired_to_the_real_filament_component(): void
+    {
+        $blount = Location::create(['name' => 'Blount Rd', 'slug' => 'blount-rd-'.uniqid(), 'job_number' => '2411']);
+        $davie = Location::create(['name' => 'Davie Yd', 'slug' => 'davie-yd-'.uniqid(), 'job_number' => '2415']);
+
+        $test = Livewire::actingAs($this->admin())->test(CreateMachine::class);
+
+        // getComponent() recorre TODO el árbol, incluidas las Section que lo
+        // envuelven y que no tienen getName(): hay que filtrar antes de
+        // preguntar el nombre.
+        $component = $test->instance()
+            ->getForm('form')
+            ->getComponent(fn ($c) => method_exists($c, 'getName') && $c->getName() === 'current_location_id');
+
+        $this->assertNotNull($component, 'El Select de obra no está en el formulario de Crear Máquina.');
+
+        $byNumber = $component->getSearchResults('2411');
+        $this->assertSame([$blount->id => '2411 — Blount Rd'], $byNumber);
+        $this->assertArrayNotHasKey($davie->id, $byNumber);
+
+        $byName = $component->getSearchResults('Davie');
+        $this->assertSame([$davie->id => '2415 — Davie Yd'], $byName);
+
+        $this->assertSame([], $component->getSearchResults('9999'));
     }
 }

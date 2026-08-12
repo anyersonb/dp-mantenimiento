@@ -21,7 +21,7 @@
                     <tr>
                         <td style="padding:8px; border:1px solid #e2e8f0;">{{ $alert->machine?->id_code ?? '—' }}</td>
                         <td style="padding:8px; border:1px solid #e2e8f0;">{{ $alert->remaining_hours !== null ? number_format($alert->remaining_hours).' h' : '—' }}</td>
-                        <td style="padding:8px; border:1px solid #e2e8f0;">{{ $alert->machine?->location?->name ?? '—' }}</td>
+                        <td style="padding:8px; border:1px solid #e2e8f0;">{{ $alert->machine?->location?->display_name ?? '—' }}</td>
                     </tr>
                 @endforeach
             </tbody>

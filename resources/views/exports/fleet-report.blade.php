@@ -54,7 +54,7 @@
                     <td>{{ $machine->category?->display_name }}</td>
                     <td>{{ $machine->make?->name }}</td>
                     <td>{{ $machine->model }}</td>
-                    <td>{{ $machine->location?->name }}</td>
+                    <td>{{ $machine->location?->display_name }}</td>
                     <td class="text-right">{{ $machine->current_hours !== null ? number_format($machine->current_hours).' h' : '—' }}</td>
                     <td class="text-right">{{ $machine->computed_remaining_hours !== null ? number_format($machine->computed_remaining_hours).' h' : '—' }}</td>
                     <td>

@@ -3,6 +3,7 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\UserResource\Pages;
+use App\Models\Location;
 use App\Models\User;
 use Filament\Forms;
 use Filament\Forms\Form;
@@ -132,7 +133,11 @@ class UserResource extends Resource
                         ->default('es'),
                     Forms\Components\Select::make('location_id')
                         ->label(__('users.field_location'))
-                        ->relationship('location', 'name')
+                        // Sin ->relationship(): busca en SQL contra `display_name`,
+                        // que no existe como columna. Ver Location::locationSelectOptions().
+                        ->options(fn () => Location::locationSelectOptions())
+                        ->getSearchResultsUsing(fn (string $search) => Location::locationSelectOptions($search))
+                        ->getOptionLabelUsing(fn ($value) => Location::find($value)?->display_name)
                         ->searchable()
                         ->preload()
                         ->nullable(),
@@ -172,7 +177,8 @@ class UserResource extends Resource
                     ->label(__('users.field_location'))
                     ->badge()
                     ->color('gray')
-                    ->placeholder('—'),
+                    ->placeholder('—')
+                    ->formatStateUsing(fn ($state, User $record) => $record->location?->display_name ?? $state),
                 Tables\Columns\TextColumn::make('locale')
                     ->label(__('users.field_locale'))
                     ->badge()
