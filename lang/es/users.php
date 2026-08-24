@@ -10,7 +10,7 @@ return [
 
     // Campos del formulario
     'field_name' => 'Nombre',
-    'field_email' => 'Correo electrónico',
+    'field_email' => 'Usuario',
     'field_password' => 'Contraseña',
     'field_password_confirmation' => 'Confirmar contraseña',
     'field_password_hint' => 'Dejar en blanco para no cambiarla',
@@ -21,6 +21,7 @@ return [
     'field_location' => 'Ubicación',
     'field_active' => 'Activo',
     'field_roles' => 'Roles',
+    'field_roles_help' => 'Debajo de cada rol está lo que puede hacer quien lo tenga. Se puede marcar más de uno.',
     'field_created_at' => 'Creado',
 
     // Filtros

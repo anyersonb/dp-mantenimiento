@@ -29,7 +29,7 @@ return [
     // a missing key falls back to the class name.
     'subject_machine' => 'Machine',
     'subject_work_order' => 'Work order',
-    'subject_horometer_reading' => 'Hourmeter reading',
+    'subject_horometer_reading' => 'Hour meter reading',
     'subject_id' => 'Record #',
     'changes' => 'Changes',
     'properties' => 'Details',
@@ -42,7 +42,7 @@ return [
     'event_deleted' => 'Deleted',
     'event_approved' => 'Approved',
     'event_imported' => 'Imported',
-    'event_hourmeter_replaced' => 'Hourmeter replacement',
+    'event_hourmeter_replaced' => 'Hour meter replacement',
     'event_location_moved' => 'Machine moved',
     'event_location_confirmed' => 'Location confirmed',
 
@@ -85,7 +85,7 @@ return [
     'import_pm_report_log' => 'PM Service Report import: :updated updated, :unmatched unmatched',
 
     // Hourmeter replacement
-    'hourmeter_replaced_log' => 'Hourmeter replaced on :machine: :old h (old) -> :new h (new)',
+    'hourmeter_replaced_log' => 'Hour meter replaced on :machine: :old h (old) -> :new h (new)',
 
     // Fleet map
     'fleet_map' => 'Fleet map',

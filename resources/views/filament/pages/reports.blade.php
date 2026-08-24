@@ -29,6 +29,11 @@
         .dp-kpis { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr));
             gap: 0.75rem; margin-bottom: 1rem; }
         @media (min-width: 768px) { .dp-kpis { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+        /* Los KPIs de costos quedaron en tres al sacarse el conteo de órdenes
+           de trabajo (clienta, 2026-08-24). Con la plantilla de cuatro, la
+           última columna quedaba vacía y las tarjetas se veían desalineadas
+           contra la tabla de abajo. */
+        @media (min-width: 768px) { .dp-kpis-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
         .dp-kpi { border-radius: 0.5rem; background: rgb(249 250 251); padding: 0.75rem; }
         .dp-kpi-label { font-size: 0.75rem; color: rgb(107 114 128); }
         .dp-kpi-value { font-size: 1.25rem; font-weight: 700; color: rgb(3 7 18); }
@@ -83,16 +88,17 @@
             cursor: pointer; }
         .dark .dp-print-btn { background: rgba(255, 255, 255, 0.05); border-color: rgba(255, 255, 255, 0.15); color: rgb(229 231 235); }
 
-        /* Detalle por máquina, colapsado por defecto (<details> nativo: cero
-           JS, cero query nueva al abrir — el contenido ya está en el HTML). */
-        .dp-detail-list { margin-top: 1rem; }
-        .dp-detail { border: 1px solid rgb(229 231 235); border-radius: 0.5rem;
-            margin-bottom: 0.5rem; overflow: hidden; }
-        .dp-detail summary { cursor: pointer; padding: 0.625rem 0.75rem;
-            font-weight: 600; color: rgb(3 7 18); background: rgb(249 250 251);
-            list-style: none; display: flex; justify-content: space-between;
+        /* Detalle de la máquina elegida en el select. Antes era un <details>
+           por máquina; ahora es UNA sola tarjeta siempre abierta, así que no
+           hay nada que desplegar (ni para leer ni para imprimir). */
+        .dp-detail-list { margin-top: 1rem; border: 1px solid rgb(229 231 235);
+            border-radius: 0.5rem; overflow: hidden; }
+        .dp-detail-head { padding: 0.625rem 0.75rem; font-weight: 600;
+            color: rgb(3 7 18); background: rgb(249 250 251);
+            display: flex; justify-content: space-between;
             gap: 0.75rem; flex-wrap: wrap; }
-        .dp-detail summary .dp-detail-figures { font-weight: 400; font-size: 0.8125rem; color: rgb(107 114 128); }
+        .dp-detail-figures { font-weight: 400; font-size: 0.8125rem; color: rgb(107 114 128); }
+        .dp-detail-head b { color: rgb(3 7 18); }
         .dp-detail-body { padding: 0.75rem; }
         .dp-wo { border: 1px solid rgb(229 231 235); border-radius: 0.375rem; padding: 0.625rem 0.75rem; margin-bottom: 0.5rem; }
         .dp-wo-title { font-weight: 600; color: rgb(3 7 18); margin-bottom: 0.25rem; }
@@ -106,9 +112,10 @@
             padding: 0.375rem 0.5rem; font-size: 0.8125rem; border-radius: 0.375rem; margin-top: 0.25rem; }
         .dp-alerts ul { margin: 0; padding-left: 1.1rem; }
 
-        .dark .dp-detail { border-color: rgba(255, 255, 255, 0.1); }
-        .dark .dp-detail summary { background: rgba(255, 255, 255, 0.05); color: rgb(255 255 255); }
-        .dark .dp-detail summary .dp-detail-figures { color: rgb(156 163 175); }
+        .dark .dp-detail-list { border-color: rgba(255, 255, 255, 0.1); }
+        .dark .dp-detail-head { background: rgba(255, 255, 255, 0.05); color: rgb(255 255 255); }
+        .dark .dp-detail-head b { color: rgb(255 255 255); }
+        .dark .dp-detail-figures { color: rgb(156 163 175); }
         .dark .dp-wo { border-color: rgba(255, 255, 255, 0.08); }
         .dark .dp-wo-title { color: rgb(255 255 255); }
         /* Va ANTES de la regla del <b>: el selector con `b` tiene más
@@ -119,19 +126,18 @@
 
         /* Al imprimir: se oculta el chrome del panel que no tiene sentido en
            papel y la tabla resumen deja de scrollear y se muestra completa.
-           Abrir el detalle NO se resuelve con CSS: un <details> cerrado
-           esconde su contenido en el pseudo-elemento interno
-           `::details-content`, que el navegador oculta con
-           `content-visibility`, y ningún `display` puesto en un hijo lo pisa.
-           Comprobado: `.dp-detail-body { display: block !important; }` NO
-           revela nada. Por eso el <details> se abre/cierra de VERDAD
-           (`el.open = true`) en los listeners `beforeprint`/`afterprint` más
-           abajo, y acá no queda ninguna regla que aparente resolverlo sin
-           hacerlo. */
+
+           Nota histórica, para no repetir el diagnóstico: cuando el detalle era
+           un <details> por máquina había que abrirlos con JS
+           (`beforeprint`/`afterprint`), porque un <details> cerrado esconde su
+           contenido en el pseudo-elemento `::details-content` y el navegador lo
+           tapa con `content-visibility` — ningún `display` puesto en un hijo lo
+           pisa. Al pasar el detalle a UNA máquina siempre abierta, ese problema
+           dejó de existir y el script se sacó. Si algún día vuelve el acordeón,
+           vuelve el script. */
         @media print {
             .dp-print-bar, .fi-sidebar, .fi-topbar, .fi-header-actions, nav { display: none !important; }
             .dp-scroll { overflow: visible !important; }
-            .dp-detail summary { cursor: default; }
         }
     </style>
 
@@ -144,34 +150,10 @@
         </button>
     </div>
 
-    {{-- Abre todos los <details> del detalle antes de imprimir (así el PDF del
-         navegador incluye lo que el cliente pidió poder leer sin exportar) y
-         restaura el estado que tenían en pantalla al volver. Va en @push y no
-         inline: un <script> dentro del propio template de esta página
-         Livewire se re-evalúa en cada morph de los filtros ->live(); en el
-         stack de la capa, el layout lo renderiza una sola vez, en la carga
-         inicial — el mismo motivo por el que fleet-map.blade.php empuja su
-         script de Leaflet en vez de inlinearlo. --}}
-    @push('scripts')
-        <script>
-            if (!window.__dpReportsPrintBound) {
-                window.__dpReportsPrintBound = true;
-
-                let dpDetailOpenState = [];
-
-                window.addEventListener('beforeprint', () => {
-                    const details = document.querySelectorAll('.dp-detail-list details.dp-detail');
-                    dpDetailOpenState = Array.from(details).map((el) => el.open);
-                    details.forEach((el) => { el.open = true; });
-                });
-
-                window.addEventListener('afterprint', () => {
-                    const details = document.querySelectorAll('.dp-detail-list details.dp-detail');
-                    details.forEach((el, index) => { el.open = dpDetailOpenState[index] ?? false; });
-                });
-            }
-        </script>
-    @endpush
+    {{-- Acá vivía un script que abría los <details> del detalle antes de
+         imprimir. Se sacó junto con el acordeón (clienta, 2026-08-24): el
+         detalle es ahora el de UNA máquina y está siempre abierto, así que lo
+         que se ve en pantalla es exactamente lo que sale impreso. --}}
 
     @php
         $report = $this->selectedReport();
@@ -194,7 +176,7 @@
 
             {{-- Totales del periodo. Solo repuestos: la mano de obra se informa en
                  horas y no se valoriza, porque no hay tarifa definida. --}}
-            <div class="dp-kpis">
+            <div class="dp-kpis dp-kpis-3">
                 <div class="dp-kpi">
                     <div class="dp-kpi-label">{{ __('reports.total_spent') }}</div>
                     <div class="dp-kpi-value">${{ number_format($totals['parts_total'], 2) }}</div>
@@ -204,10 +186,10 @@
                     <div class="dp-kpi-label">{{ __('reports.machines_with_spend') }}</div>
                     <div class="dp-kpi-value">{{ $totals['machine_count'] }}</div>
                 </div>
-                <div class="dp-kpi">
-                    <div class="dp-kpi-label">{{ __('reports.work_orders') }}</div>
-                    <div class="dp-kpi-value">{{ $totals['work_order_count'] }}</div>
-                </div>
+                {{-- El conteo de órdenes de trabajo salió de acá y de la tabla
+                     de abajo a pedido de la clienta (2026-08-24): lo que quiere
+                     leer del resumen es cuánto gasta cada máquina, no cuántas
+                     órdenes tuvo. Las órdenes siguen enteras en el detalle. --}}
                 <div class="dp-kpi">
                     <div class="dp-kpi-label">{{ __('reports.labor_hours') }}</div>
                     <div class="dp-kpi-value">{{ number_format($totals['labor_hours'], 1) }} h</div>
@@ -243,9 +225,8 @@
                             <tr>
                                 <th>{{ __('fleet.machine_number') }}</th>
                                 <th>{{ __('fleet.category') }}</th>
-                                <th class="dp-num">{{ __('reports.work_orders') }}</th>
                                 <th class="dp-num">{{ __('reports.labor_hours') }}</th>
-                                <th class="dp-num">{{ __('reports.parts_spend') }}</th>
+                                <th class="dp-num">{{ __('reports.machine_spend') }}</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -258,7 +239,6 @@
                                         @endif
                                     </td>
                                     <td>{{ $block['machine_category'] ?? '—' }}</td>
-                                    <td class="dp-num">{{ $block['work_order_count'] }}</td>
                                     <td class="dp-num">{{ number_format($block['labor_hours'], 1) }}</td>
                                     <td class="dp-num"><strong>${{ number_format($block['parts_total'], 2) }}</strong></td>
                                 </tr>
@@ -267,7 +247,6 @@
                         <tfoot>
                             <tr>
                                 <td colspan="2">{{ __('reports.grand_total') }}</td>
-                                <td class="dp-num">{{ $totals['work_order_count'] }}</td>
                                 <td class="dp-num">{{ number_format($totals['labor_hours'], 1) }}</td>
                                 <td class="dp-num">${{ number_format($totals['parts_total'], 2) }}</td>
                             </tr>
@@ -275,37 +254,64 @@
                     </table>
                 </div>
 
-                {{-- Detalle por máquina, colapsado por defecto. Pedido del cliente
-                     2026-08-06 ("viewable online without exporting"): reusa el mismo
-                     $block/$wo que ya armó CostReportBuilder para la fila de arriba y
-                     para el PDF/Excel — no hay una segunda consulta ni una segunda
-                     fuente de totales. El checklist NO se expande ítem por ítem (son
-                     ~61 por OT); solo su resultado resumido, igual que en el PDF. --}}
+                {{-- Detalle de UNA máquina, la que se elige en el select de arriba
+                     (clienta, 2026-08-24). Antes era un acordeón con las 99 máquinas
+                     del periodo, una debajo de la otra.
+
+                     Sigue reusando el mismo $block/$wo que armó CostReportBuilder para
+                     la fila del resumen y para el PDF/Excel — no hay una segunda
+                     consulta ni una segunda fuente de totales. El checklist NO se
+                     expande ítem por ítem (son ~61 por OT); solo su resultado
+                     resumido, igual que en el PDF. --}}
+                @php
+                    $detalle = $this->detailMachineBlock();
+                    $elegida = $this->data['detail_machine_id'] ?? null;
+                @endphp
+
                 <h3 class="dp-rep-title" style="margin-top:1.25rem;">{{ __('reports.detail') }}</h3>
 
-                <div class="dp-detail-list">
-                    @foreach($data['machines'] as $block)
-                        <details class="dp-detail">
-                            <summary>
-                                <span>
-                                    {{ $block['machine_id_code'] }}
-                                    @if($block['machine_description'])
-                                        <span class="dp-desc">— {{ $block['machine_description'] }}</span>
-                                    @endif
-                                </span>
-                                <span class="dp-detail-figures">
-                                    {{ $block['work_order_count'] }} {{ __('reports.work_orders') }}
-                                    &nbsp;·&nbsp; {{ number_format($block['labor_hours'], 1) }} h
-                                    &nbsp;·&nbsp; ${{ number_format($block['parts_total'], 2) }}
-                                </span>
-                            </summary>
+                @if($detalle === null)
+                    {{-- Dos vacíos distintos y con causas distintas: todavía no eligió
+                         ninguna, o la que había elegido se cayó del reporte al cambiar
+                         un filtro. Decir "elija una máquina" en el segundo caso haría
+                         que parezca que no eligió. --}}
+                    <div class="dp-empty">
+                        {{ blank($elegida) ? __('reports.detail_none_selected') : __('reports.detail_machine_gone') }}
+                    </div>
+                @else
+                    <div class="dp-detail-list">
+                        <div class="dp-detail-head">
+                            <span>
+                                {{ $detalle['machine_id_code'] }}
+                                @if($detalle['machine_description'])
+                                    <span class="dp-desc">— {{ $detalle['machine_description'] }}</span>
+                                @endif
+                            </span>
+                            <span class="dp-detail-figures">
+                                <b>{{ __('reports.detail_spend') }}:</b>
+                                ${{ number_format($detalle['parts_total'], 2) }}
+                                &nbsp;·&nbsp; {{ number_format($detalle['labor_hours'], 1) }} h
+                            </span>
+                        </div>
 
-                            <div class="dp-detail-body">
-                                @foreach($block['work_orders'] as $wo)
+                        <div class="dp-detail-body">
+                            @foreach($detalle['work_orders'] as $wo)
                                     <div class="dp-wo">
                                         <div class="dp-wo-title">
                                             {{ $wo['code'] }} — {{ __('wo.'.$wo['type']) }}
                                             · {{ __('wo.'.$wo['status']) }}
+                                        </div>
+                                        {{-- "Descripción del trabajo jalarlo de work orders"
+                                             (clienta, 2026-08-24): es el campo `description`
+                                             de la orden. Ya venía en el reporte y solo lo
+                                             imprimían el PDF y el Excel. --}}
+                                        <div class="dp-wo-meta">
+                                            <b>{{ __('reports.work_description') }}:</b>
+                                            @if(filled($wo['description']))
+                                                {{ $wo['description'] }}
+                                            @else
+                                                <span class="dp-zero">{{ __('reports.no_description') }}</span>
+                                            @endif
                                         </div>
                                         <div class="dp-wo-meta">
                                             <b>{{ __('reports.completed_by') }}:</b>
@@ -315,6 +321,13 @@
                                             @endif
                                         </div>
                                         <div class="dp-wo-meta">
+                                            {{-- El n.º de trabajo de la obra, rotulado aparte
+                                                 y no solo embebido en "JOB-100 — Blount Rd"
+                                                 (clienta, 2026-08-24: "en job sites el id de
+                                                 trabajo"). --}}
+                                            <b>{{ __('reports.job_number') }}:</b>
+                                            {{ $wo['location_job_number'] ?? __('reports.not_recorded') }}
+                                            &nbsp;|&nbsp;
                                             <b>{{ __('reports.location') }}:</b>
                                             {{ $wo['location'] ? $wo['location_label'] : __('reports.not_recorded') }}
                                             &nbsp;|&nbsp;
@@ -393,13 +406,12 @@
                                             <div class="dp-wo-meta dp-zero">{{ __('reports.no_parts') }}</div>
                                         @endif
                                     </div>
-                                @endforeach
-                            </div>
-                        </details>
-                    @endforeach
-                </div>
+                            @endforeach
+                        </div>
+                    </div>
 
-                <p class="dp-note">{{ __('reports.detail_in_files') }}</p>
+                    <p class="dp-note">{{ __('reports.detail_in_files') }}</p>
+                @endif
             @endif
         </div>
     @else

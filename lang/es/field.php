@@ -3,7 +3,7 @@
 return [
     // Login
     'login_title' => 'Iniciar sesión',
-    'login_email' => 'Correo',
+    'login_email' => 'Usuario',
     'login_password' => 'Contraseña',
     'login_submit' => 'Entrar',
     'login_error' => 'Correo o contraseña incorrectos.',

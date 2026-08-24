@@ -67,7 +67,7 @@ class ReportsScreenDetailTest extends TestCase
         ]);
     }
 
-    private function completedWorkOrder(Machine $machine, string $code): WorkOrder
+    private function completedWorkOrder(Machine $machine, string $code, ?string $description = null): WorkOrder
     {
         return WorkOrder::create([
             'code' => $code,
@@ -78,15 +78,16 @@ class ReportsScreenDetailTest extends TestCase
             'opened_at' => '2026-08-10',
             'completed_at' => '2026-08-10',
             'labor_hours' => 2,
+            'description' => $description,
         ]);
     }
 
-    public function test_the_screen_detail_shows_work_orders_parts_and_the_job_number_collapsed_by_machine(): void
+    public function test_the_screen_detail_shows_the_picked_machine_with_its_work_orders_parts_job_number_and_work_description(): void
     {
         $admin = User::where('email', 'admin@dp.local')->firstOrFail();
         $site = $this->location('Blount Rd', 'JOB-555');
         $machine = $this->machine('EX099', $site);
-        $wo = $this->completedWorkOrder($machine, 'WO-SCREEN-001');
+        $wo = $this->completedWorkOrder($machine, 'WO-SCREEN-001', 'Cambio de mangueras del brazo');
 
         WorkOrderPart::create([
             'work_order_id' => $wo->id, 'part_number' => 'FIL-9001',
@@ -98,15 +99,94 @@ class ReportsScreenDetailTest extends TestCase
             ->set('data.quick_period', 'custom')
             ->set('data.from', '2026-08-01')
             ->set('data.to', '2026-08-31')
-            // Antes de este cambio, el código de OT y el repuesto solo
-            // existían en el PDF/Excel: si esto no aparece en pantalla, el
+            ->set('data.detail_machine_id', $machine->id)
+            // Antes de que el detalle existiera en pantalla, el código de OT y
+            // el repuesto solo estaban en el PDF/Excel: si esto no aparece, el
             // detalle no se está renderizando.
             ->assertSee('WO-SCREEN-001')
             ->assertSee('FIL-9001')
-            // Pedido 1 ("everything is job numbers"): la obra en el detalle
-            // en pantalla también lleva su número, número primero.
+            // Pedido 1 ("everything is job numbers"): la obra en el detalle en
+            // pantalla también lleva su número, número primero...
             ->assertSee('JOB-555 — Blount Rd')
+            // ...y desde 2026-08-24 el n.º de trabajo va además rotulado
+            // aparte, que es lo que pidió la clienta ("en job sites el id de
+            // trabajo").
+            ->assertSee(__('reports.job_number'))
+            // "Descripción del trabajo jalarlo de work orders" (clienta,
+            // 2026-08-24): el campo `description` de la OT, que hasta ese día
+            // solo imprimían el PDF y el Excel.
+            ->assertSee('Cambio de mangueras del brazo')
             ->assertSee(__('reports.print'));
+    }
+
+    /**
+     * El detalle es de UNA máquina y hay que elegirla (clienta, 2026-08-24:
+     * "work order detail un select"). Sin elegir no se muestra el detalle de
+     * nadie — antes se desplegaban las 99 máquinas del periodo, una debajo de
+     * la otra.
+     *
+     * El test afirma las dos mitades: sin elección, el aviso y NINGÚN código de
+     * OT; con elección, el de esa máquina y no el de la otra. La segunda mitad
+     * es la que importa: un detalle que igual mostrara todo pasaría la primera
+     * si el aviso se renderizara de más.
+     */
+    public function test_the_detail_shows_only_the_picked_machine_and_asks_for_one_when_none_is_picked(): void
+    {
+        $admin = User::where('email', 'admin@dp.local')->firstOrFail();
+
+        $site = $this->location('Blount Rd', 'JOB-321');
+        $elegida = $this->machine('EX321', $site);
+        $otra = $this->machine('EX322', $site);
+
+        $this->completedWorkOrder($elegida, 'WO-PICKED');
+        $this->completedWorkOrder($otra, 'WO-NOT-PICKED');
+
+        $componente = Livewire::actingAs($admin)
+            ->test(Reports::class)
+            ->set('data.quick_period', 'custom')
+            ->set('data.from', '2026-08-01')
+            ->set('data.to', '2026-08-31');
+
+        // Sin máquina elegida: el aviso, y ninguna OT.
+        $componente
+            ->assertSee(__('reports.detail_none_selected'))
+            ->assertDontSee('WO-PICKED')
+            ->assertDontSee('WO-NOT-PICKED')
+            // El resumen de arriba sigue mostrando TODAS las máquinas: lo que
+            // se elige es el detalle, no el reporte.
+            ->assertSee('EX321')
+            ->assertSee('EX322');
+
+        // Con una elegida: la suya y solo la suya.
+        $componente
+            ->set('data.detail_machine_id', $elegida->id)
+            ->assertSee('WO-PICKED')
+            ->assertDontSee('WO-NOT-PICKED')
+            ->assertDontSee(__('reports.detail_none_selected'));
+    }
+
+    /**
+     * El filtro de máquina es el select que sale de Máquinas, y ya no hay una
+     * caja de texto para escribir el número a mano (clienta, 2026-08-24).
+     *
+     * Se afirma sobre el ESTADO del formulario y no sobre el HTML: la etiqueta
+     * "N.º de máquina" sigue apareciendo en la pantalla como encabezado de la
+     * tabla resumen, así que buscarla en el HTML daría un falso negativo
+     * eterno.
+     */
+    public function test_the_free_text_machine_number_filter_is_gone_from_the_screen(): void
+    {
+        $admin = User::where('email', 'admin@dp.local')->firstOrFail();
+
+        $componente = Livewire::actingAs($admin)->test(Reports::class);
+
+        $campos = array_keys(
+            $componente->instance()->form->getFlatFields(withHidden: true)
+        );
+
+        $this->assertNotContains('id_code', $campos);
+        $this->assertContains('machine_ids', $campos);
+        $this->assertContains('detail_machine_id', $campos);
     }
 
     public function test_the_screen_totals_match_the_costreportbuilder_totals_exactly(): void
@@ -151,21 +231,23 @@ class ReportsScreenDetailTest extends TestCase
     }
 
     /**
-     * QA encontró que `@media print { .dp-detail-body { display: block !important; } }`
-     * NO abre un `<details>` cerrado (el contenido vive en el pseudo-elemento
-     * interno `::details-content`, que ningún `display` en un hijo puede
-     * pisar). El fix real abre/cierra el `<details>` de verdad con JS en
-     * `beforeprint`/`afterprint`.
+     * Este test reemplaza al que cuidaba el script de impresión.
      *
-     * Un test PHPUnit no ejecuta ese JS (no hay motor de navegador acá), pero
-     * sí puede probar lo que SÍ puede fallar en silencio sin que ningún test
-     * lo note: que el script viaje con la página completa (y no se pierda
-     * por ir en `@push('scripts')`, que un layout distinto podría no resolver)
-     * y que el selector que usa (`.dp-detail-list details.dp-detail`)
-     * encuentre de verdad nodos `<details>` en el HTML real — si alguien
-     * renombra la clase de un lado y no del otro, este test cae.
+     * Historia, porque es la razón de que exista: cuando el detalle era un
+     * `<details>` por máquina, imprimir no mostraba nada de lo colapsado.
+     * `@media print { .dp-detail-body { display: block !important; } }` NO abre
+     * un `<details>` cerrado —el contenido vive en el pseudo-elemento interno
+     * `::details-content` y ningún `display` puesto en un hijo lo pisa—, así
+     * que hubo que abrirlos con JS en `beforeprint`/`afterprint`, y un test
+     * cuidaba que ese script viajara con la página.
+     *
+     * Al pasar el detalle a UNA máquina siempre abierta (clienta, 2026-08-24)
+     * el problema desapareció por construcción, y con él el script. Lo que hay
+     * que cuidar ahora es lo contrario: que NO vuelva a aparecer un `<details>`
+     * en el detalle sin que vuelva también el script, porque eso imprimiría
+     * páginas vacías sin que nada falle.
      */
-    public function test_the_print_script_ships_with_the_page_and_its_selector_matches_real_details_nodes(): void
+    public function test_the_detail_prints_what_is_on_screen_because_nothing_is_collapsed(): void
     {
         $admin = User::where('email', 'admin@dp.local')->firstOrFail();
         $site = $this->location('Blount Rd', 'JOB-900');
@@ -174,30 +256,39 @@ class ReportsScreenDetailTest extends TestCase
         WorkOrderPart::create(['work_order_id' => $wo->id, 'quantity' => 1, 'unit_cost' => 15.00]);
 
         // GET real y completo (no Livewire::test(), que solo renderiza el
-        // componente): así el HTML incluye el layout del panel con
-        // @stack('scripts') resuelto, que es lo que realmente le llega al
-        // navegador.
-        $html = $this->actingAs($admin)->get(Reports::getUrl())->getContent();
+        // componente): así el HTML incluye el layout del panel resuelto, que es
+        // lo que realmente le llega al navegador.
+        $html = Livewire::actingAs($admin)
+            ->test(Reports::class)
+            ->set('data.quick_period', 'custom')
+            ->set('data.from', '2026-08-01')
+            ->set('data.to', '2026-08-31')
+            ->set('data.detail_machine_id', $machine->id)
+            ->assertSee('WO-PRINT-CHECK')
+            ->html();
 
-        $this->assertStringContainsString("addEventListener('beforeprint'", $html);
-        $this->assertStringContainsString("addEventListener('afterprint'", $html);
-        $this->assertStringContainsString('.dp-detail-list details.dp-detail', $html);
-
-        // Y el selector no apunta al aire: hay de verdad un <details
-        // class="dp-detail"> dentro de un contenedor .dp-detail-list en ESTE
-        // mismo documento.
         libxml_use_internal_errors(true);
         $dom = new \DOMDocument;
-        $dom->loadHTML($html);
+        $dom->loadHTML('<?xml encoding="utf-8" ?>'.$html);
         libxml_use_internal_errors(false);
 
         $xpath = new \DOMXPath($dom);
-        $nodes = $xpath->query(
-            "//*[contains(concat(' ', normalize-space(@class), ' '), ' dp-detail-list ')]".
-            "//details[contains(concat(' ', normalize-space(@class), ' '), ' dp-detail ')]"
+
+        // Ni un solo <details> dentro del detalle: si alguien reintroduce el
+        // acordeón, este test cae y obliga a decidir qué pasa al imprimir.
+        $colapsables = $xpath->query(
+            "//*[contains(concat(' ', normalize-space(@class), ' '), ' dp-detail-list ')]//details"
         );
 
-        $this->assertGreaterThan(0, $nodes->length);
+        $this->assertSame(0, $colapsables->length);
+
+        // Y el cuerpo del detalle está en el documento, no escondido detrás de
+        // nada que haya que abrir.
+        $cuerpo = $xpath->query(
+            "//*[contains(concat(' ', normalize-space(@class), ' '), ' dp-detail-body ')]"
+        );
+
+        $this->assertGreaterThan(0, $cuerpo->length);
     }
 
     public function test_a_user_without_view_costs_gets_no_cost_detail_on_screen(): void

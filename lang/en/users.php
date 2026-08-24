@@ -10,7 +10,7 @@ return [
 
     // Form fields
     'field_name' => 'Name',
-    'field_email' => 'Email',
+    'field_email' => 'Username',
     'field_password' => 'Password',
     'field_password_confirmation' => 'Confirm password',
     'field_password_hint' => 'Leave blank to keep current',
@@ -21,6 +21,7 @@ return [
     'field_location' => 'Location',
     'field_active' => 'Active',
     'field_roles' => 'Roles',
+    'field_roles_help' => 'What the holder can do is written under each role. More than one can be ticked.',
     'field_created_at' => 'Created',
 
     // Filters

@@ -51,6 +51,15 @@ class Reports extends Page implements HasForms
     /** @var array<string, mixed> */
     public ?array $data = [];
 
+    /**
+     * Reporte ya calculado en este request. Privada a propósito: Livewire solo
+     * serializa las públicas, así que esto no viaja al navegador ni se arrastra
+     * entre requests con filtros distintos.
+     *
+     * @var array<string, mixed>|null
+     */
+    private ?array $cachedReport = null;
+
     public static function getNavigationGroup(): ?string
     {
         return __('fleet.group_management');
@@ -143,13 +152,24 @@ class Reports extends Page implements HasForms
                     ->collapsible()
                     ->visible(fn (Forms\Get $get) => $get('report') === 'costs')
                     ->schema([
-                        Forms\Components\TextInput::make('id_code')
-                            ->label(__('fleet.machine_number'))
-                            ->placeholder(__('fleet.machine_number_placeholder'))
-                            ->helperText(__('reports.id_code_help'))
-                            ->live(onBlur: true),
+                        /*
+                         * Antes había DOS filtros de máquina: éste, que sale de
+                         * las máquinas cargadas, y una caja de texto "N.º de
+                         * máquina" donde había que escribir el código a mano.
+                         * La clienta pidió quedarse con uno solo y que sea el
+                         * que viene de Máquinas (2026-08-24): escribir el
+                         * número a mano es la única forma de filtrar por una
+                         * máquina que no existe y llevarse un reporte vacío sin
+                         * entender por qué.
+                         *
+                         * `CostReportFilters::idCode` sigue existiendo y la
+                         * consulta lo sigue soportando —lo usan los tests del
+                         * builder y cualquier URL de exportación ya emitida—.
+                         * Lo que se fue es el campo de la pantalla.
+                         */
                         Forms\Components\Select::make('machine_ids')
                             ->label(__('reports.machines'))
+                            ->helperText(__('reports.machines_help'))
                             ->multiple()->searchable()->preload()->live()
                             ->options(fn () => Machine::query()->orderBy('id_code')
                                 ->pluck('id_code', 'id')->all()),
@@ -186,7 +206,80 @@ class Reports extends Page implements HasForms
                                 'cancelled' => __('wo.cancelled'),
                             ])->columns(3)->live(),
                     ]),
+
+                /*
+                 * Detalle: se elige UNA máquina y se ve la suya (clienta,
+                 * 2026-08-24: "work order detail un select").
+                 *
+                 * Antes la pantalla desplegaba el acordeón de las 99 máquinas
+                 * del periodo, una debajo de la otra: para leer el detalle de
+                 * una había que buscarla scrolleando. Las opciones salen del
+                 * reporte YA calculado (no de la tabla de máquinas), así que
+                 * solo lista las que tienen movimiento en el periodo filtrado.
+                 */
+                Forms\Components\Section::make(__('reports.detail'))
+                    ->description(__('reports.detail_help'))
+                    ->visible(fn (Forms\Get $get) => $get('report') === 'costs')
+                    ->schema([
+                        Forms\Components\Select::make('detail_machine_id')
+                            ->label(__('reports.detail_machine'))
+                            ->placeholder(__('reports.detail_pick_machine'))
+                            ->options(fn () => $this->detailMachineOptions())
+                            ->searchable()
+                            ->live(),
+                    ]),
             ]);
+    }
+
+    /**
+     * Máquinas que se pueden elegir en el detalle: las que aparecen en el
+     * reporte con los filtros puestos, rotuladas "EX010 — descripción".
+     *
+     * @return array<int, string>
+     */
+    public function detailMachineOptions(): array
+    {
+        if ($this->selectedReport() !== 'costs') {
+            return [];
+        }
+
+        $options = [];
+
+        foreach ($this->reportData()['machines'] ?? [] as $block) {
+            if ($block['machine_id'] === null) {
+                continue;
+            }
+
+            $options[$block['machine_id']] = filled($block['machine_description'])
+                ? $block['machine_id_code'].' — '.$block['machine_description']
+                : $block['machine_id_code'];
+        }
+
+        return $options;
+    }
+
+    /**
+     * El bloque del reporte de la máquina elegida en el detalle, o null si no
+     * hay ninguna elegida (o si la elegida quedó fuera al cambiar un filtro:
+     * el id sigue en el estado del formulario pero ya no está en el reporte).
+     *
+     * @return array<string, mixed>|null
+     */
+    public function detailMachineBlock(): ?array
+    {
+        $selected = $this->data['detail_machine_id'] ?? null;
+
+        if (blank($selected)) {
+            return null;
+        }
+
+        foreach ($this->reportData()['machines'] ?? [] as $block) {
+            if ((string) $block['machine_id'] === (string) $selected) {
+                return $block;
+            }
+        }
+
+        return null;
     }
 
     /**
@@ -231,11 +324,16 @@ class Reports extends Page implements HasForms
      */
     public function reportData(): array
     {
-        if ($this->selectedReport() === 'category_inventory') {
-            return CategoryInventoryReportBuilder::build();
-        }
-
-        return CostReportBuilder::build($this->filters());
+        /*
+         * Memorizado POR REQUEST (la propiedad es privada, así que Livewire no
+         * la serializa y cada request arranca en null). Sin esto, el mismo
+         * reporte se calculaba hasta tres veces en un solo render —las opciones
+         * del select del detalle, el bloque del detalle y la vista— con la
+         * consulta completa de órdenes de trabajo del periodo cada vez.
+         */
+        return $this->cachedReport ??= $this->selectedReport() === 'category_inventory'
+            ? CategoryInventoryReportBuilder::build()
+            : CostReportBuilder::build($this->filters());
     }
 
     protected function getHeaderActions(): array

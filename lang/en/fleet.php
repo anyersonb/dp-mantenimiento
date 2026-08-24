@@ -27,7 +27,7 @@ return [
     'location' => 'Location',
     'description' => 'Description',
     'status' => 'Status',
-    'hourmeter_status' => 'Hourmeter',
+    'hourmeter_status' => 'Hour meter',
     'hours_adjustment' => 'Hours adjustment',
     'current_hours' => 'Current hours',
     'current_hours_date' => 'Reading date',
@@ -69,12 +69,12 @@ return [
     'due_soon' => 'Due soon (<= 100 h)',
 
     // Hourmeter replacement (its own event, not just another reading)
-    'replace_hourmeter' => 'Log hourmeter replacement',
-    'replace_hourmeter_old_hours' => 'Last reading of the old hourmeter',
-    'replace_hourmeter_new_hours' => 'Initial reading of the new hourmeter',
+    'replace_hourmeter' => 'Log hour meter replacement',
+    'replace_hourmeter_old_hours' => 'Last reading of the old hour meter',
+    'replace_hourmeter_new_hours' => 'Initial reading of the new hour meter',
     'replace_hourmeter_note' => 'Note (optional)',
-    'replace_hourmeter_confirm' => 'This marks the hourmeter as replaced, re-anchors service tracking to the new scale, and gets logged in the audit trail. Confirm?',
-    'replace_hourmeter_success' => 'Hourmeter replacement logged.',
+    'replace_hourmeter_confirm' => 'This marks the hour meter as replaced, re-anchors service tracking to the new scale, and gets logged in the audit trail. Confirm?',
+    'replace_hourmeter_success' => 'Hour meter replacement logged.',
 
     // Parts
     'parts_catalog' => 'Parts catalog',
@@ -85,11 +85,11 @@ return [
     'detail' => 'Detail',
 
     // Readings
-    'horometer_history' => 'Hourmeter history',
+    'horometer_history' => 'Hour meter history',
     // Etiquetas del modelo del relation manager de lecturas: sin ellas Filament
     // escribe "horometer reading" (derivado de la clase) en los modales.
-    'reading_singular' => 'Hourmeter reading',
-    'reading_plural' => 'Hourmeter readings',
+    'reading_singular' => 'Hour meter reading',
+    'reading_plural' => 'Hour meter readings',
     'hours' => 'Hours',
     'read_at' => 'Date',
     'source' => 'Source',
@@ -105,7 +105,7 @@ return [
     'discard_reason' => 'Reason for discarding',
     'discarded_ok' => 'Machine discarded. Its history was kept.',
     'delete_heading' => 'Delete machine :machine',
-    'delete_warning' => 'WARNING: this is NOT a retirement. Deleting :machine also removes, in cascade: :work_orders work order(s) with their costs, :readings hourmeter reading(s), :alerts alert(s) and :parts catalogue part(s). To retire a machine use the Inactive status, or the Discard action if it is under review.',
+    'delete_warning' => 'WARNING: this is NOT a retirement. Deleting :machine also removes, in cascade: :work_orders work order(s) with their costs, :readings hour meter reading(s), :alerts alert(s) and :parts catalogue part(s). To retire a machine use the Inactive status, or the Discard action if it is under review.',
     'delete_confirm_button' => 'Yes, delete and lose the history',
 
     'imported_reading_note' => 'Reading imported from the PM Service Report',

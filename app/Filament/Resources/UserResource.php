@@ -5,6 +5,7 @@ namespace App\Filament\Resources;
 use App\Filament\Resources\UserResource\Pages;
 use App\Models\Location;
 use App\Models\User;
+use App\Support\RoleCatalog;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
@@ -144,13 +145,33 @@ class UserResource extends Resource
                     Forms\Components\Toggle::make('active')
                         ->label(__('users.field_active'))
                         ->default(true),
-                    Forms\Components\Select::make('roles')
+                    /*
+                     * Roles del usuario. Dos pedidos de la clienta (2026-08-24)
+                     * caen justo acá, y por eso esto dejó de ser un Select:
+                     *
+                     *  - "el rol al crear el usuario sale como id y no como
+                     *    nombre": el Select múltiple resuelve las etiquetas en
+                     *    el NAVEGADOR (Choices.js las busca por valor dentro de
+                     *    una lista JSON), así que cuando esa búsqueda no casa
+                     *    queda a la vista el valor crudo, que es el id. Un
+                     *    CheckboxList arma cada etiqueta EN EL SERVIDOR: no hay
+                     *    búsqueda que pueda fallar y el id no se muestra nunca.
+                     *  - "en roles describir qué hace cada uno a la hora de
+                     *    seleccionar cada uno": ->descriptions() cuelga el texto
+                     *    debajo de cada opción. Un Select no tiene dónde ponerlo.
+                     *
+                     * El estado sigue siendo el mismo (arreglo de ids sobre la
+                     * relación `roles`), así que lo que ya guardaba, guarda.
+                     */
+                    Forms\Components\CheckboxList::make('roles')
                         ->label(__('users.field_roles'))
-                        ->multiple()
+                        ->helperText(__('users.field_roles_help'))
                         ->relationship('roles', 'name')
-                        ->preload()
+                        ->getOptionLabelFromRecordUsing(fn (Role $record) => RoleCatalog::label($record->name))
+                        ->descriptions(fn () => RoleCatalog::roleDescriptionsById())
+                        ->bulkToggleable()
+                        ->columns(2)
                         ->required()
-                        ->getOptionLabelFromRecordUsing(fn (Role $record) => __('users.role_'.$record->name))
                         ->columnSpanFull(),
                 ]),
         ]);
@@ -172,7 +193,12 @@ class UserResource extends Resource
                 Tables\Columns\TextColumn::make('roles.name')
                     ->label(__('users.field_roles'))
                     ->badge()
-                    ->formatStateUsing(fn ($state) => $state ? __('users.role_'.$state) : $state),
+                    // RoleCatalog y no __('users.role_'.$state) a secas: los
+                    // roles que la clienta cree desde el panel no tienen
+                    // traducción, y __() de una clave inexistente devuelve la
+                    // clave —"users.role_mecanico" en pantalla—. El catálogo cae
+                    // al nombre del rol.
+                    ->formatStateUsing(fn ($state) => $state ? RoleCatalog::label((string) $state) : $state),
                 Tables\Columns\TextColumn::make('location.name')
                     ->label(__('users.field_location'))
                     ->badge()
@@ -197,7 +223,7 @@ class UserResource extends Resource
                 Tables\Filters\SelectFilter::make('roles')
                     ->label(__('users.filter_role'))
                     ->relationship('roles', 'name')
-                    ->getOptionLabelFromRecordUsing(fn (Role $record) => __('users.role_'.$record->name))
+                    ->getOptionLabelFromRecordUsing(fn (Role $record) => RoleCatalog::label($record->name))
                     ->preload(),
                 Tables\Filters\TernaryFilter::make('active')
                     ->label(__('users.filter_active')),
