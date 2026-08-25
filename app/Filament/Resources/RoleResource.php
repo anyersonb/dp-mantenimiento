@@ -14,6 +14,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Lang;
+use Illuminate\Support\Facades\Schema;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
 
@@ -109,6 +110,29 @@ class RoleResource extends Resource
     }
 
     /**
+     * ¿Existe ya la columna `roles.description` en esta base?
+     *
+     * Se consulta una vez por request porque `Schema::hasColumn` pega contra el
+     * information_schema y el formulario la preguntaría en cada closure.
+     *
+     * `once()` y no un `static $x` propio: el static se queda pegado para TODO
+     * el proceso, y en la suite eso significa que la primera respuesta gobierna
+     * los 341 tests siguientes. `once()` lo flushea el propio ciclo de vida del
+     * TestCase (InteractsWithTestCaseLifecycle::flushOnce), así que un test que
+     * borre la columna ve la realidad y no una respuesta cacheada.
+     *
+     * Vive contra el esquema y no en un config para que la respuesta sea la
+     * REAL: en este hosting los archivos suben por FTP y la migración corre
+     * después, a mano, así que hay una ventana en la que el código nuevo
+     * convive con el esquema viejo. Una bandera de configuración habría que
+     * acordarse de darla vuelta; el esquema no miente.
+     */
+    public static function descriptionColumnExists(): bool
+    {
+        return once(fn () => Schema::hasColumn('roles', 'description'));
+    }
+
+    /**
      * Por qué este rol no se puede borrar, en el idioma del usuario, o null si
      * sí se puede. Una sola función para que el listado, el borrado en lote y
      * el modal de "por qué no" no puedan contestar cosas distintas.
@@ -154,13 +178,22 @@ class RoleResource extends Resource
                      * para salir en el idioma de quien mira, y dejar que
                      * alguien los pise a mano en un solo idioma sería perder
                      * eso sin ganar nada. Los roles nuevos sí escriben la suya.
+                     *
+                     * El chequeo contra el esquema NO es paranoia: este hosting
+                     * no tiene SSH ni despliegue atómico, así que los archivos
+                     * SIEMPRE llegan antes que la migración. En esa ventana, un
+                     * formulario que escribe `description` es un 500 al guardar
+                     * ("Unknown column"). Con el chequeo, el campo todavía no
+                     * está y aparece solo cuando la columna existe.
                      */
                     Forms\Components\Textarea::make('description')
                         ->label(__('roles.field_description'))
                         ->rows(2)
                         ->maxLength(1000)
+                        ->visible(fn () => static::descriptionColumnExists())
                         ->disabled(fn (?Role $record) => $record !== null && Lang::has('roles.role_desc_'.$record->name))
-                        ->dehydrated(fn (?Role $record) => ! ($record !== null && Lang::has('roles.role_desc_'.$record->name)))
+                        ->dehydrated(fn (?Role $record) => static::descriptionColumnExists()
+                            && ! ($record !== null && Lang::has('roles.role_desc_'.$record->name)))
                         ->helperText(fn (?Role $record) => ($record !== null && Lang::has('roles.role_desc_'.$record->name))
                             ? __('roles.field_description_locked_hint').' — '.RoleCatalog::describe($record)
                             : __('roles.field_description_help')),

@@ -152,6 +152,43 @@ class RolesAndPermissionsScreenTest extends TestCase
             ->assertSee('Taller tercerizado');
     }
 
+    /**
+     * El formulario no escribe `roles.description` si la columna todavía no
+     * existe.
+     *
+     * No es un caso teórico: este hosting no tiene despliegue atómico, los
+     * archivos suben por FTP y la migración corre después a mano, así que
+     * SIEMPRE hay una ventana con el código nuevo y el esquema viejo. Sin el
+     * chequeo, en esa ventana crear un rol es un 500 ("Unknown column").
+     *
+     * El test tira la columna de verdad y crea un rol por el formulario.
+     */
+    public function test_the_role_form_survives_the_window_where_the_migration_has_not_run_yet(): void
+    {
+        \Illuminate\Support\Facades\Schema::table('roles', function ($tabla) {
+            $tabla->dropColumn('description');
+        });
+
+        // Antes de nada: que el propio chequeo vea la realidad. Si esto diera
+        // true, el resto del test pasaría por el camino equivocado y no
+        // probaría nada.
+        $this->assertFalse(RoleResource::descriptionColumnExists());
+
+        Livewire::actingAs($this->admin())
+            ->test(RoleResource\Pages\CreateRole::class)
+            ->assertFormFieldIsHidden('description')
+            ->fillForm([
+                'name' => 'rol_sin_columna',
+                'permissions' => [
+                    \Spatie\Permission\Models\Permission::where('name', 'view_fleet')->firstOrFail()->id,
+                ],
+            ])
+            ->call('create')
+            ->assertHasNoFormErrors();
+
+        $this->assertDatabaseHas('roles', ['name' => 'rol_sin_columna']);
+    }
+
     public function test_a_role_with_users_assigned_cannot_be_deleted_and_one_without_users_can(): void
     {
         $permisoBase = \Spatie\Permission\Models\Permission::where('name', 'view_fleet')->firstOrFail();
