@@ -5,9 +5,12 @@ namespace App\Filament\Resources;
 use App\Filament\Resources\UserResource\Pages;
 use App\Models\Location;
 use App\Models\User;
+use App\Support\LocalizedText;
+use App\Support\ReadablePassword;
 use App\Support\RoleCatalog;
 use Filament\Forms;
 use Filament\Forms\Form;
+use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
@@ -230,6 +233,73 @@ class UserResource extends Resource
             ])
             ->actions([
                 Tables\Actions\EditAction::make(),
+                /*
+                 * "El administrador podrá ver las claves de cada usuario para
+                 * que si se les olvida podamos darles de nuevo"
+                 * (comentario de la clienta, 2026-08-24).
+                 *
+                 * VER la clave que el usuario tiene puesta es imposible: se
+                 * guarda con bcrypt y un hash no se deshace. Ni el
+                 * administrador, ni el hosting, ni nosotros podemos leerla —
+                 * eso no es una limitación del panel, es cómo funciona el
+                 * campo. Lo que sí resuelve el problema de fondo ("se le
+                 * olvidó, dásela de nuevo") es esto: el administrador genera
+                 * una clave nueva en el momento, la ve en pantalla y se la
+                 * dicta. La anterior deja de servir.
+                 *
+                 * La clave nueva se muestra UNA vez, en una notificación que
+                 * no se cierra sola: si el administrador la pierde, vuelve a
+                 * apretar el botón y genera otra.
+                 */
+                Tables\Actions\Action::make('generate_password')
+                    ->label(__('users.generate_password'))
+                    ->icon('heroicon-o-key')
+                    ->iconButton()
+                    ->tooltip(__('users.generate_password'))
+                    ->color('warning')
+                    ->visible(fn () => Auth::user()?->can('manage_users') ?? false)
+                    /*
+                     * Sobre uno mismo NO. Este panel corre con
+                     * AuthenticateSession (ver AdminPanelProvider): cambiarse
+                     * la propia contraseña cierra la sesión en la petición
+                     * siguiente, y como la notificación viaja EN la sesión, se
+                     * va con ella. O sea: el administrador se genera una clave,
+                     * lo patean al login y nunca llega a ver cuál era. Queda
+                     * afuera del sistema, sin vuelta.
+                     *
+                     * Su propia clave la cambia por el formulario de edición,
+                     * que es donde la elige él y por lo tanto ya la sabe.
+                     */
+                    ->hidden(fn (User $record) => $record->id === Auth::id())
+                    ->authorize(fn () => Auth::user()?->can('manage_users') ?? false)
+                    ->requiresConfirmation()
+                    ->modalIcon('heroicon-o-key')
+                    ->modalHeading(fn (User $record) => __('users.generate_password_heading', ['name' => $record->name]))
+                    ->modalDescription(__('users.generate_password_confirm'))
+                    ->modalSubmitActionLabel(__('users.generate_password_submit'))
+                    ->action(function (User $record) {
+                        $nueva = ReadablePassword::make();
+
+                        // forceFill y no update(): `password` no está en
+                        // $fillable de por sí en este flujo y el cast 'hashed'
+                        // del modelo es el que hashea al guardar. Acá se guarda
+                        // el hash; el texto plano solo vive en esta variable y
+                        // en la pantalla del administrador.
+                        $record->forceFill(['password' => $nueva])->save();
+
+                        activity()
+                            ->performedOn($record)
+                            ->causedBy(Auth::user())
+                            ->event('password_generated')
+                            ->log(LocalizedText::of('mgmt.user_password_generated_log', ['user' => $record->name])->encode());
+
+                        Notification::make()
+                            ->success()
+                            ->persistent()
+                            ->title(__('users.generate_password_done', ['name' => $record->name]))
+                            ->body(__('users.generate_password_body', ['password' => $nueva]))
+                            ->send();
+                    }),
                 Tables\Actions\DeleteAction::make()
                     ->hidden(fn (User $record) => $record->id === Auth::id()),
             ])

@@ -97,6 +97,11 @@ return [
     'machine_approved_log' => 'Datos verificados y aprobados',
     'machine_discarded_log' => 'Maquina :machine descartada: queda inactiva y fuera de revision',
 
+    // Un administrador le dio una clave nueva a alguien. La clave NO se guarda
+    // en la bitácora: queda el hecho y quién lo hizo, no el secreto.
+    'event_password_generated' => 'Clave regenerada',
+    'user_password_generated_log' => 'Se generó una clave nueva para :user',
+
     'import_duplicate_row' => ':machine aparece más de una vez en el reporte: se toma la lectura de :kept_hours h del :kept_date y se descarta la de :dropped_hours h del :dropped_date. Revisá el archivo con el cliente.',
     'import_incoherent_reading' => ':machine: la lectura de :hours h del :date contradice el historial (:reason). La lectura NO se cargó; el resto de la fila sí.',
     'import_stale_reading' => ':machine: el reporte trae :report_hours h del :report_date, más viejo que las :kept_hours h que ya tenía la máquina. Se conservan las :kept_hours h y las restantes se recalculan desde el ancla del reporte.',

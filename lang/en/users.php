@@ -13,7 +13,7 @@ return [
     'field_email' => 'Username',
     'field_password' => 'Password',
     'field_password_confirmation' => 'Confirm password',
-    'field_password_hint' => 'Leave blank to keep current',
+    'field_password_hint' => 'Leave blank to keep current. The current password cannot be shown: the system stores it encrypted and there is no way to read it back. If someone forgot theirs, use "Generate password" in the list.',
     'field_phone' => 'Phone',
     'field_locale' => 'Language',
     'locale_es' => 'Spanish',
@@ -27,6 +27,18 @@ return [
     // Filters
     'filter_role' => 'Role',
     'filter_active' => 'Active',
+
+    /*
+     * Generate password. See the long comment in UserResource: the password in
+     * use cannot be read back (bcrypt), so what is offered is handing out a new
+     * one. The wording talks to the administrator in those terms, no jargon.
+     */
+    'generate_password' => 'Generate password',
+    'generate_password_heading' => 'Generate a new password for :name',
+    'generate_password_confirm' => 'The password this person is using cannot be shown: the system stores it encrypted and nobody, not even the administrator, can read it back. What you can do is hand them a new one right now. Once you continue, the old password stops working and the new one appears on screen so you can pass it on.',
+    'generate_password_submit' => 'Generate and show the password',
+    'generate_password_done' => 'New password for :name',
+    'generate_password_body' => 'The new password is: :password — write it down or pass it on now, because this notice will not show it again. If it gets lost, generate another one.',
 
     // Friendly role labels (Spatie)
     'role_administrador' => 'Administrator',

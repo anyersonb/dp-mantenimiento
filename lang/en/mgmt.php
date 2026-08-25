@@ -97,6 +97,11 @@ return [
     'machine_approved_log' => 'Data verified and approved',
     'machine_discarded_log' => 'Machine :machine discarded: set to inactive and removed from review',
 
+    // An administrator handed someone a new password. The password itself is
+    // NOT written to the log: what is kept is the fact and who did it.
+    'event_password_generated' => 'Password regenerated',
+    'user_password_generated_log' => 'A new password was generated for :user',
+
     'import_duplicate_row' => ':machine appears more than once in the report: the :kept_hours h reading of :kept_date is used and the :dropped_hours h reading of :dropped_date is dropped. Review the file with the client.',
     'import_incoherent_reading' => ':machine: the :hours h reading of :date contradicts the history (:reason). The reading was NOT loaded; the rest of the row was.',
     'import_stale_reading' => ':machine: the report brings :report_hours h from :report_date, older than the :kept_hours h the machine already had. The :kept_hours h are kept and remaining hours are recomputed from the report anchor.',

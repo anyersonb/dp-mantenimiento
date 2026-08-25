@@ -13,7 +13,7 @@ return [
     'field_email' => 'Usuario',
     'field_password' => 'Contraseña',
     'field_password_confirmation' => 'Confirmar contraseña',
-    'field_password_hint' => 'Dejar en blanco para no cambiarla',
+    'field_password_hint' => 'Dejar en blanco para no cambiarla. La clave actual no se puede ver: el sistema la guarda cifrada y no hay forma de recuperarla. Si alguien la olvidó, usá "Generar clave" en el listado.',
     'field_phone' => 'Teléfono',
     'field_locale' => 'Idioma',
     'locale_es' => 'Español',
@@ -27,6 +27,18 @@ return [
     // Filtros
     'filter_role' => 'Rol',
     'filter_active' => 'Activo',
+
+    /*
+     * Generar clave. Ver el comentario largo en UserResource: la clave puesta
+     * no se puede leer (bcrypt), así que lo que se ofrece es darle una nueva.
+     * El texto le habla al administrador en esos términos, sin tecnicismos.
+     */
+    'generate_password' => 'Generar clave',
+    'generate_password_heading' => 'Generar una clave nueva para :name',
+    'generate_password_confirm' => 'La clave que esta persona tiene puesta no se puede leer: el sistema la guarda cifrada y nadie, ni el administrador, puede recuperarla. Lo que sí se puede es darle una nueva ahora mismo. Al continuar, la clave anterior deja de funcionar y la nueva aparece en pantalla para dictársela.',
+    'generate_password_submit' => 'Generar y mostrar la clave',
+    'generate_password_done' => 'Clave nueva de :name',
+    'generate_password_body' => 'La clave nueva es: :password — anotala o pasásela ahora, porque este aviso no vuelve a mostrarla. Si se pierde, generá otra.',
 
     // Etiquetas amigables de roles (Spatie)
     'role_administrador' => 'Administrador',
