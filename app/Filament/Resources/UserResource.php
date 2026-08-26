@@ -5,6 +5,7 @@ namespace App\Filament\Resources;
 use App\Filament\Resources\UserResource\Pages;
 use App\Models\Location;
 use App\Models\User;
+use App\Support\AdministrationGuard;
 use App\Support\LocalizedText;
 use App\Support\ReadablePassword;
 use App\Support\RoleCatalog;
@@ -147,7 +148,21 @@ class UserResource extends Resource
                         ->nullable(),
                     Forms\Components\Toggle::make('active')
                         ->label(__('users.field_active'))
-                        ->default(true),
+                        ->default(true)
+                        // Desactivar una cuenta es la tercera puerta al mismo
+                        // desenlace que borrar un rol: si se apaga al ultimo
+                        // que puede administrar, el panel queda cerrado para
+                        // todos. La auditoria del 2026-08-26 lo uso como paso
+                        // previo para apagar la red del borrado de roles.
+                        ->rule(fn (?User $record) => function (string $attribute, $value, \Closure $fail) use ($record) {
+                            if ($record === null || $value) {
+                                return;
+                            }
+
+                            if (AdministrationGuard::deactivatingWouldStrand($record)) {
+                                $fail(__('users.deactivate_blocked_last_admin'));
+                            }
+                        }),
                     /*
                      * Roles del usuario. Dos pedidos de la clienta (2026-08-24)
                      * caen justo acá, y por eso esto dejó de ser un Select:
@@ -175,6 +190,17 @@ class UserResource extends Resource
                         ->bulkToggleable()
                         ->columns(2)
                         ->required()
+                        // Cuarta puerta: quitarle a la unica cuenta que
+                        // administra el ultimo rol que se lo permitia.
+                        ->rule(fn (?User $record) => function (string $attribute, $value, \Closure $fail) use ($record) {
+                            if ($record === null) {
+                                return;
+                            }
+
+                            if (AdministrationGuard::changingRolesWouldStrand($record, (array) $value)) {
+                                $fail(__('users.roles_blocked_last_admin'));
+                            }
+                        })
                         ->columnSpanFull(),
                 ]),
         ]);

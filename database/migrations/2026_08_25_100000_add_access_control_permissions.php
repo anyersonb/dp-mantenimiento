@@ -2,6 +2,7 @@
 
 use App\Support\AccessControl;
 use Illuminate\Database\Migrations\Migration;
+use Illuminate\Support\Facades\DB;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\PermissionRegistrar;
@@ -28,18 +29,25 @@ return new class extends Migration
 {
     public function up(): void
     {
-        foreach (AccessControl::LEGACY_ROLE_FALLBACK as $permission => $roleNames) {
-            Permission::firstOrCreate(['name' => $permission, 'guard_name' => 'web']);
+        // La transaccion NO es ceremonia. Desde que la red legado exige que
+        // falten LOS CINCO permisos para activarse, un estado a medias --el
+        // permiso creado pero todavia sin repartir-- seria lo peor de los dos
+        // mundos: la red apagada y nadie con el permiso, o sea el panel
+        // cerrado para todos. Son puros INSERT: la transaccion los cubre.
+        DB::transaction(function () {
+            foreach (AccessControl::LEGACY_ROLE_FALLBACK as $permission => $roleNames) {
+                Permission::firstOrCreate(['name' => $permission, 'guard_name' => 'web']);
 
-            foreach ($roleNames as $roleName) {
-                $role = Role::where('name', $roleName)->first();
+                foreach ($roleNames as $roleName) {
+                    $role = Role::where('name', $roleName)->first();
 
-                // Si el rol no está (base recién creada, o alguien ya lo
-                // borró) no se inventa: la matriz la reconverge después
-                // RolePermissionBaselineSeeder, que para eso existe.
-                $role?->givePermissionTo($permission);
+                    // Si el rol no está (base recién creada, o alguien ya lo
+                    // borró) no se inventa: la matriz la reconverge después
+                    // RolePermissionBaselineSeeder, que para eso existe.
+                    $role?->givePermissionTo($permission);
+                }
             }
-        }
+        });
 
         app(PermissionRegistrar::class)->forgetCachedPermissions();
     }

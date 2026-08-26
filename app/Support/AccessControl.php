@@ -67,6 +67,25 @@ class AccessControl
     ];
 
     /**
+     * Todos los nombres de rol que la red legado sigue reconociendo.
+     *
+     * Los usa RoleResource para prohibir que se CREE un rol con uno de esos
+     * nombres. Hallazgo 6 de la auditoria del 2026-08-26: el candado del
+     * formulario solo impedia RENOMBRAR los siete del sistema, asi que
+     * borrando `administrador` el nombre quedaba libre, y un rol nuevo con
+     * ese nombre y CERO permisos volvia a conceder access_panel por la red
+     * en cuanto el permiso no estuviera --la ventana de despliegue que este
+     * proyecto tiene en cada pase--. Una puerta trasera que se arma hoy y se
+     * abre en el proximo deploy.
+     *
+     * @return array<int, string>
+     */
+    public static function legacyRoleNames(): array
+    {
+        return array_values(array_unique(array_merge(...array_values(self::LEGACY_ROLE_FALLBACK))));
+    }
+
+    /**
      * ¿Ya existe este permiso en la base?
      *
      * Se pregunta al registrar de Spatie y no con un `Permission::where()`
@@ -88,6 +107,37 @@ class AccessControl
     }
 
     /**
+     * ¿La red legado esta activa?
+     *
+     * Solo cuando NO existe NINGUNO de los cinco permisos, que es la firma
+     * exacta de la unica situacion para la que la red existe: los archivos
+     * ya subieron por FTP y la migracion todavia no corrio.
+     *
+     * La primera version preguntaba permiso por permiso, y eso abria una
+     * puerta trasera (hallazgo 6 de la auditoria del 2026-08-26): con que
+     * faltara UN permiso, el nombre de rol volvia a valer por si solo, asi
+     * que un rol vacio llamado `administrador` --creado despues de borrar el
+     * original, que ahora se puede borrar-- concedia acceso. Exigiendo que
+     * falten los cinco, ningun estado de datos alcanzable desde el panel
+     * puede reactivar la resolucion por nombre: los permisos no se pueden
+     * borrar desde ninguna pantalla (no hay recurso de permisos, y el
+     * CheckboxList de roles solo sincroniza el pivote).
+     *
+     * En un estado a medias --algunos si, otros no-- se resuelve por permiso
+     * y el que falte deniega. Fail-closed.
+     */
+    public static function legacyFallbackIsActive(): bool
+    {
+        foreach (array_keys(self::LEGACY_ROLE_FALLBACK) as $permission) {
+            if (self::permissionExists($permission)) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /**
      * ¿Este usuario puede hacer esto?
      *
      * Es el único punto por el que deberían pasar los cinco permisos de
@@ -102,6 +152,10 @@ class AccessControl
 
         if (self::permissionExists($permission)) {
             return $user->can($permission);
+        }
+
+        if (! self::legacyFallbackIsActive()) {
+            return false;
         }
 
         /** @var User $user */
@@ -123,6 +177,10 @@ class AccessControl
     {
         if (self::permissionExists($permission)) {
             return $roles->contains(fn (Role $role) => $role->checkPermissionTo($permission));
+        }
+
+        if (! self::legacyFallbackIsActive()) {
+            return false;
         }
 
         return $roles->contains(
@@ -151,7 +209,9 @@ class AccessControl
             return User::permission($permission)->where('active', true)->get();
         }
 
-        $legacyRoles = self::LEGACY_ROLE_FALLBACK[$permission] ?? [];
+        $legacyRoles = self::legacyFallbackIsActive()
+            ? (self::LEGACY_ROLE_FALLBACK[$permission] ?? [])
+            : [];
 
         // Sin red que aplicar no se devuelve "todos": se devuelve nadie. Un
         // digest que no sale se nota y se arregla; uno que sale a la lista

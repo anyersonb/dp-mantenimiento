@@ -20,6 +20,8 @@ return [
     'locale_en' => 'Inglés',
     'field_location' => 'Ubicación',
     'field_active' => 'Activo',
+    'deactivate_blocked_last_admin' => 'No se puede desactivar esta cuenta: es la ultima que puede entrar al panel y gestionar usuarios. Deje primero a otra persona con esos permisos.',
+    'roles_blocked_last_admin' => 'Con esos roles esta cuenta deja de poder administrar, y es la ultima que podia. Deje primero a otra persona con permiso para entrar al panel y gestionar usuarios.',
     'field_roles' => 'Roles',
     'field_roles_help' => 'Debajo de cada rol está lo que puede hacer quien lo tenga. Se puede marcar más de uno.',
     'field_created_at' => 'Creado',

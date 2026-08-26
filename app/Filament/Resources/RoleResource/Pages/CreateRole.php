@@ -14,6 +14,6 @@ class CreateRole extends CreateRecord
         // Salvaguarda defensiva: no debería aplicar en alta (no se puede crear
         // un rol llamado "administrador" porque el nombre ya existe y es
         // único), pero se deja por consistencia con EditRole.
-        RoleResource::enforceAdminSafeguard($this->record);
+        RoleResource::enforceAdministrationIsReachable($this->record);
     }
 }

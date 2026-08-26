@@ -20,6 +20,8 @@ return [
     'locale_en' => 'English',
     'field_location' => 'Location',
     'field_active' => 'Active',
+    'deactivate_blocked_last_admin' => 'This account cannot be deactivated: it is the last one that can enter the panel and manage users. Leave someone else with those permissions first.',
+    'roles_blocked_last_admin' => 'With those roles this account can no longer administer, and it was the last one that could. Leave someone else able to enter the panel and manage users first.',
     'field_roles' => 'Roles',
     'field_roles_help' => 'What the holder can do is written under each role. More than one can be ticked.',
     'field_created_at' => 'Created',

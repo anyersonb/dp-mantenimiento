@@ -375,9 +375,14 @@ class RolesAndPermissionsScreenTest extends TestCase
      */
     public function test_the_panel_still_opens_while_the_migration_has_not_run_yet(): void
     {
-        Permission::where('name', 'access_panel')->delete();
+        // Se borran LOS CINCO, que es como se ve la ventana de verdad: la
+        // migracion no corrio, asi que no existe ninguno. Borrar solo uno no
+        // alcanza para encender la red, y es a proposito (ver
+        // AccessControl::legacyFallbackIsActive).
+        Permission::whereIn('name', array_keys(AccessControl::LEGACY_ROLE_FALLBACK))->delete();
         app(PermissionRegistrar::class)->forgetCachedPermissions();
 
+        $this->assertTrue(AccessControl::legacyFallbackIsActive());
         $this->assertFalse(AccessControl::permissionExists('access_panel'));
 
         $tecnico = User::where('email', 'taller@dp.local')->firstOrFail();

@@ -48,6 +48,7 @@ class EditRole extends EditRecord
                         ->label(__('roles.reassign_label'))
                         ->helperText(__('roles.reassign_help'))
                         ->options(fn () => RoleResource::reassignmentOptions([$this->record->getKey()]))
+                        ->in(fn () => RoleResource::reassignmentTargetIds([$this->record->getKey()]))
                         ->native(false)
                         ->searchable()
                         ->required(),
@@ -100,6 +101,6 @@ class EditRole extends EditRecord
      */
     protected function afterSave(): void
     {
-        RoleResource::enforceAdminSafeguard($this->record);
+        RoleResource::enforceAdministrationIsReachable($this->record);
     }
 }

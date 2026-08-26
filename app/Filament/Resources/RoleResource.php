@@ -5,6 +5,7 @@ namespace App\Filament\Resources;
 use App\Filament\Resources\RoleResource\Pages;
 use App\Models\User;
 use App\Support\AccessControl;
+use App\Support\AdministrationGuard;
 use App\Support\LocalizedText;
 use App\Support\RoleCatalog;
 use Filament\Forms;
@@ -77,7 +78,23 @@ class RoleResource extends Resource
      * no alcanza --entrar sin poder tocar roles no arregla nada, y el permiso
      * sin la puerta no se puede ejercer.
      */
-    public const REQUIRED_TO_ADMINISTER = ['access_panel', 'manage_users'];
+    public const REQUIRED_TO_ADMINISTER = AdministrationGuard::REQUIRED;
+
+    /**
+     * Nombres que NO se pueden usar para un rol nuevo.
+     *
+     * Borrar los siete del sistema ahora esta permitido, pero eso deja su
+     * nombre libre, y esos nombres siguen significando algo mientras la red
+     * de AccessControl exista. Recrearlos es la puerta trasera del hallazgo
+     * 6: un rol vacio llamado `administrador` no concede nada hoy y lo
+     * concede todo en la proxima ventana de despliegue.
+     *
+     * @return array<int, string>
+     */
+    public static function reservedRoleNames(): array
+    {
+        return array_values(array_unique(array_merge(self::SYSTEM_ROLES, AccessControl::legacyRoleNames())));
+    }
 
     public static function getNavigationLabel(): string
     {
@@ -235,82 +252,82 @@ class RoleResource extends Resource
     }
 
     /**
-     * ¿Queda al menos un usuario ACTIVO capaz de administrar el sistema, si se
-     * borra $deleted y su gente pasa a $target?
+     * Delega en App\Support\AdministrationGuard, que es el punto unico donde
+     * se contesta esta pregunta. Vive alla y no aca porque hay CUATRO caminos
+     * que dejan al sistema sin nadie que pueda administrarlo y solo uno es el
+     * borrado de roles (ver el docblock de esa clase).
      *
-     * Se simula sobre el conjunto de roles de CADA usuario en vez de razonar
-     * "es el ultimo rol que tiene el permiso", porque esa forma se equivoca en
-     * los dos sentidos: un rol puede tener el permiso y ningun usuario (y
-     * entonces borrarlo no le quita el acceso a nadie), y un usuario puede
-     * tener dos roles que por separado no alcanzan pero juntos si.
-     *
-     * Solo cuentan los usuarios activos: una cuenta desactivada no puede
-     * entrar, asi que no sirve de red.
-     */
-    protected static function administrationSurvives(?Role $deleted = null, ?Role $target = null): bool
-    {
-        $users = User::query()->where('active', true)->with('roles')->get();
-
-        foreach ($users as $user) {
-            $roles = $user->roles;
-
-            if ($deleted !== null) {
-                $teniaElRol = $roles->contains(fn (Role $role) => $role->getKey() === $deleted->getKey());
-                $roles = $roles->reject(fn (Role $role) => $role->getKey() === $deleted->getKey());
-
-                if ($teniaElRol && $target !== null) {
-                    $roles = $roles->concat([$target]);
-                }
-            }
-
-            $puedeAdministrar = true;
-
-            foreach (self::REQUIRED_TO_ADMINISTER as $permission) {
-                if (! AccessControl::roleSetGrants($roles, $permission)) {
-                    $puedeAdministrar = false;
-
-                    break;
-                }
-            }
-
-            if ($puedeAdministrar) {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    /**
-     * La red anti-bloqueo: ¿este borrado dejaria al sistema sin NADIE que pueda
-     * volver a entrar a arreglarlo?
-     *
-     * Es el equivalente a que WordPress no te deje quitarte a vos mismo el rol
-     * de administrador. Sin esto, ahora que los siete roles del sistema se
-     * pueden borrar, un borrado desafortunado deja el panel cerrado para todo
-     * el mundo y desde el panel ya no hay vuelta atras: se sale por base de
-     * datos.
+     * Ya NO trae el escape de "si el sistema ya estaba roto, dejalo pasar":
+     * la auditoria del 2026-08-26 mostro que bastaba desactivar a los
+     * administradores para apagar la red y despues borrar cualquier cosa.
+     * Falla cerrado.
      */
     public static function wouldStrandAdministration(Role $record, ?Role $target = null): bool
     {
-        // Si el sistema YA estaba sin nadie que pueda administrarlo, este
-        // borrado no es el culpable. Bloquearlo dejaria a la pantalla
-        // negandose a todo sin que arreglarlo sirva de nada.
-        if (! self::administrationSurvives()) {
-            return false;
-        }
+        return AdministrationGuard::deletingRoleWouldStrand($record, $target);
+    }
 
-        return ! self::administrationSurvives($record, $target);
+    /**
+     * Destinos validos para la reasignacion, como lista de ids.
+     *
+     * Es la MISMA fuente que llena el desplegable, y por eso sirve de regla de
+     * validacion: el `Select` de Filament construido con `->options()` (sin
+     * `->relationship()`) solo agrega `required`, asi que sin esto el servidor
+     * aceptaba cualquier valor que llegara en la peticion. Con el id del rol
+     * que se estaba borrando, la simulacion lo quitaba y lo volvia a poner
+     * --"sobrevive"--, el borrado seguia, y sus cuentas quedaban con cero
+     * roles. Hallazgo 2 de la auditoria del 2026-08-26.
+     *
+     * @return array<int, int|string>
+     */
+    public static function reassignmentTargetIds(array $excludedIds): array
+    {
+        return array_keys(static::reassignmentOptions($excludedIds));
     }
 
     /**
      * Mueve la gente al rol destino y borra el rol. Todo o nada. Devuelve
      * cuantos usuarios cambiaron de rol.
+     *
+     * Las tres guardas de arriba NO son redundantes con la validacion del
+     * formulario, y esa fue la leccion del hallazgo 2 de la auditoria del
+     * 2026-08-26: un `Select` armado con `->options()` solo valida `required`,
+     * asi que la invariante "ninguna cuenta se queda sin rol" estaba sostenida
+     * unicamente por el navegador. Una peticion Livewire manipulada la
+     * atravesaba entera. Una invariante de integridad se defiende en el
+     * servicio, no en el formulario.
+     *
+     * Y el chequeo de bloqueo se repite ACA DENTRO, con las filas bloqueadas,
+     * aunque la accion ya lo haya hecho antes de abrir el modal: entre una
+     * cosa y la otra hay minutos en los que otro administrador puede haber
+     * cambiado el estado sobre el que se contesto (hallazgo 4). El de afuera
+     * es para poder explicarlo bien; este es el que manda.
+     *
+     * @throws \InvalidArgumentException si el destino no es utilizable
+     * @throws \RuntimeException si el borrado dejaria al sistema sin nadie
      */
     public static function deleteAndReassign(Role $record, ?Role $target): int
     {
+        if ($target !== null && $target->getKey() === $record->getKey()) {
+            throw new \InvalidArgumentException(
+                'El rol destino no puede ser el que se esta borrando.'
+            );
+        }
+
         $moved = DB::transaction(function () use ($record, $target) {
-            $users = $record->users()->get();
+            $users = $record->users()->lockForUpdate()->get();
+
+            if ($users->isNotEmpty() && $target === null) {
+                throw new \InvalidArgumentException(
+                    'Este rol tiene usuarios asignados y no se indico a que rol pasan.'
+                );
+            }
+
+            if (AdministrationGuard::deletingRoleWouldStrand($record, $target, lock: true)) {
+                throw new \RuntimeException(
+                    'El borrado dejaria al sistema sin nadie que pueda administrarlo.'
+                );
+            }
 
             foreach ($users as $user) {
                 // removeRole + assignRole, y NUNCA syncRoles: el formulario de
@@ -318,10 +335,7 @@ class RoleResource extends Resource
                 // puede tener mas de un rol. syncRoles le borraria los otros
                 // sin que nadie lo haya pedido.
                 $user->removeRole($record);
-
-                if ($target !== null) {
-                    $user->assignRole($target);
-                }
+                $user->assignRole($target);
             }
 
             activity()
@@ -329,9 +343,11 @@ class RoleResource extends Resource
                 ->causedBy(Auth::user())
                 ->event('role_deleted')
                 ->withProperties([
-                    'role' => $record->name,
-                    'reassigned_to' => $target?->name,
-                    'users_moved' => $users->count(),
+                    'attributes' => [
+                        'role' => $record->name,
+                        'reassigned_to' => $target?->name,
+                        'users_moved' => $users->count(),
+                    ],
                 ])
                 ->log(LocalizedText::of('mgmt.role_deleted_log', [
                     'role' => RoleCatalog::label($record->name),
@@ -362,6 +378,10 @@ class RoleResource extends Resource
                         ->required()
                         ->maxLength(255)
                         ->unique(ignoreRecord: true)
+                        // Solo en el alta: a los que ya existen no se les
+                        // toca el nombre (mas abajo van deshabilitados).
+                        ->notIn(fn (?Role $record) => $record === null ? static::reservedRoleNames() : [])
+                        ->validationMessages(['not_in' => __('roles.name_reserved')])
                         ->disabled(fn (?Role $record) => $record !== null && in_array($record->name, self::SYSTEM_ROLES, true))
                         ->helperText(fn (?Role $record) => ($record !== null && in_array($record->name, self::SYSTEM_ROLES, true))
                             ? __('roles.name_locked_hint')
@@ -484,6 +504,9 @@ class RoleResource extends Resource
                             ->label(__('roles.reassign_label'))
                             ->helperText(__('roles.reassign_help'))
                             ->options(fn () => static::reassignmentOptions([$record->getKey()]))
+                            // Sin esto la unica regla del campo seria `required`
+                            // y el servidor tragaba cualquier id (hallazgo 2).
+                            ->in(fn () => static::reassignmentTargetIds([$record->getKey()]))
                             ->native(false)
                             ->searchable()
                             ->required(),
@@ -546,6 +569,7 @@ class RoleResource extends Resource
                                     'count' => static::assignedUserCountIn($records),
                                 ]))
                                 ->options(fn () => static::reassignmentOptions($records->modelKeys()))
+                                ->in(fn () => static::reassignmentTargetIds($records->modelKeys()))
                                 ->native(false)
                                 ->searchable()
                                 ->required(),
@@ -611,15 +635,32 @@ class RoleResource extends Resource
     }
 
     /**
-     * Salvaguarda anti-bloqueo: el rol 'administrador' siempre debe conservar
-     * el permiso manage_users, sin importar qué se haya marcado/desmarcado en
-     * el CheckboxList. Sin esto, un admin podría quitarse a sí mismo (o a todo
-     * el rol) el acceso a la gestión de usuarios y dejar el sistema sin nadie
-     * que pueda revertirlo desde el panel.
+     * Salvaguarda anti-bloqueo del FORMULARIO de roles.
+     *
+     * Antes decia: "si este rol se llama administrador, reponele manage_users".
+     * Dos cosas mal, las dos senaladas por la auditoria del 2026-08-26:
+     *
+     *   1. Reponia UN permiso de los dos que hacen falta. Desmarcar "Entrar al
+     *      panel" en el rol Administrador cerraba el panel para todo el mundo,
+     *      de forma irreversible desde el panel, con un solo clic y sin mala
+     *      fe de por medio. La red del borrado no se consultaba nunca aca: el
+     *      guardado era una puerta distinta, sin guardia (hallazgo 1).
+     *   2. Decidia por NOMBRE de rol --justo el chequeo que este trabajo vino
+     *      a sacar del codigo--, asi que un clon de administrador con otro
+     *      nombre no estaba protegido por nada.
+     *
+     * Ahora decide por CONSECUENCIA y no por nombre: se pregunta si, con lo
+     * que se acaba de guardar, todavia queda alguien capaz de administrar. Si
+     * no queda, repone en ESTE rol los permisos de administracion que falten
+     * --que es el unico rol que este guardado pudo haber tocado-- y avisa.
+     *
+     * Corre DESPUES de que Filament sincronizo la relacion `permissions`: en
+     * `mutateFormDataBeforeSave` esa sincronizacion todavia no ocurrio y la
+     * pregunta se contestaria contra el estado viejo.
      */
-    public static function enforceAdminSafeguard(Role $role): void
+    public static function enforceAdministrationIsReachable(Role $role): void
     {
-        if ($role->name !== 'administrador') {
+        if (AdministrationGuard::isReachable()) {
             return;
         }
 
@@ -628,8 +669,36 @@ class RoleResource extends Resource
         // de hacer; forzamos una lectura fresca desde la BD.
         $role->load('permissions');
 
-        if (! $role->permissions->contains('name', 'manage_users')) {
-            $role->givePermissionTo('manage_users');
+        $repuestos = [];
+
+        foreach (AdministrationGuard::REQUIRED as $permission) {
+            if (! $role->permissions->contains('name', $permission)) {
+                $role->givePermissionTo($permission);
+                $repuestos[] = RoleCatalog::permissionLabel($permission);
+            }
         }
+
+        app(PermissionRegistrar::class)->forgetCachedPermissions();
+
+        if ($repuestos === []) {
+            // El rol editado no era el que sostenia el acceso. No hay nada que
+            // reponer aca, pero el sistema quedo sin nadie que administre y
+            // eso no se puede dejar pasar en silencio.
+            Notification::make()
+                ->title(__('roles.administration_unreachable_title'))
+                ->body(__('roles.administration_unreachable_body'))
+                ->danger()
+                ->persistent()
+                ->send();
+
+            return;
+        }
+
+        Notification::make()
+            ->title(__('roles.administration_restored_title'))
+            ->body(__('roles.administration_restored_body', ['permissions' => implode(', ', $repuestos)]))
+            ->warning()
+            ->persistent()
+            ->send();
     }
 }
