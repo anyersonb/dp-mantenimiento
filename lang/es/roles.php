@@ -14,7 +14,7 @@ return [
     'field_description_locked_hint' => 'Los roles del sistema traen su descripción traducida al español y al inglés; es la que se muestra debajo.',
     'field_permissions' => 'Permisos',
     'field_permissions_help' => 'Debajo de cada permiso está lo que habilita. Marque solo lo que esta persona necesita para su trabajo.',
-    'name_locked_hint' => 'Los roles del sistema no pueden renombrarse (el código los referencia por nombre).',
+    'name_locked_hint' => 'Los roles del sistema no pueden renombrarse: su descripción traducida y el restaurador de permisos los buscan por nombre. Borrarlos sí se puede.',
 
     // Tabla
     'description' => 'Para qué es',
@@ -22,16 +22,25 @@ return [
     'permissions_count' => 'Permisos',
     'users_count' => 'Usuarios',
 
-    // Borrado de roles (pedido de la clienta 2026-08-24)
-    'delete_blocked_system_title' => 'Este rol no se puede borrar',
-    'delete_blocked_system_body' => 'Es uno de los siete roles del sistema: el código lo busca por nombre para decidir quién entra a cada pantalla, así que borrarlo dejaría partes del sistema sin dueño. Si no lo usa, quítele los permisos o desactive a los usuarios que lo tienen.',
-    'delete_blocked_users_title' => 'Primero hay que dejar el rol sin usuarios',
-    'delete_blocked_users_body' => 'El rol :role todavía está asignado a :count usuario(s). Cámbieles el rol (o desactive esas cuentas) y después bórrelo; así ninguna cuenta se queda sin permisos de un momento a otro.',
-    'delete_reason_system' => 'Rol del sistema: no se puede borrar.',
-    'delete_reason_has_users' => 'Tiene :count usuario(s) asignado(s).',
-    'delete_blocked_understood' => 'Entendido',
+    // Borrado de roles. Ya no hay roles indestructibles: lo que queda por
+    // cuidar es que ninguna cuenta se quede sin permisos, y que el sistema no
+    // se quede sin nadie capaz de administrarlo.
+    'delete_heading' => 'Borrar el rol :role',
+    'delete_description_empty' => 'Este rol no tiene usuarios asignados. Se borrará y no se puede deshacer.',
+    'delete_description_with_users' => 'Este rol está asignado a :count usuario(s). Elija a qué rol pasan antes de borrarlo: ninguna cuenta puede quedarse sin ningún rol.',
+    'reassign_label' => 'Mover esos usuarios a',
+    'reassign_help' => 'Si alguna de esas cuentas tenía además otros roles, los conserva: solo se le cambia éste.',
+    'bulk_reassign_help' => 'Entre los roles seleccionados hay :count usuario(s). Todos pasan al rol que elija acá.',
+    'delete_done_title' => 'Rol borrado',
+    'delete_done_empty' => 'El rol se borró. No tenía usuarios asignados.',
+    'delete_done_moved' => 'El rol se borró y :count usuario(s) pasaron a :role.',
+    'delete_blocked_last_admin_title' => 'Así el sistema se quedaría sin administrador',
+    'delete_blocked_last_admin_body' => 'Después de este borrado no quedaría ninguna cuenta activa capaz de entrar al panel y administrar usuarios y roles, y eso desde el panel ya no tiene vuelta atrás. Antes de borrarlo, déle a otro rol los permisos "Entrar al panel" y "Gestionar usuarios", y asigne ese rol a alguien.',
+    'delete_reason_last_admin' => 'Es el único acceso que queda para administrar el sistema.',
+    'bulk_done_title' => 'Roles borrados',
+    'bulk_done_body' => 'Se borraron :deleted rol(es) y se movieron :moved usuario(s).',
     'bulk_skipped_title' => 'Algunos roles no se borraron',
-    'bulk_skipped_body' => 'Se borraron :deleted rol(es). Quedaron :skipped sin borrar porque son del sistema o todavía tienen usuarios asignados.',
+    'bulk_skipped_body' => 'Quedaron :skipped sin borrar: eran el único acceso que quedaba para administrar el sistema.',
 
     // Etiquetas amigables de permisos (Spatie)
     'perm_view_fleet' => 'Ver flota',
@@ -49,6 +58,11 @@ return [
     'perm_move_fleet' => 'Mover flota',
     'perm_view_reports' => 'Ver reportes',
     'perm_view_audit_log' => 'Ver bitácora',
+    'perm_access_panel' => 'Entrar al panel',
+    'perm_view_alerts' => 'Ver alertas',
+    'perm_delete_machines' => 'Borrar máquinas',
+    'perm_delete_work_orders' => 'Borrar órdenes de trabajo',
+    'perm_receive_alerts_digest' => 'Recibir el aviso de alertas',
 
     // Qué habilita cada permiso (pedido de la clienta 2026-08-24). Cada texto
     // describe lo que el permiso controla REALMENTE en el código, no lo que su
@@ -68,6 +82,11 @@ return [
     'perm_desc_move_fleet' => 'Mover una máquina de una obra a otra desde el panel, de a una o de a varias.',
     'perm_desc_view_reports' => 'Entrar al centro de reportes y descargar el PDF y el Excel. Ver los importes del reporte de costos exige además "Ver costos".',
     'perm_desc_view_audit_log' => 'Ver la bitácora: quién hizo cada cambio y cuándo. Es solo lectura y no se puede borrar.',
+    'perm_desc_access_panel' => 'Entrar al panel de escritorio. Sin este permiso la cuenta se autentica pero el panel no abre: es lo que separa a quien trabaja en la computadora de quien usa solo la aplicación de campo del celular.',
+    'perm_desc_view_alerts' => 'Ver la pantalla de Alertas —máquinas con el servicio por vencer o vencido— y abrir una orden de trabajo desde ahí.',
+    'perm_desc_delete_machines' => 'Borrar una máquina. Se lleva en cascada sus órdenes, lecturas, alertas y costos históricos, así que el camino normal de baja es marcarla inactiva.',
+    'perm_desc_delete_work_orders' => 'Borrar una orden de trabajo, con todo lo que tenga cargado.',
+    'perm_desc_receive_alerts_digest' => 'Recibir por correo el resumen diario de alertas de servicio. No abre ninguna pantalla: solo decide a quién le llega ese correo.',
 
     // Para qué es cada rol del sistema (pedido de la clienta 2026-08-24). Los
     // roles que ella cree desde el panel llevan la descripción que escriba en

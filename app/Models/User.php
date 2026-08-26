@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\AccessControl;
 use Database\Factories\UserFactory;
 use Filament\Models\Contracts\FilamentUser;
 use Filament\Models\Contracts\HasName;
@@ -43,7 +44,14 @@ class User extends Authenticatable implements FilamentUser, HasName
 
     /**
      * Acceso al panel de escritorio de Filament.
-     * Los roles de escritorio/taller entran al panel; los roles de campo usan la PWA móvil.
+     * Se decide por el permiso `access_panel` y ya no por una lista de cuatro
+     * nombres de rol. Ese cambio es el que permite borrar y clonar roles sin
+     * romper el acceso: un rol nuevo con `access_panel` entra al panel igual
+     * que `administrador`, cosa que con la lista de nombres era imposible por
+     * definicion. Ver App\Support\AccessControl (incluida la red para la
+     * ventana en la que el archivo ya subio y la migracion todavia no corrio).
+     *
+     * Los roles de escritorio/taller entran al panel; los de campo usan la PWA móvil.
      */
     public function canAccessPanel(Panel $panel): bool
     {
@@ -51,12 +59,7 @@ class User extends Authenticatable implements FilamentUser, HasName
             return false;
         }
 
-        return $this->hasAnyRole([
-            'administrador',
-            'responsable_mantenimiento',
-            'taller',
-            'gerencia',
-        ]);
+        return AccessControl::allows($this, 'access_panel');
     }
 
     public function getFilamentName(): string

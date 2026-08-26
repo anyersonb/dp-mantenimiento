@@ -8,6 +8,7 @@ use App\Models\Location;
 use App\Models\Machine;
 use App\Rules\RejectsDangerousUploadExtensions;
 use App\Services\HourmeterReplacementService;
+use App\Support\AccessControl;
 use App\Support\LocalizedText;
 use Filament\Forms;
 use Filament\Forms\Form;
@@ -79,18 +80,20 @@ class MachineResource extends Resource
      * `manage_machines` lo podía hacer también el responsable, y el diálogo no
      * advertía nada.
      *
-     * Queda restringido a **administrador**, y aun así es un borrado suave
+     * Queda restringido al permiso `delete_machines` --que hoy tiene solo
+     * administrador, igual que antes, pero que ahora se puede mover desde la
+     * pantalla de Roles sin tocar codigo--, y aun así es un borrado suave
      * (`SoftDeletes`). El camino normal de baja es `status = 'inactive'` o la
      * acción "descartar" de las máquinas en revisión, que conservan la historia.
      */
     public static function canDelete(Model $record): bool
     {
-        return Auth::user()?->hasRole('administrador') ?? false;
+        return AccessControl::allows(Auth::user(), 'delete_machines');
     }
 
     public static function canDeleteAny(): bool
     {
-        return Auth::user()?->hasRole('administrador') ?? false;
+        return AccessControl::allows(Auth::user(), 'delete_machines');
     }
 
     /**

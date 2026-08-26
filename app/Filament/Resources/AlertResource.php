@@ -5,6 +5,7 @@ namespace App\Filament\Resources;
 use App\Filament\Resources\AlertResource\Pages;
 use App\Models\Alert;
 use App\Models\WorkOrder;
+use App\Support\AccessControl;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
@@ -53,12 +54,13 @@ class AlertResource extends Resource
     }
 
     /**
-     * Solo administrador / responsable de mantenimiento gestionan alertas
+     * Quien gestiona alertas se decide por el permiso `view_alerts` y ya no
+     * por el nombre del rol. El alcance no cambia: hoy lo tienen esos dos
      * (taller y gerencia también entran al panel pero no a este recurso).
      */
     public static function canViewAny(): bool
     {
-        return Auth::user()?->hasAnyRole(['administrador', 'responsable_mantenimiento']) ?? false;
+        return AccessControl::allows(Auth::user(), 'view_alerts');
     }
 
     public static function form(Form $form): Form
@@ -145,10 +147,10 @@ class AlertResource extends Resource
                     ->color('primary')
                     ->visible(fn (Alert $record) => $record->status !== 'resolved'
                         && $record->machine
-                        && (Auth::user()?->can('create_work_order') || Auth::user()?->hasRole('administrador')))
+                        && Auth::user()?->can('create_work_order'))
                     // ->visible() controla el render; ->authorize() vuelve a
                     // exigir el permiso en el servidor al ejecutar la acción.
-                    ->authorize(fn () => Auth::user()?->can('create_work_order') || Auth::user()?->hasRole('administrador'))
+                    ->authorize(fn () => Auth::user()?->can('create_work_order'))
                     ->requiresConfirmation()
                     ->modalDescription(__('alerts.create_work_order_confirm'))
                     ->action(function (Alert $record, Tables\Actions\Action $action) {

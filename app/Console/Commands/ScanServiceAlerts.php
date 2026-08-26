@@ -5,7 +5,7 @@ namespace App\Console\Commands;
 use App\Mail\ServiceAlertMail;
 use App\Models\Alert;
 use App\Models\Machine;
-use App\Models\User;
+use App\Support\AccessControl;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
@@ -67,7 +67,12 @@ class ScanServiceAlerts extends Command
         $notified = 0;
 
         if ($pending->isNotEmpty()) {
-            $admins = User::role('administrador')->where('active', true)->get();
+            // Destinatarios por permiso (`receive_alerts_digest`) y no por
+            // nombre de rol: si manana se borra o se renombra `administrador`,
+            // el digest sigue saliendo a quien corresponda en vez de dejar de
+            // salir en silencio. Hoy ese permiso lo tiene exactamente el mismo
+            // rol que antes, asi que la lista de destinatarios NO cambia.
+            $admins = AccessControl::activeUsersWith('receive_alerts_digest');
 
             if ($admins->isNotEmpty()) {
                 Mail::to($admins->pluck('email')->all())->queue(new ServiceAlertMail($pending));

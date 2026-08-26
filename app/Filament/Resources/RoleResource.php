@@ -3,20 +3,27 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\RoleResource\Pages;
+use App\Models\User;
+use App\Support\AccessControl;
+use App\Support\LocalizedText;
 use App\Support\RoleCatalog;
 use Filament\Forms;
-use Filament\Notifications\Notification;
 use Filament\Forms\Form;
+use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Lang;
 use Illuminate\Support\Facades\Schema;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
+use Spatie\Permission\PermissionRegistrar;
 
 /**
  * Administración de roles y su matriz de permisos (Spatie).
@@ -33,9 +40,26 @@ class RoleResource extends Resource
     protected static ?int $navigationSort = 91;
 
     /**
-     * Roles que crean/usan el resto del código por nombre (policies, seeders,
-     * User::canAccessPanel(), etc.). No se pueden renombrar ni borrar para no
-     * romper esos checks.
+     * Los siete roles que trae el sistema de fabrica.
+     *
+     * YA NO son indestructibles. Desde que el acceso se decide por permiso y no
+     * por nombre (ver App\Support\AccessControl) se pueden borrar como
+     * cualquier otro, que es lo que pidio la clienta el 2026-08-24.
+     *
+     * La constante sigue viva por dos cosas mas chicas, las dos por el mismo
+     * motivo: estos nombres SI se siguen referenciando por texto en sitios que
+     * no son control de acceso.
+     *
+     *   - El nombre no se puede editar. `RolePermissionBaselineSeeder` los
+     *     busca por nombre para reconverger la matriz de permisos, y
+     *     `RoleCatalog` resuelve por nombre su etiqueta y su descripcion
+     *     traducidas. Renombrar uno ya no rompe ningun acceso, pero lo deja sin
+     *     traduccion y fuera del alcance del seeder de restauracion.
+     *   - Su descripcion sale de los archivos de idioma y no de la columna.
+     *
+     * Que borrarlos si este permitido y renombrarlos no es deliberado: borrar
+     * es un acto explicito, confirmado y con una pregunta de por medio;
+     * renombrar es un descuido de un solo campo que no avisa de nada.
      */
     public const SYSTEM_ROLES = [
         'administrador',
@@ -46,6 +70,14 @@ class RoleResource extends Resource
         'taller',
         'gerencia',
     ];
+
+    /**
+     * Permisos sin los cuales el sistema se queda sin dueno: hay que poder
+     * ENTRAR al panel y ademas poder GESTIONAR usuarios y roles. Con uno solo
+     * no alcanza --entrar sin poder tocar roles no arregla nada, y el permiso
+     * sin la puerta no se puede ejercer.
+     */
+    public const REQUIRED_TO_ADMINISTER = ['access_panel', 'manage_users'];
 
     public static function getNavigationLabel(): string
     {
@@ -94,14 +126,20 @@ class RoleResource extends Resource
         return Auth::user()?->can('manage_users') ?? false;
     }
 
+    /**
+     * Ya NO se bloquea por nombre de rol.
+     *
+     * Los siete del sistema dejaron de estar clavados en el codigo y por lo
+     * tanto dejaron de ser indestructibles: aca lo unico que se mira es si
+     * quien esta pidiendo el borrado puede gestionar usuarios.
+     *
+     * Las dos barreras que quedan viven en la accion de borrado y no aca:
+     * ambas dependen del rol DESTINO que se elige en el modal, y en este punto
+     * ese dato todavia no existe.
+     */
     public static function canDelete(Model $record): bool
     {
-        if (! (Auth::user()?->can('manage_users') ?? false)) {
-            return false;
-        }
-
-        /** @var Role $record */
-        return ! in_array($record->name, self::SYSTEM_ROLES, true);
+        return Auth::user()?->can('manage_users') ?? false;
     }
 
     public static function canDeleteAny(): bool
@@ -133,23 +171,184 @@ class RoleResource extends Resource
     }
 
     /**
-     * Por qué este rol no se puede borrar, en el idioma del usuario, o null si
-     * sí se puede. Una sola función para que el listado, el borrado en lote y
-     * el modal de "por qué no" no puedan contestar cosas distintas.
+     * Por que este rol no se puede borrar, en el idioma del usuario, o null si
+     * si se puede. Una sola funcion para que el listado y el borrado en lote no
+     * puedan contestar cosas distintas.
+     *
+     * Ya no devuelve "tiene usuarios asignados": tener gente dejo de ser un
+     * impedimento, es justo lo que el modal resuelve preguntando a donde
+     * mandarla.
      */
-    public static function deletionBlockReason(Role $record): ?string
+    public static function deletionBlockReason(Role $record, ?Role $target = null): ?string
     {
-        if (in_array($record->name, self::SYSTEM_ROLES, true)) {
-            return __('roles.delete_reason_system');
-        }
-
-        $users = $record->users()->count();
-
-        if ($users > 0) {
-            return __('roles.delete_reason_has_users', ['count' => $users]);
+        if (self::wouldStrandAdministration($record, $target)) {
+            return __('roles.delete_reason_last_admin');
         }
 
         return null;
+    }
+
+    /**
+     * Cuanta gente tiene HOY este rol.
+     *
+     * Se lee fresco de la base y no del `users_count` que trae la tabla: entre
+     * que la pantalla se pinto y que alguien confirma el modal pueden haber
+     * pasado minutos, y este numero decide si se pregunta el destino o no.
+     */
+    public static function assignedUserCount(Role $record): int
+    {
+        return $record->users()->count();
+    }
+
+    /**
+     * Lo mismo para un lote, en una sola consulta.
+     *
+     * @param  Collection<int, Role>  $records
+     */
+    public static function assignedUserCountIn(EloquentCollection $records): int
+    {
+        if ($records->isEmpty()) {
+            return 0;
+        }
+
+        return User::query()
+            ->whereHas('roles', fn (Builder $query) => $query->whereIn('id', $records->modelKeys()))
+            ->count();
+    }
+
+    /**
+     * Roles a los que se puede mandar la gente del rol que se borra. Se
+     * excluyen los que van a desaparecer en esta misma operacion: ofrecerlos
+     * seria ofrecer un destino que no va a existir cuando termine el lote.
+     *
+     * @param  array<int, int|string>  $excludedIds
+     * @return array<int|string, string>
+     */
+    public static function reassignmentOptions(array $excludedIds): array
+    {
+        return Role::query()
+            ->whereNotIn('id', $excludedIds)
+            ->orderBy('name')
+            ->get()
+            ->mapWithKeys(fn (Role $role) => [$role->getKey() => RoleCatalog::label($role->name)])
+            ->all();
+    }
+
+    /**
+     * ¿Queda al menos un usuario ACTIVO capaz de administrar el sistema, si se
+     * borra $deleted y su gente pasa a $target?
+     *
+     * Se simula sobre el conjunto de roles de CADA usuario en vez de razonar
+     * "es el ultimo rol que tiene el permiso", porque esa forma se equivoca en
+     * los dos sentidos: un rol puede tener el permiso y ningun usuario (y
+     * entonces borrarlo no le quita el acceso a nadie), y un usuario puede
+     * tener dos roles que por separado no alcanzan pero juntos si.
+     *
+     * Solo cuentan los usuarios activos: una cuenta desactivada no puede
+     * entrar, asi que no sirve de red.
+     */
+    protected static function administrationSurvives(?Role $deleted = null, ?Role $target = null): bool
+    {
+        $users = User::query()->where('active', true)->with('roles')->get();
+
+        foreach ($users as $user) {
+            $roles = $user->roles;
+
+            if ($deleted !== null) {
+                $teniaElRol = $roles->contains(fn (Role $role) => $role->getKey() === $deleted->getKey());
+                $roles = $roles->reject(fn (Role $role) => $role->getKey() === $deleted->getKey());
+
+                if ($teniaElRol && $target !== null) {
+                    $roles = $roles->concat([$target]);
+                }
+            }
+
+            $puedeAdministrar = true;
+
+            foreach (self::REQUIRED_TO_ADMINISTER as $permission) {
+                if (! AccessControl::roleSetGrants($roles, $permission)) {
+                    $puedeAdministrar = false;
+
+                    break;
+                }
+            }
+
+            if ($puedeAdministrar) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * La red anti-bloqueo: ¿este borrado dejaria al sistema sin NADIE que pueda
+     * volver a entrar a arreglarlo?
+     *
+     * Es el equivalente a que WordPress no te deje quitarte a vos mismo el rol
+     * de administrador. Sin esto, ahora que los siete roles del sistema se
+     * pueden borrar, un borrado desafortunado deja el panel cerrado para todo
+     * el mundo y desde el panel ya no hay vuelta atras: se sale por base de
+     * datos.
+     */
+    public static function wouldStrandAdministration(Role $record, ?Role $target = null): bool
+    {
+        // Si el sistema YA estaba sin nadie que pueda administrarlo, este
+        // borrado no es el culpable. Bloquearlo dejaria a la pantalla
+        // negandose a todo sin que arreglarlo sirva de nada.
+        if (! self::administrationSurvives()) {
+            return false;
+        }
+
+        return ! self::administrationSurvives($record, $target);
+    }
+
+    /**
+     * Mueve la gente al rol destino y borra el rol. Todo o nada. Devuelve
+     * cuantos usuarios cambiaron de rol.
+     */
+    public static function deleteAndReassign(Role $record, ?Role $target): int
+    {
+        $moved = DB::transaction(function () use ($record, $target) {
+            $users = $record->users()->get();
+
+            foreach ($users as $user) {
+                // removeRole + assignRole, y NUNCA syncRoles: el formulario de
+                // Usuarios asigna con un CheckboxList, o sea que una cuenta
+                // puede tener mas de un rol. syncRoles le borraria los otros
+                // sin que nadie lo haya pedido.
+                $user->removeRole($record);
+
+                if ($target !== null) {
+                    $user->assignRole($target);
+                }
+            }
+
+            activity()
+                ->performedOn($record)
+                ->causedBy(Auth::user())
+                ->event('role_deleted')
+                ->withProperties([
+                    'role' => $record->name,
+                    'reassigned_to' => $target?->name,
+                    'users_moved' => $users->count(),
+                ])
+                ->log(LocalizedText::of('mgmt.role_deleted_log', [
+                    'role' => RoleCatalog::label($record->name),
+                    'count' => $users->count(),
+                ])->encode());
+
+            $record->delete();
+
+            return $users->count();
+        });
+
+        // Spatie cachea la matriz entera de roles y permisos. Sin esto, la
+        // gente que acaba de moverse seguiria viendo los permisos del rol que
+        // ya no existe hasta que la cache expire sola.
+        app(PermissionRegistrar::class)->forgetCachedPermissions();
+
+        return $moved;
     }
 
     public static function form(Form $form): Form
@@ -253,91 +452,139 @@ class RoleResource extends Resource
                 Tables\Actions\EditAction::make(),
 
                 /*
-                 * "Validar roles y permisos para que se puedan borrar"
-                 * (clienta, 2026-08-24). Dos huecos distintos:
+                 * Borrado con REASIGNACION, al modo WordPress: "que hacer con
+                 * el contenido de este usuario? Atribuirlo a: ___".
                  *
-                 * 1. En los siete roles del sistema el botón simplemente NO
-                 *    aparecía. Desde la pantalla eso se lee como que borrar
-                 *    roles no existe, no como que ÉSE está protegido. Sigue sin
-                 *    poder borrarse —el código los busca por nombre— pero ahora
-                 *    hay un botón que explica por qué (acción `locked`, abajo).
-                 * 2. En los roles que sí se pueden borrar no había ninguna
-                 *    validación: borrar uno con gente asignada dejaba esas
-                 *    cuentas sin permisos de un momento a otro y sin aviso.
-                 *    Eso lo corta el `before()`.
+                 * Antes, un rol con gente asignada no se borraba y la pantalla
+                 * te mandaba a reasignar a mano, usuario por usuario, antes de
+                 * volver a intentarlo. Ahora el modal pregunta a donde va esa
+                 * gente y la mueve en el mismo acto.
                  *
-                 * El `before()` corre en el servidor, después de que el usuario
-                 * confirma el modal: es el único lugar donde el conteo de
-                 * usuarios está fresco. La barrera de los roles del sistema
-                 * NO se movió acá: sigue en canDelete(), que es lo que
-                 * Filament inyecta como ->authorize() en esta acción
-                 * (ListRecords::configureDeleteAction), o sea que para un rol
-                 * del sistema esta acción ni existe.
+                 * El destino es OBLIGATORIO y no existe la opcion "sin rol":
+                 * dejar cuentas sin ningun rol es exactamente el accidente que
+                 * el bloqueo anterior evitaba, y no hay razon para regalarlo
+                 * ahora que existe una forma ordenada de hacerlo.
+                 *
+                 * El calculo va en ->action() y no en ->before() porque recien
+                 * ahi se sabe QUE destino eligio la persona, y sin el destino
+                 * la pregunta "queda alguien que pueda administrar esto?" no se
+                 * puede contestar.
                  */
                 Tables\Actions\DeleteAction::make()
-                    ->before(function (Role $record, Tables\Actions\DeleteAction $action) {
-                        $users = $record->users()->count();
+                    ->modalHeading(fn (Role $record) => __('roles.delete_heading', [
+                        'role' => RoleCatalog::label($record->name),
+                    ]))
+                    ->modalDescription(fn (Role $record) => static::assignedUserCount($record) === 0
+                        ? __('roles.delete_description_empty')
+                        : __('roles.delete_description_with_users', [
+                            'count' => static::assignedUserCount($record),
+                        ]))
+                    ->form(fn (Role $record) => static::assignedUserCount($record) === 0 ? [] : [
+                        Forms\Components\Select::make('reassign_to')
+                            ->label(__('roles.reassign_label'))
+                            ->helperText(__('roles.reassign_help'))
+                            ->options(fn () => static::reassignmentOptions([$record->getKey()]))
+                            ->native(false)
+                            ->searchable()
+                            ->required(),
+                    ])
+                    ->action(function (Role $record, array $data, Tables\Actions\DeleteAction $action) {
+                        $target = filled($data['reassign_to'] ?? null)
+                            ? Role::find($data['reassign_to'])
+                            : null;
 
-                        if ($users > 0) {
+                        if (static::wouldStrandAdministration($record, $target)) {
                             Notification::make()
-                                ->title(__('roles.delete_blocked_users_title'))
-                                ->body(__('roles.delete_blocked_users_body', [
-                                    'role' => RoleCatalog::label($record->name),
-                                    'count' => $users,
-                                ]))
+                                ->title(__('roles.delete_blocked_last_admin_title'))
+                                ->body(__('roles.delete_blocked_last_admin_body'))
                                 ->danger()
                                 ->persistent()
                                 ->send();
 
-                            $action->cancel();
+                            // halt() y no cancel(): el modal queda abierto para
+                            // que puedan elegir otro destino sin rearmar todo.
+                            $action->halt();
                         }
-                    }),
 
-                /*
-                 * El "por qué no" de los roles del sistema. Es una acción que
-                 * no ejecuta nada: abre un modal con la explicación y un solo
-                 * botón de cerrar (`modalSubmitAction(false)`). Existe para que
-                 * la fila no se vea igual que una donde el borrado nunca se
-                 * implementó.
-                 */
-                Tables\Actions\Action::make('locked')
-                    ->label(__('filament-actions::delete.single.label'))
-                    ->icon('heroicon-m-lock-closed')
-                    ->color('gray')
-                    ->visible(fn (Role $record) => in_array($record->name, self::SYSTEM_ROLES, true))
-                    ->modalHeading(__('roles.delete_blocked_system_title'))
-                    ->modalDescription(__('roles.delete_blocked_system_body'))
-                    ->modalSubmitAction(false)
-                    ->modalCancelActionLabel(__('roles.delete_blocked_understood'))
-                    ->action(fn () => null),
+                        // La etiqueta se resuelve ANTES de borrar: despues, el
+                        // aviso diria a donde se movio la gente nombrando un
+                        // rol que ya no esta en la base.
+                        $targetLabel = $target !== null ? RoleCatalog::label($target->name) : null;
+
+                        $moved = static::deleteAndReassign($record, $target);
+
+                        Notification::make()
+                            ->title(__('roles.delete_done_title'))
+                            ->body($moved === 0
+                                ? __('roles.delete_done_empty')
+                                : __('roles.delete_done_moved', [
+                                    'count' => $moved,
+                                    'role' => $targetLabel,
+                                ]))
+                            ->success()
+                            ->persistent()
+                            ->send();
+                    }),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
-                    // El borrado en lote saltea los que no se pueden borrar en
-                    // vez de reventar, y avisa cuántos dejó (antes los saltaba
-                    // en silencio y la pantalla parecía haber borrado todo).
+                    /*
+                     * El lote pregunta UN destino para todos los seleccionados,
+                     * una sola vez, y solo si alguno de ellos tiene gente. Los
+                     * roles del propio lote no figuran entre los destinos.
+                     *
+                     * Lo que se saltea ya no son "los del sistema": es
+                     * unicamente el borrado que dejaria a nadie administrando.
+                     * Y se dice cuantos quedaron, porque antes los saltaba en
+                     * silencio y la pantalla parecia haber borrado todo.
+                     */
                     Tables\Actions\DeleteBulkAction::make()
-                        ->action(function ($records) {
+                        ->form(fn (EloquentCollection $records) => static::assignedUserCountIn($records) === 0 ? [] : [
+                            Forms\Components\Select::make('reassign_to')
+                                ->label(__('roles.reassign_label'))
+                                ->helperText(__('roles.bulk_reassign_help', [
+                                    'count' => static::assignedUserCountIn($records),
+                                ]))
+                                ->options(fn () => static::reassignmentOptions($records->modelKeys()))
+                                ->native(false)
+                                ->searchable()
+                                ->required(),
+                        ])
+                        ->action(function (EloquentCollection $records, array $data) {
+                            $target = filled($data['reassign_to'] ?? null)
+                                ? Role::find($data['reassign_to'])
+                                : null;
+
                             $borrados = 0;
+                            $movidos = 0;
                             $omitidos = 0;
 
                             foreach ($records as $record) {
                                 /** @var Role $record */
-                                if (static::deletionBlockReason($record) !== null) {
+                                if (static::wouldStrandAdministration($record, $target)) {
                                     $omitidos++;
 
                                     continue;
                                 }
 
-                                $record->delete();
+                                $movidos += static::deleteAndReassign($record, $target);
                                 $borrados++;
                             }
+
+                            Notification::make()
+                                ->title(__('roles.bulk_done_title'))
+                                ->body(__('roles.bulk_done_body', [
+                                    'deleted' => $borrados,
+                                    'moved' => $movidos,
+                                ]))
+                                ->success()
+                                ->persistent()
+                                ->send();
 
                             if ($omitidos > 0) {
                                 Notification::make()
                                     ->title(__('roles.bulk_skipped_title'))
                                     ->body(__('roles.bulk_skipped_body', [
-                                        'deleted' => $borrados,
                                         'skipped' => $omitidos,
                                     ]))
                                     ->warning()

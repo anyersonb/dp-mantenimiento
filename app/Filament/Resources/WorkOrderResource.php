@@ -6,6 +6,7 @@ use App\Filament\Resources\WorkOrderResource\Pages;
 use App\Filament\Resources\WorkOrderResource\RelationManagers;
 use App\Models\WorkOrder;
 use App\Services\WorkOrderCompletionService;
+use App\Support\AccessControl;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Notifications\Notification;
@@ -58,14 +59,20 @@ class WorkOrderResource extends Resource
         return Auth::user()?->can('execute_work_order') ?? false;
     }
 
+    /**
+     * Borrar una orden de trabajo pasa a decidirse por el permiso
+     * `delete_work_orders` en vez de por el nombre del rol. Hoy lo tiene solo
+     * administrador --el mismo alcance de antes--, pero ahora es editable
+     * desde la pantalla de Roles.
+     */
     public static function canDelete(Model $record): bool
     {
-        return Auth::user()?->hasRole('administrador') ?? false;
+        return AccessControl::allows(Auth::user(), 'delete_work_orders');
     }
 
     public static function canDeleteAny(): bool
     {
-        return Auth::user()?->hasRole('administrador') ?? false;
+        return AccessControl::allows(Auth::user(), 'delete_work_orders');
     }
 
     public static function getNavigationLabel(): string

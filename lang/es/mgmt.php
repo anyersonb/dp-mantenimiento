@@ -29,6 +29,7 @@ return [
     // modelo en snake_case; si falta una, se muestra el nombre de la clase.
     'subject_machine' => 'Máquina',
     'subject_work_order' => 'Orden de trabajo',
+    'subject_role' => 'Rol',
     'subject_horometer_reading' => 'Lectura de horómetro',
     'subject_id' => 'Registro #',
     'changes' => 'Cambios',
@@ -100,7 +101,9 @@ return [
     // Un administrador le dio una clave nueva a alguien. La clave NO se guarda
     // en la bitácora: queda el hecho y quién lo hizo, no el secreto.
     'event_password_generated' => 'Clave regenerada',
+    'event_role_deleted' => 'Rol borrado',
     'user_password_generated_log' => 'Se generó una clave nueva para :user',
+    'role_deleted_log' => 'Se borró el rol :role y se movieron :count usuario(s)',
 
     'import_duplicate_row' => ':machine aparece más de una vez en el reporte: se toma la lectura de :kept_hours h del :kept_date y se descarta la de :dropped_hours h del :dropped_date. Revisá el archivo con el cliente.',
     'import_incoherent_reading' => ':machine: la lectura de :hours h del :date contradice el historial (:reason). La lectura NO se cargó; el resto de la fila sí.',

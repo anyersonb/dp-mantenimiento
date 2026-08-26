@@ -14,7 +14,7 @@ return [
     'field_description_locked_hint' => 'System roles ship with their description translated into English and Spanish; that is the one shown below.',
     'field_permissions' => 'Permissions',
     'field_permissions_help' => 'What each permission enables is written under it. Tick only what this person needs for their job.',
-    'name_locked_hint' => 'System roles cannot be renamed (the code references them by name).',
+    'name_locked_hint' => 'System roles cannot be renamed: their translated description and the permission restorer look them up by name. Deleting them is allowed.',
 
     // Table
     'description' => 'What it is for',
@@ -22,16 +22,25 @@ return [
     'permissions_count' => 'Permissions',
     'users_count' => 'Users',
 
-    // Role deletion (client request 2026-08-24)
-    'delete_blocked_system_title' => 'This role cannot be deleted',
-    'delete_blocked_system_body' => 'It is one of the seven system roles: the code looks it up by name to decide who gets into each screen, so deleting it would leave parts of the system with no owner. If you do not use it, take its permissions away or deactivate the users who hold it.',
-    'delete_blocked_users_title' => 'Leave the role with no users first',
-    'delete_blocked_users_body' => 'Role :role is still assigned to :count user(s). Move them to another role (or deactivate those accounts) and then delete it, so no account is left with no permissions from one moment to the next.',
-    'delete_reason_system' => 'System role: it cannot be deleted.',
-    'delete_reason_has_users' => 'It has :count user(s) assigned.',
-    'delete_blocked_understood' => 'Got it',
+    // Role deletion. There are no undeletable roles any more: what is left to
+    // protect is that no account ends up with no permissions, and that the
+    // system is never left with nobody able to administer it.
+    'delete_heading' => 'Delete the :role role',
+    'delete_description_empty' => 'This role has no users assigned. It will be deleted and this cannot be undone.',
+    'delete_description_with_users' => 'This role is assigned to :count user(s). Choose which role they move to before deleting it: no account can be left with no role at all.',
+    'reassign_label' => 'Move those users to',
+    'reassign_help' => 'If any of those accounts also held other roles, they keep them: only this one changes.',
+    'bulk_reassign_help' => 'The selected roles hold :count user(s) between them. They all move to the role you pick here.',
+    'delete_done_title' => 'Role deleted',
+    'delete_done_empty' => 'The role was deleted. It had no users assigned.',
+    'delete_done_moved' => 'The role was deleted and :count user(s) moved to :role.',
+    'delete_blocked_last_admin_title' => 'That would leave the system with no administrator',
+    'delete_blocked_last_admin_body' => 'After this deletion no active account would be able to enter the panel and manage users and roles, and from the panel there is no way back from that. Before deleting it, give another role the "Enter the panel" and "Manage users" permissions, and assign that role to someone.',
+    'delete_reason_last_admin' => 'It is the only remaining way to administer the system.',
+    'bulk_done_title' => 'Roles deleted',
+    'bulk_done_body' => ':deleted role(s) deleted and :moved user(s) moved.',
     'bulk_skipped_title' => 'Some roles were not deleted',
-    'bulk_skipped_body' => ':deleted role(s) deleted. :skipped were left because they are system roles or still have users assigned.',
+    'bulk_skipped_body' => ':skipped were left: they were the only remaining way to administer the system.',
 
     // Friendly permission labels (Spatie)
     'perm_view_fleet' => 'View fleet',
@@ -49,6 +58,11 @@ return [
     'perm_move_fleet' => 'Move fleet',
     'perm_view_reports' => 'View reports',
     'perm_view_audit_log' => 'View audit log',
+    'perm_access_panel' => 'Enter the panel',
+    'perm_view_alerts' => 'View alerts',
+    'perm_delete_machines' => 'Delete machines',
+    'perm_delete_work_orders' => 'Delete work orders',
+    'perm_receive_alerts_digest' => 'Receive the alerts email',
 
     // What each permission actually enables (client request 2026-08-24). Each
     // text describes what the permission REALLY gates in the code, not what its
@@ -68,6 +82,11 @@ return [
     'perm_desc_move_fleet' => 'Move a machine from one job site to another from the panel, one at a time or several at once.',
     'perm_desc_view_reports' => 'Get into the reports centre and download the PDF and the Excel file. Seeing the figures of the cost report also requires "View costs".',
     'perm_desc_view_audit_log' => 'See the audit log: who changed what, and when. Read only, and it cannot be deleted.',
+    'perm_desc_access_panel' => 'Enter the desktop panel. Without this permission the account signs in but the panel does not open: it is what separates whoever works at a computer from whoever only uses the field app on the phone.',
+    'perm_desc_view_alerts' => 'See the Alerts screen — machines with service due or overdue — and open a work order from there.',
+    'perm_desc_delete_machines' => 'Delete a machine. It takes its work orders, readings, alerts and historical costs with it, so the normal way to retire one is to mark it inactive.',
+    'perm_desc_delete_work_orders' => 'Delete a work order, along with everything entered on it.',
+    'perm_desc_receive_alerts_digest' => 'Receive the daily service-alert summary by email. It opens no screen: it only decides who gets that email.',
 
     // What each system role is for (client request 2026-08-24). Roles she
     // creates from the panel carry the description she writes in the form;

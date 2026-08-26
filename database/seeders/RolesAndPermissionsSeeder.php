@@ -31,6 +31,11 @@ class RolesAndPermissionsSeeder extends Seeder
             'move_fleet',            // decidir movimiento de flota entre obras
             'view_reports',          // consultar/exportar reportes
             'view_audit_log',        // ver bitácora de cambios
+            'access_panel',          // entrar al panel de escritorio
+            'view_alerts',           // ver la pantalla de Alertas y recibir sus avisos
+            'delete_machines',       // borrar una maquina (se lleva su historial)
+            'delete_work_orders',    // borrar una orden de trabajo
+            'receive_alerts_digest', // recibir por correo el resumen diario de alertas
         ];
         foreach ($permissions as $p) {
             Permission::firstOrCreate(['name' => $p]);
@@ -42,6 +47,7 @@ class RolesAndPermissionsSeeder extends Seeder
             'responsable_mantenimiento' => [
                 'view_fleet', 'manage_machines', 'view_costs', 'create_work_order',
                 'view_reports', 'view_audit_log',
+                'access_panel', 'view_alerts',
             ],
             'foreman' => [
                 'view_fleet', 'log_horometer', 'field_report', 'confirm_location',
@@ -54,9 +60,11 @@ class RolesAndPermissionsSeeder extends Seeder
             ],
             'taller' => [
                 'view_fleet', 'view_costs', 'execute_work_order', 'log_horometer',
+                'access_panel',
             ],
             'gerencia' => [
                 'view_fleet', 'view_costs', 'move_fleet', 'view_reports',
+                'access_panel',
             ],
         ];
 
