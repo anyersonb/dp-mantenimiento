@@ -95,6 +95,13 @@ class PartsRelationManager extends RelationManager
                     ->money('usd')
                     ->visible(fn () => Auth::user()?->can('view_costs') ?? false),
             ])
+            // Orden manual (2026-09-01): prioritario del lote de reordenamiento
+            // porque CostReportBuilder respeta este orden (WorkOrder::parts()
+            // ya ordena por sort_order), así que lo que se arrastra acá es lo
+            // que sale en la pantalla, el PDF y el Excel del reporte de costos.
+            // Mismo permiso que edita las líneas: execute_work_order.
+            ->reorderable('sort_order')
+            ->authorizeReorder(fn () => Auth::user()?->can('execute_work_order') ?? false)
             ->headerActions([Tables\Actions\CreateAction::make()])
             ->actions([
                 Tables\Actions\EditAction::make(),

@@ -184,6 +184,23 @@ class WorkOrderResource extends Resource
                 Tables\Columns\TextColumn::make('assignee.name')->label(__('wo.assigned_to'))->placeholder('—'),
                 Tables\Columns\TextColumn::make('opened_at')->label(__('wo.opened_at'))->date()->sortable(),
             ])
+            /*
+             * Orden manual (2026-09-01): se agrega la capacidad de arrastrar
+             * (->reorderable), pero el defaultSort se DEJA en created_at desc
+             * a propósito — NO se cambia en silencio.
+             *
+             * Conflicto real que queda para Anyerson: mientras el listado
+             * ordene por fecha de creación, el orden manual que alguien arme
+             * arrastrando filas no se ve reflejado la próxima vez que se abre
+             * la pantalla (solo se ve mientras el modo "reordenar" sigue
+             * activo). La alternativa —defaultSort('sort_order')— sí lo haría
+             * persistente a la vista, pero cambia el comportamiento hoy
+             * establecido de "las OT más nuevas arriba", que es lo que el
+             * cliente espera al abrir el listado. Se optó por lo menos
+             * sorprendente (no tocar el orden por defecto existente).
+             */
+            ->reorderable('sort_order')
+            ->authorizeReorder(fn () => Auth::user()?->can('execute_work_order') ?? false)
             ->defaultSort('created_at', 'desc')
             ->filters([
                 Tables\Filters\SelectFilter::make('status')->label(__('fleet.status'))->options([

@@ -113,9 +113,10 @@ class Machine extends Model
         return $this->hasMany(HorometerReading::class)->latest('read_at');
     }
 
+    /** Orden manual (arrastrable) del catálogo de repuestos de esta máquina. */
     public function parts(): HasMany
     {
-        return $this->hasMany(MachinePart::class);
+        return $this->hasMany(MachinePart::class)->orderBy('sort_order');
     }
 
     public function workOrders(): HasMany

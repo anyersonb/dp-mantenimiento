@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\HasManualOrder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -10,7 +11,7 @@ use Spatie\Activitylog\Traits\LogsActivity;
 
 class WorkOrder extends Model
 {
-    use LogsActivity;
+    use HasManualOrder, LogsActivity;
 
     /**
      * Estados en los que la OT ya no admite cambios destructivos: el trabajo
@@ -123,9 +124,15 @@ class WorkOrder extends Model
         return $this->belongsTo(Location::class);
     }
 
+    /**
+     * Orden manual (arrastrable) de las líneas de repuestos, respetado acá
+     * para que CostReportBuilder —y por lo tanto la pantalla, el PDF y el
+     * Excel del reporte de costos— muestre las líneas en el orden que el
+     * taller les dio, no por id de carga.
+     */
     public function parts(): HasMany
     {
-        return $this->hasMany(WorkOrderPart::class);
+        return $this->hasMany(WorkOrderPart::class)->orderBy('sort_order');
     }
 
     public function checklistResults(): HasMany

@@ -94,7 +94,12 @@ class MakeResource extends Resource
                 Tables\Columns\TextColumn::make('name')->label(__('fleet.make'))->searchable()->sortable()->weight('bold'),
                 Tables\Columns\TextColumn::make('machines_count')->label(__('fleet.machines'))->counts('machines')->badge()->color('info'),
             ])
-            ->defaultSort('name')
+            // Orden manual (2026-09-01): pasa a mandar sort_order en vez de
+            // name, para que el orden guardado sea el que se ve. Mismo
+            // permiso que edita el catálogo: manage_machines.
+            ->defaultSort('sort_order')
+            ->reorderable('sort_order')
+            ->authorizeReorder(fn () => Auth::user()?->can('manage_machines') ?? false)
             ->actions([Tables\Actions\EditAction::make()])
             ->bulkActions([Tables\Actions\BulkActionGroup::make([Tables\Actions\DeleteBulkAction::make()])]);
     }

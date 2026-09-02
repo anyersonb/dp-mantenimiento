@@ -102,7 +102,13 @@ class PartsRelationManager extends RelationManager
                     ->badge()->color('info')
                     ->formatStateUsing(fn ($state) => $state ? $state.' h' : '—')->sortable(),
             ])
-            ->defaultSort('change_interval_hours')
+            // Orden manual (2026-09-01): pasa a mandar sort_order en vez de
+            // change_interval_hours, para que el orden guardado sea el que se
+            // ve (si no, el drag-and-drop movería filas pero la próxima carga
+            // volvería a mostrarlas agrupadas por intervalo).
+            ->defaultSort('sort_order')
+            ->reorderable('sort_order')
+            ->authorizeReorder(fn () => Auth::user()?->can('manage_machines') ?? false)
             ->filters([
                 Tables\Filters\SelectFilter::make('change_interval_hours')->label(__('fleet.change_interval'))
                     ->options([500 => '500 h', 1000 => '1000 h', 2000 => '2000 h', 4000 => '4000 h']),
