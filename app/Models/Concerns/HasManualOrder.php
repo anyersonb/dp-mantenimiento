@@ -2,6 +2,9 @@
 
 namespace App\Models\Concerns;
 
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\DB;
+
 /**
  * Asigna `sort_order` automáticamente al crear un registro nuevo (2026-09-01,
  * lote de reordenamiento manual).
@@ -51,7 +54,18 @@ trait HasManualOrder
                 // abajo antes de asignarle 1 a la fila nueva, para que quede
                 // primera bajo el orden ascendente que Filament fuerza
                 // mientras el modo arrastrar está activo.
-                (clone $query)->increment('sort_order');
+                //
+                // `increment()` pisa `updated_at` de TODAS las filas del
+                // alcance, y como es una query de builder no dispara eventos
+                // — la bitácora no se entera pero el dato sí cambió.
+                // `update(['sort_order' => DB::raw(...)])` sobre un
+                // Eloquent\Builder tiene EL MISMO problema: Eloquent inyecta
+                // `updated_at` solo en el mass-update aunque no se lo pida
+                // (comprobado, no es un supuesto). Hace falta bajar a
+                // `toBase()` — el query builder de base, sin la capa de
+                // Eloquent que agrega esa columna sola. Hallazgo de
+                // seguridad, 2026-09-01.
+                (clone $query)->toBase()->update(['sort_order' => DB::raw('sort_order + 1')]);
                 $model->sort_order = 1;
 
                 return;
@@ -59,6 +73,23 @@ trait HasManualOrder
 
             $model->sort_order = ((int) $query->max('sort_order')) + 1;
         });
+    }
+
+    /**
+     * El incremento del modo prepend y el INSERT de la fila nueva comparten
+     * transacción (hallazgo de seguridad, 2026-09-01): antes, el `UPDATE` de
+     * "correr" la secuencia corría como una query suelta dentro de
+     * `creating`, ANTES del INSERT real de Eloquent. Si el INSERT fallaba
+     * después —ej. un código de OT duplicado—, el `UPDATE` ya se había
+     * aplicado a la tabla entera y quedaba así: una operación que nunca
+     * llegó a existir corrió el orden de todas las demás filas. Envolver
+     * `performInsert` (que es quien dispara `creating`, el INSERT y
+     * `created`, todo en la misma llamada) en una transacción hace que las
+     * dos vivan o mueran juntas.
+     */
+    protected function performInsert(Builder $query)
+    {
+        return $this->getConnection()->transaction(fn () => parent::performInsert($query));
     }
 
     /**
