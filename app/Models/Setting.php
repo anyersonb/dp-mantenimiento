@@ -4,6 +4,8 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Cache;
+use Spatie\Activitylog\LogOptions;
+use Spatie\Activitylog\Traits\LogsActivity;
 
 /**
  * Configuración clave/valor con tipo, persistida en base de datos.
@@ -20,6 +22,8 @@ use Illuminate\Support\Facades\Cache;
  */
 class Setting extends Model
 {
+    use LogsActivity;
+
     protected $guarded = [];
 
     public static function cacheKey(string $key): string
@@ -47,6 +51,22 @@ class Setting extends Model
                 return self::castValue($setting->value, $setting->type);
             }
         );
+    }
+
+    /**
+     * Bitácora del cambio (hallazgo de seguridad, bloqueante, 2026-09-01):
+     * cambiar un valor de Configuración —hoy, la tasa de impuesto— no dejaba
+     * ningún rastro de quién, cuándo, ni el valor anterior. `logOnlyDirty()`
+     * deja la comparación vieja/nueva a Spatie: si `value` no cambió, no se
+     * escribe ningún asiento. Mismo patrón que WorkOrder/Machine/
+     * HorometerReading, no uno nuevo.
+     */
+    public function getActivitylogOptions(): LogOptions
+    {
+        return LogOptions::defaults()
+            ->logOnly(['key', 'value'])
+            ->logOnlyDirty()
+            ->dontSubmitEmptyLogs();
     }
 
     /**
