@@ -7,8 +7,10 @@ use App\Services\Reports\CostReportFilters;
 use Illuminate\Support\Collection;
 use Maatwebsite\Excel\Concerns\FromCollection;
 use Maatwebsite\Excel\Concerns\ShouldAutoSize;
+use Maatwebsite\Excel\Concerns\WithEvents;
 use Maatwebsite\Excel\Concerns\WithHeadings;
 use Maatwebsite\Excel\Concerns\WithTitle;
+use Maatwebsite\Excel\Events\AfterSheet;
 
 /**
  * El reporte de costos en Excel.
@@ -29,8 +31,16 @@ use Maatwebsite\Excel\Concerns\WithTitle;
  * El PDF y la pantalla salen del mismo `CostReportBuilder`, así que los totales
  * cuadran por construcción.
  */
-class CostReportExport implements FromCollection, ShouldAutoSize, WithHeadings, WithTitle
+class CostReportExport implements FromCollection, ShouldAutoSize, WithEvents, WithHeadings, WithTitle
 {
+    /**
+     * Totales del reporte, guardados en collection() para que registerEvents()
+     * pueda escribir el pie sin recalcular el reporte una segunda vez.
+     *
+     * @var array<string, mixed>|null
+     */
+    private ?array $totals = null;
+
     public function __construct(private readonly CostReportFilters $filters) {}
 
     public function title(): string
@@ -41,6 +51,7 @@ class CostReportExport implements FromCollection, ShouldAutoSize, WithHeadings, 
     public function collection(): Collection
     {
         $report = CostReportBuilder::build($this->filters);
+        $this->totals = $report['totals'];
 
         $rows = collect();
 
@@ -121,6 +132,42 @@ class CostReportExport implements FromCollection, ShouldAutoSize, WithHeadings, 
             // el total del reporte cuenta.
             $part === null ? null : ($part['unit_cost'] ?? __('reports.no_cost_loaded')),
             $part === null ? null : $part['subtotal'],
+        ];
+    }
+
+    /**
+     * Pie del Excel con el impuesto de repuestos (2026-09-01): tres filas con
+     * formato NUMÉRICO (no texto) bajo la columna "subtotal" (T), dos filas
+     * después de la última de datos para que no se confundan con una fila más
+     * de repuesto. Los mismos tres números que la pantalla y el PDF, salidos
+     * del mismo CostReportBuilder — no se recalculan acá.
+     */
+    public function registerEvents(): array
+    {
+        return [
+            AfterSheet::class => function (AfterSheet $event): void {
+                if ($this->totals === null) {
+                    return;
+                }
+
+                $sheet = $event->sheet->getDelegate();
+                $row = $sheet->getHighestRow() + 2;
+                $taxRateLabel = rtrim(rtrim(number_format($this->totals['tax_rate'], 2), '0'), '.');
+
+                $footer = [
+                    __('reports.subtotal_parts') => $this->totals['subtotal'],
+                    __('reports.tax_amount_label', ['rate' => $taxRateLabel]) => $this->totals['tax_amount'],
+                    __('reports.grand_total_with_tax') => $this->totals['total'],
+                ];
+
+                foreach ($footer as $label => $value) {
+                    $sheet->setCellValue('Q'.$row, $label);
+                    $sheet->setCellValue('T'.$row, (float) $value);
+                    $sheet->getStyle('T'.$row)->getNumberFormat()->setFormatCode('#,##0.00');
+                    $sheet->getStyle('Q'.$row.':T'.$row)->getFont()->setBold(true);
+                    $row++;
+                }
+            },
         ];
     }
 }

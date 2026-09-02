@@ -3,6 +3,7 @@
 namespace App\Services\Reports;
 
 use App\Models\WorkOrder;
+use App\Services\TaxCalculator;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
 
@@ -205,10 +206,23 @@ class CostReportBuilder
             }
         }
 
+        // Impuesto de repuestos (Florida, decisión de Anyerson 2026-09-01):
+        // se aplica en UNA sola operación, sobre el subtotal YA sumado acá —
+        // nunca línea por línea ni por máquina — para no acumular redondeos.
+        // Fuente única: App\Services\TaxCalculator. El "subtotal" gravable ES
+        // `parts_total`: la mano de obra sigue exenta, como siempre.
+        $partsTotal = (float) array_sum(array_column($rows, 'parts_total'));
+        $taxRate = TaxCalculator::rate();
+        $taxAmount = TaxCalculator::calcular($partsTotal);
+
         return [
             'machine_count' => count($machines),
             'work_order_count' => count($rows),
-            'parts_total' => (float) array_sum(array_column($rows, 'parts_total')),
+            'parts_total' => $partsTotal,
+            'subtotal' => $partsTotal,
+            'tax_rate' => $taxRate,
+            'tax_amount' => $taxAmount,
+            'total' => round($partsTotal + $taxAmount, 2, PHP_ROUND_HALF_UP),
             'labor_hours' => (float) array_sum(array_column($rows, 'labor_hours')),
             'parts_without_cost' => (int) array_sum(array_column($rows, 'parts_without_cost')),
             // Cuánto del reporte no puede responder "quién" y "dónde". Las dos

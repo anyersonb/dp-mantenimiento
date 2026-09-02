@@ -68,6 +68,7 @@ return [
     'perm_delete_machines' => 'Delete machines',
     'perm_delete_work_orders' => 'Delete work orders',
     'perm_receive_alerts_digest' => 'Receive the alerts email',
+    'perm_manage_settings' => 'Manage settings',
 
     // What each permission actually enables (client request 2026-08-24). Each
     // text describes what the permission REALLY gates in the code, not what its
@@ -92,6 +93,7 @@ return [
     'perm_desc_delete_machines' => 'Delete a machine. It takes its work orders, readings, alerts and historical costs with it, so the normal way to retire one is to mark it inactive.',
     'perm_desc_delete_work_orders' => 'Delete a work order, along with everything entered on it.',
     'perm_desc_receive_alerts_digest' => 'Receive the daily service-alert summary by email. It opens no screen: it only decides who gets that email.',
+    'perm_desc_manage_settings' => 'Edit the panel Settings (today, the parts tax rate). A new administrator permission, unrelated to any of the others.',
 
     // What each system role is for (client request 2026-08-24). Roles she
     // creates from the panel carry the description she writes in the form;

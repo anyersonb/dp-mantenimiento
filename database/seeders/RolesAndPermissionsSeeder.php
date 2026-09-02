@@ -36,6 +36,7 @@ class RolesAndPermissionsSeeder extends Seeder
             'delete_machines',       // borrar una maquina (se lleva su historial)
             'delete_work_orders',    // borrar una orden de trabajo
             'receive_alerts_digest', // recibir por correo el resumen diario de alertas
+            'manage_settings',       // editar la Configuración del panel (tasa de impuesto, etc.)
         ];
         foreach ($permissions as $p) {
             Permission::firstOrCreate(['name' => $p]);

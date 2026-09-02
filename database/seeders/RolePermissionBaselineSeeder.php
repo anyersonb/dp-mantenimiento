@@ -50,7 +50,7 @@ class RolePermissionBaselineSeeder extends Seeder
             'log_horometer', 'log_fuel', 'field_report', 'confirm_location',
             'move_fleet', 'view_reports', 'view_audit_log',
             'access_panel', 'view_alerts', 'delete_machines', 'delete_work_orders',
-            'receive_alerts_digest',
+            'receive_alerts_digest', 'manage_settings',
         ],
         'responsable_mantenimiento' => [
             'view_fleet', 'manage_machines', 'view_costs', 'create_work_order',

@@ -79,6 +79,9 @@ class UniqueColumnSentinelTest extends TestCase
         'permissions' => 'índice compuesto name+guard_name; los permisos los crea el seeder, no hay formulario.',
         'quotes' => 'share_token lo genera el sistema y no existe como campo del formulario.',
         'migrations' => 'tabla interna del framework.',
+        'settings' => 'clave/valor interna (tax_rate, etc.); no hay formulario del panel que cree filas por key. '
+            .'App\Models\Setting::set() hace updateOrCreate por código, así que un duplicado de key nunca puede '
+            .'llegar desde una pantalla.',
     ];
 
     protected function setUp(): void

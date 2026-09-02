@@ -52,6 +52,9 @@ return [
     'machine_spend' => 'Gasto de la máquina',
     'grand_total' => 'Total general',
     'total' => 'Total',
+    'subtotal_parts' => 'Subtotal repuestos',
+    'tax_amount_label' => 'Impuesto (:rate%)',
+    'grand_total_with_tax' => 'Total (con impuesto)',
 
     // Detalle
     'detail' => 'Detalle por máquina',

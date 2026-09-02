@@ -52,6 +52,9 @@ return [
     'machine_spend' => 'Machine spend',
     'grand_total' => 'Grand total',
     'total' => 'Total',
+    'subtotal_parts' => 'Parts subtotal',
+    'tax_amount_label' => 'Tax (:rate%)',
+    'grand_total_with_tax' => 'Total (with tax)',
 
     // Detail
     'detail' => 'Detail by machine',

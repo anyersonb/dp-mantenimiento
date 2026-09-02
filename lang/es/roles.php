@@ -68,6 +68,7 @@ return [
     'perm_delete_machines' => 'Borrar máquinas',
     'perm_delete_work_orders' => 'Borrar órdenes de trabajo',
     'perm_receive_alerts_digest' => 'Recibir el aviso de alertas',
+    'perm_manage_settings' => 'Gestionar configuración',
 
     // Qué habilita cada permiso (pedido de la clienta 2026-08-24). Cada texto
     // describe lo que el permiso controla REALMENTE en el código, no lo que su
@@ -92,6 +93,7 @@ return [
     'perm_desc_delete_machines' => 'Borrar una máquina. Se lleva en cascada sus órdenes, lecturas, alertas y costos históricos, así que el camino normal de baja es marcarla inactiva.',
     'perm_desc_delete_work_orders' => 'Borrar una orden de trabajo, con todo lo que tenga cargado.',
     'perm_desc_receive_alerts_digest' => 'Recibir por correo el resumen diario de alertas de servicio. No abre ninguna pantalla: solo decide a quién le llega ese correo.',
+    'perm_desc_manage_settings' => 'Editar la Configuración del panel (hoy, la tasa de impuesto de repuestos). Es un permiso nuevo del administrador, sin relación con ninguno de los otros.',
 
     // Para qué es cada rol del sistema (pedido de la clienta 2026-08-24). Los
     // roles que ella cree desde el panel llevan la descripción que escriba en

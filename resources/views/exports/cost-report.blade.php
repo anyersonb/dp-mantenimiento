@@ -271,8 +271,28 @@
             @endforeach
         @endforeach
 
+        @php
+            $taxRateLabel = rtrim(rtrim(number_format($totals['tax_rate'], 2), '0'), '.');
+        @endphp
+        <table class="grid" style="margin-top:14px;">
+            <tbody>
+                <tr>
+                    <td colspan="4">{{ __('reports.subtotal_parts') }}</td>
+                    <td class="text-right">${{ number_format($totals['subtotal'], 2) }}</td>
+                </tr>
+                <tr>
+                    <td colspan="4">{{ __('reports.tax_amount_label', ['rate' => $taxRateLabel]) }}</td>
+                    <td class="text-right">${{ number_format($totals['tax_amount'], 2) }}</td>
+                </tr>
+                <tr class="subtotal">
+                    <td colspan="4"><strong>{{ __('reports.grand_total_with_tax') }}</strong></td>
+                    <td class="text-right"><strong>${{ number_format($totals['total'], 2) }}</strong></td>
+                </tr>
+            </tbody>
+        </table>
+
         <div class="grand">
-            {{ __('reports.grand_total') }}: ${{ number_format($totals['parts_total'], 2) }}
+            {{ __('reports.grand_total_with_tax') }}: ${{ number_format($totals['total'], 2) }}
             &nbsp;·&nbsp; {{ $totals['work_order_count'] }} {{ __('reports.work_orders') }}
             &nbsp;·&nbsp; {{ $totals['machine_count'] }} {{ __('fleet.machines') }}
         </div>

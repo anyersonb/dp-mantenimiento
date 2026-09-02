@@ -250,6 +250,22 @@
                                 <td class="dp-num">{{ number_format($totals['labor_hours'], 1) }}</td>
                                 <td class="dp-num">${{ number_format($totals['parts_total'], 2) }}</td>
                             </tr>
+                            {{-- Impuesto de repuestos (2026-09-01): una sola operación de
+                                 redondeo sobre el subtotal ya sumado arriba, nunca por máquina. --}}
+                            <tr>
+                                <td colspan="3">{{ __('reports.subtotal_parts') }}</td>
+                                <td class="dp-num">${{ number_format($totals['subtotal'], 2) }}</td>
+                            </tr>
+                            <tr>
+                                <td colspan="3">
+                                    {{ __('reports.tax_amount_label', ['rate' => rtrim(rtrim(number_format($totals['tax_rate'], 2), '0'), '.')]) }}
+                                </td>
+                                <td class="dp-num">${{ number_format($totals['tax_amount'], 2) }}</td>
+                            </tr>
+                            <tr>
+                                <td colspan="3"><strong>{{ __('reports.grand_total_with_tax') }}</strong></td>
+                                <td class="dp-num"><strong>${{ number_format($totals['total'], 2) }}</strong></td>
+                            </tr>
                         </tfoot>
                     </table>
                 </div>

@@ -3,9 +3,14 @@
 return [
     // Costs / reports dashboard
     'cost_by_machine' => 'Maintenance cost by machine',
-    'total_fleet_cost' => 'Total fleet maintenance cost',
+    // "(no tax)": internal metrics (parts by their cost loaded on the work
+    // order, mirror column work_orders.parts_cost), not billing. The parts
+    // tax (2026-09-01) only applies in the cost report
+    // (CostReportBuilder::totals()), never here — so nobody compares these
+    // two figures against the report total as if they were the same thing.
+    'total_fleet_cost' => 'Total fleet maintenance cost (no tax)',
     'service_count' => 'Services',
-    'maintenance_cost' => 'Maintenance cost',
+    'maintenance_cost' => 'Maintenance cost (no tax)',
 
     // Fleet movement
     'move_machine' => 'Move',

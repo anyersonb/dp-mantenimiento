@@ -3,9 +3,15 @@
 return [
     // Dashboard de costos / reportes
     'cost_by_machine' => 'Costo de mantenimiento por máquina',
-    'total_fleet_cost' => 'Costo total de mantenimiento de la flota',
+    // "(sin impuesto)": son métricas internas (repuestos por su costo cargado
+    // en la OT, columna espejo work_orders.parts_cost), no facturación. El
+    // impuesto de repuestos (2026-09-01) solo se aplica en el reporte de
+    // costos (CostReportBuilder::totals()), nunca acá — para que nadie
+    // compare estas dos cifras con el total del reporte como si fueran lo
+    // mismo.
+    'total_fleet_cost' => 'Costo total de mantenimiento de la flota (sin impuesto)',
     'service_count' => 'Servicios',
-    'maintenance_cost' => 'Costo de mantenimiento',
+    'maintenance_cost' => 'Costo de mantenimiento (sin impuesto)',
 
     // Movimiento de flota
     'move_machine' => 'Mover',

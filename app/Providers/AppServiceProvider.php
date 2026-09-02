@@ -5,11 +5,13 @@ namespace App\Providers;
 use App\Models\ChecklistResult;
 use App\Models\HorometerReading;
 use App\Models\Machine;
+use App\Models\Setting;
 use App\Models\WorkOrder;
 use App\Models\WorkOrderPart;
 use App\Observers\ChecklistResultObserver;
 use App\Observers\HorometerReadingObserver;
 use App\Observers\MachineObserver;
+use App\Observers\SettingObserver;
 use App\Observers\WorkOrderObserver;
 use App\Observers\WorkOrderPartObserver;
 use Filament\Support\Facades\FilamentView;
@@ -45,6 +47,10 @@ class AppServiceProvider extends ServiceProvider
         // permiso verify_data, ni por el form normal de edición ni por payload
         // manipulado (Machine usa $guarded = []).
         Machine::observe(MachineObserver::class);
+
+        // Impuesto de repuestos (2026-09-01): invalida la caché de Setting::get()
+        // en cuanto la tasa (u otro valor) se guarda o se borra.
+        Setting::observe(SettingObserver::class);
 
         // PWA: manifest + theme-color + registro del service worker en el <head> del panel
         FilamentView::registerRenderHook(
