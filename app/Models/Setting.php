@@ -16,9 +16,13 @@ use Spatie\Activitylog\Traits\LogsActivity;
  * (`features.quotes`, ver App\Support\AccessControl). Cualquier valor que el
  * cliente deba poder cambiar desde el panel sin depender de un deploy va acá.
  *
- * `get()`/`set()` son el único punto de lectura/escritura esperado en el
- * proyecto — no consultar la tabla directamente desde otro sitio, o la caché
- * de abajo queda desincronizada.
+ * `get()`/`set()` son el ÚNICO camino de lectura/escritura soportado en el
+ * proyecto — no consultar ni escribir la tabla directamente desde otro
+ * sitio (ni `DB::table('settings')`, ni un `tinker`, ni un seeder futuro):
+ * la caché de abajo y la bitácora de `LogsActivity` solo se disparan por acá.
+ * Una escritura por SQL crudo dejaría a `rate()` sirviendo el valor viejo
+ * hasta que la caché expire (ver el TTL corto más abajo) y sin ningún
+ * rastro en Activity — hallazgo de seguridad, 2026-09-01.
  */
 class Setting extends Model
 {
@@ -26,21 +30,34 @@ class Setting extends Model
 
     protected $guarded = [];
 
+    /**
+     * TTL corto en vez de `rememberForever` (hallazgo de seguridad,
+     * 2026-09-01): el observer solo invalida la caché en escrituras por
+     * Eloquent. Una escritura por SQL crudo (phpMyAdmin, un `tinker`, un
+     * import) no dispara `saved`/`deleted` y antes dejaba el valor pegado
+     * INDEFINIDAMENTE. Con TTL corto, el peor caso es servir un valor viejo
+     * durante como máximo este tiempo, no para siempre.
+     */
+    private const CACHE_TTL_MINUTES = 5;
+
     public static function cacheKey(string $key): string
     {
         return 'setting.'.$key;
     }
 
     /**
-     * Lee un valor por clave, cacheado indefinidamente. La invalidación vive
-     * en App\Observers\SettingObserver (saved/deleted), no acá: un valor que
-     * se guarda y sigue mostrando el viejo hasta limpiar caché a mano no es
-     * un pendiente de configuración, es un defecto.
+     * Lee un valor por clave, cacheado con TTL corto. La invalidación por
+     * escritura vía Eloquent vive en App\Observers\SettingObserver
+     * (saved/deleted); el TTL es la red para cualquier otra vía de
+     * escritura. Un valor que se guarda y sigue mostrando el viejo hasta
+     * limpiar caché a mano no es un pendiente de configuración, es un
+     * defecto.
      */
     public static function get(string $key, mixed $default = null): mixed
     {
-        return Cache::rememberForever(
+        return Cache::remember(
             self::cacheKey($key),
+            now()->addMinutes(self::CACHE_TTL_MINUTES),
             function () use ($key, $default) {
                 $setting = static::query()->where('key', $key)->first();
 
@@ -89,7 +106,14 @@ class Setting extends Model
 
         return match ($type) {
             'integer' => (int) $value,
-            'float' => (float) $value,
+            // is_numeric(...) ? (float) : $value: un `(float) 'abc'` silencioso
+            // devolvía 0.0 acá mismo, antes de que TaxCalculator::rate() (la
+            // fuente única de validación de la tasa) llegara siquiera a ver
+            // que el dato estaba corrupto. Pasar el crudo cuando no es
+            // numérico es lo que le permite a rate() detectarlo y loguearlo
+            // en vez de heredar un 0.0 inventado. Hallazgo de seguridad,
+            // 2026-09-01.
+            'float' => is_numeric($value) ? (float) $value : $value,
             'boolean' => filter_var($value, FILTER_VALIDATE_BOOLEAN),
             'json' => json_decode($value, true),
             default => $value,
