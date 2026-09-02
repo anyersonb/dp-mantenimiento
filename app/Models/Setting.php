@@ -28,7 +28,7 @@ class Setting extends Model
 {
     use LogsActivity;
 
-    protected $guarded = [];
+    protected $fillable = ['key', 'value', 'type'];
 
     /**
      * TTL corto en vez de `rememberForever` (hallazgo de seguridad,

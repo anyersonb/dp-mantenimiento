@@ -2,6 +2,7 @@
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\PermissionRegistrar;
@@ -30,7 +31,27 @@ return new class extends Migration
             $permission = Permission::firstOrCreate(['name' => 'manage_settings', 'guard_name' => 'web']);
 
             $role = Role::where('name', 'administrador')->first();
-            $role?->givePermissionTo($permission);
+
+            if (! $role) {
+                // Fail-closed y recuperable (RolePermissionBaselineSeeder
+                // reconverge la matriz después), pero antes se desplegaba en
+                // SILENCIO — y justo el commit base de este lote (9a2a7eb4)
+                // volvió los roles renombrables. Hallazgo de seguridad,
+                // 2026-09-01: que el próximo que corra `migrate` en
+                // producción se entere acá, no auditando a mano.
+                $summary = "[manage_settings migration] el rol 'administrador' no existe (¿fue renombrado?) — "
+                    .'ningún rol recibió manage_settings. Corré RolePermissionBaselineSeeder para reconverger.';
+
+                Log::warning($summary);
+
+                if (app()->runningInConsole()) {
+                    fwrite(STDOUT, "  {$summary}\n");
+                }
+
+                return;
+            }
+
+            $role->givePermissionTo($permission);
         });
 
         app(PermissionRegistrar::class)->forgetCachedPermissions();

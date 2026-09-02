@@ -97,7 +97,12 @@ class Configuration extends Page implements HasForms
 
         $state = $this->form->getState();
 
-        Setting::set(TaxCalculator::SETTING_KEY, (float) $state['tax_rate'], TaxCalculator::SETTING_TYPE);
+        // round(..., 2): sin esto, un valor tecleado con más de 2 decimales
+        // (ej. 7.123456789012345678) se acepta y se guarda con la precisión
+        // completa del float de PHP, ensuciando el rótulo del reporte sin
+        // ganar nada — el paso ya es 0.01 en el formulario. Hallazgo menor
+        // de seguridad, 2026-09-01.
+        Setting::set(TaxCalculator::SETTING_KEY, round((float) $state['tax_rate'], 2), TaxCalculator::SETTING_TYPE);
 
         Notification::make()
             ->title(__('settings.saved'))
