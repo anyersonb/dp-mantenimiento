@@ -7,13 +7,24 @@ use Illuminate\Support\Facades\Schema;
 
 /**
  * Orden manual del listado de órdenes de trabajo (`WorkOrderResource`).
- * Backfill GLOBAL por `id` (orden de creación), igual que los catálogos.
  *
- * OJO: el `defaultSort('created_at', 'desc')` del listado NO se toca en este
- * lote — ver la nota en WorkOrderResource::table(). Reordenar manualmente
- * queda disponible (botón de reordenar + drag), pero la vista normal del
- * listado sigue mostrando lo más reciente primero. Decisión reportada a
- * Anyerson, no resuelta en silencio.
+ * El requisito (Anyerson, 2026-09-01) es que al desplegar esto NADIE note
+ * ningún cambio hasta que decida arrastrar: la pantalla tiene que verse
+ * EXACTAMENTE igual que hoy, con las OT más nuevas arriba.
+ *
+ * Por eso el backfill NO sigue `id` ascendente (eso pondría la más VIEJA
+ * arriba): ordena por `created_at DESC` — con `id DESC` para desempatar un
+ * timestamp repetido — y asigna sort_order ASCENDENTE en ese recorrido, así
+ * que la OT más nueva queda en 1 y la más vieja en el número más alto.
+ *
+ * El motivo de que "más nueva = número más BAJO" (y no al revés, que sería
+ * más intuitivo a primera vista) es que Filament, mientras el modo arrastrar
+ * está activo, SIEMPRE ordena el reorderColumn ASCENDENTE
+ * (`Filament\Tables\Concerns\CanSortRecords::isTableReordering()`), sin
+ * importar qué diga `defaultSort()`. Para que la pantalla no "salte" al
+ * activar o desactivar el modo arrastrar, `WorkOrderResource::table()` tiene
+ * que usar el mismo sentido ascendente siempre — ver ese archivo y
+ * `WorkOrder::manualOrderPrepend()` (una OT nueva nace en 1, no al final).
  */
 return new class extends Migration
 {
@@ -26,7 +37,8 @@ return new class extends Migration
         $sequence = 0;
 
         DB::table('work_orders')
-            ->orderBy('id')
+            ->orderByDesc('created_at')
+            ->orderByDesc('id')
             ->pluck('id')
             ->each(function ($id) use (&$sequence) {
                 $sequence++;

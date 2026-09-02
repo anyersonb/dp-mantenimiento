@@ -6,6 +6,7 @@ use App\Filament\Resources\LocationResource\Pages\ListLocations;
 use App\Filament\Resources\MachineResource\Pages\EditMachine;
 use App\Filament\Resources\MachineResource\RelationManagers\PartsRelationManager as MachinePartsRelationManager;
 use App\Filament\Resources\WorkOrderResource\Pages\EditWorkOrder;
+use App\Filament\Resources\WorkOrderResource\Pages\ListWorkOrders;
 use App\Filament\Resources\WorkOrderResource\RelationManagers\PartsRelationManager as WorkOrderPartsRelationManager;
 use App\Models\Location;
 use App\Models\Machine;
@@ -34,6 +35,10 @@ use Tests\TestCase;
  *   3. El botón de reordenar respeta el mismo permiso que ya autoriza
  *      editar ese recurso — quien solo puede ver, no reordena, ni siquiera
  *      llamando el método de Livewire directamente.
+ *   4. El listado de órdenes de trabajo es el caso especial: una OT nueva
+ *      nace ARRIBA (como hoy, sin este lote) y lo que alguien arrastra
+ *      SOBREVIVE a una carga nueva de la pantalla — no solo mientras el modo
+ *      "reordenar" sigue activo en la misma sesión de Livewire.
  */
 class ManualOrderTest extends TestCase
 {
@@ -218,5 +223,91 @@ class ManualOrderTest extends TestCase
 
         $this->assertSame(2, $first->fresh()->sort_order);
         $this->assertSame(1, $second->fresh()->sort_order);
+    }
+
+    /* ------------------------------------------------------------------ *
+     * 4. Listado de órdenes de trabajo: "más nueva arriba" + persistencia.
+     *
+     * Hallazgo del jefe (2026-09-01): con el backfill por `id` ascendente y
+     * `defaultSort('created_at','desc')` original, arrastrar cambiaba
+     * `sort_order` en la BD pero la pantalla seguía leyendo por
+     * `created_at`, así que el arrastre "no sobrevivía" a un refresco. Fix:
+     * backfill por `created_at DESC` (la más nueva = sort_order 1),
+     * `WorkOrder::manualOrderPrepend()` (una OT nueva nace en 1) y
+     * `defaultSort('sort_order')` ASCENDENTE (el mismo sentido que Filament
+     * fuerza mientras el modo arrastrar está activo).
+     * ------------------------------------------------------------------ */
+
+    public function test_a_new_work_order_is_prepended_above_existing_ones(): void
+    {
+        $machine = $this->machine();
+
+        $oldest = $this->workOrder($machine);
+        $middle = $this->workOrder($machine);
+        $newest = $this->workOrder($machine);
+
+        // Sin que nadie arrastre nada: recién creadas, "la más nueva arriba"
+        // tiene que verse igual que con el created_at desc de siempre.
+        $this->assertSame(
+            [$newest->id, $middle->id, $oldest->id],
+            WorkOrder::query()->orderBy('sort_order')->pluck('id')->all(),
+        );
+
+        $brandNew = $this->workOrder($machine);
+
+        // La que se acaba de crear pasa a estar primera, corriendo el resto
+        // un puesto — no se agrega al final.
+        $this->assertSame(
+            [$brandNew->id, $newest->id, $middle->id, $oldest->id],
+            WorkOrder::query()->orderBy('sort_order')->pluck('id')->all(),
+        );
+    }
+
+    /**
+     * El test que pide el jefe: reordenar, y comprobar que una carga NUEVA
+     * de la pantalla (instancia de Livewire recién montada, no la misma
+     * sesión que hizo el arrastre) devuelve el orden que se acaba de armar,
+     * leído por el mismo camino que usa la pantalla real
+     * (`WorkOrderResource::table()`), no por una consulta propia que se
+     * inventaría su propio ORDER BY.
+     *
+     * Falla si se revierte `defaultSort('sort_order')` a
+     * `defaultSort('created_at', 'desc')`: con las tres OT creadas en el
+     * mismo instante de test (mismo `created_at` a la resolución de
+     * segundos), la vuelta a created_at desc mostraría un orden distinto al
+     * recién arrastrado, y el `assertSame` de abajo lo detecta.
+     */
+    public function test_manual_reorder_of_work_orders_persists_on_a_freshly_mounted_page(): void
+    {
+        $machine = $this->machine();
+
+        $a = $this->workOrder($machine);
+        $b = $this->workOrder($machine);
+        $c = $this->workOrder($machine);
+
+        $admin = $this->user('admin@dp.local');
+
+        Livewire::actingAs($admin)
+            ->test(ListWorkOrders::class)
+            ->call('reorderTable', [$a->getKey(), $c->getKey(), $b->getKey()]);
+
+        // Consulta fresca a la BD, sin pasar por ningún componente Livewire:
+        // confirma que el ESTADO PERSISTIDO ya es el nuevo, no algo que solo
+        // vive en la sesión que arrastró.
+        $this->assertSame(
+            [$a->id, $c->id, $b->id],
+            WorkOrder::query()->orderBy('sort_order')->pluck('id')->all(),
+        );
+
+        // Y la "recarga" real: una instancia de Livewire TOTALMENTE NUEVA
+        // (simula abrir la pantalla de cero), leyendo por el mismo table()
+        // que usa el panel — así el test cubre también un defaultSort que
+        // se revierta a created_at desc, no solo la columna sort_order.
+        $freshPageRecords = Livewire::actingAs($admin)
+            ->test(ListWorkOrders::class)
+            ->instance()
+            ->getTableRecords();
+
+        $this->assertSame([$a->id, $c->id, $b->id], $freshPageRecords->pluck('id')->all());
     }
 }

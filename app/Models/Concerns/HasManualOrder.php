@@ -12,9 +12,22 @@ namespace App\Models\Concerns;
  * fila nueva, y el drag-and-drop de Filament no reordena filas que ya
  * arrancan sin un valor propio hasta que alguien las arrastra a mano.
  *
- * Se coloca al final (max + 1) del alcance que corresponda: global para los
- * catálogos, o del "padre" (ej. la orden de trabajo) para las líneas que se
- * reinician por grupo — ver `manualOrderScopeColumn()`.
+ * Dos modos, ver `manualOrderPrepend()`:
+ *
+ *   - **Append (default, max + 1):** la fila nueva se coloca al FINAL de la
+ *     secuencia ascendente. Es lo que quiere un catálogo simple (obras,
+ *     tipos, marcas, líneas de repuestos): lo nuevo aparece al final de la
+ *     lista hasta que alguien lo arrastre.
+ *   - **Prepend (min - 1, vía "correr" toda la secuencia +1):** la fila nueva
+ *     pasa a valer 1 y todo lo demás se corre un puesto. Existe para
+ *     `WorkOrder`: Filament siempre pinta el reorderColumn en ASCENDENTE
+ *     mientras el modo arrastrar está activo (`CanSortRecords::isTableReordering()`),
+ *     así que para que "la más nueva arriba" sobreviva al mismo `defaultSort`
+ *     ascendente que usa el modo arrastrar, la más nueva tiene que valer 1,
+ *     no el número más alto.
+ *
+ * El alcance (global vs. por grupo) es el mismo en los dos modos — ver
+ * `manualOrderScopeColumn()`.
  */
 trait HasManualOrder
 {
@@ -33,6 +46,17 @@ trait HasManualOrder
                 $query->where($scopeColumn, $model->{$scopeColumn});
             }
 
+            if ($model->manualOrderPrepend()) {
+                // Se corre TODO lo que ya existe en el alcance un puesto hacia
+                // abajo antes de asignarle 1 a la fila nueva, para que quede
+                // primera bajo el orden ascendente que Filament fuerza
+                // mientras el modo arrastrar está activo.
+                (clone $query)->increment('sort_order');
+                $model->sort_order = 1;
+
+                return;
+            }
+
             $model->sort_order = ((int) $query->max('sort_order')) + 1;
         });
     }
@@ -45,5 +69,14 @@ trait HasManualOrder
     protected function manualOrderScopeColumn(): ?string
     {
         return null;
+    }
+
+    /**
+     * `true` = la fila nueva nace en la posición 1 (arriba), corriendo todo lo
+     * demás. `false` (default) = nace al final (max + 1).
+     */
+    protected function manualOrderPrepend(): bool
+    {
+        return false;
     }
 }

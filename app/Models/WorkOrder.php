@@ -25,6 +25,17 @@ class WorkOrder extends Model
 
     protected $guarded = [];
 
+    /**
+     * Prepend, no append: la OT nueva nace en sort_order=1 (arriba), corriendo
+     * el resto. Es lo que hace que "la más nueva arriba" sobreviva al mismo
+     * orden ascendente que Filament fuerza en modo arrastrar — ver el
+     * docblock de HasManualOrder.
+     */
+    protected function manualOrderPrepend(): bool
+    {
+        return true;
+    }
+
     protected $casts = [
         'opened_at' => 'date',
         'completed_at' => 'date',

@@ -185,23 +185,28 @@ class WorkOrderResource extends Resource
                 Tables\Columns\TextColumn::make('opened_at')->label(__('wo.opened_at'))->date()->sortable(),
             ])
             /*
-             * Orden manual (2026-09-01): se agrega la capacidad de arrastrar
-             * (->reorderable), pero el defaultSort se DEJA en created_at desc
-             * a propósito — NO se cambia en silencio.
+             * Orden manual (2026-09-01): defaultSort pasa a `sort_order`
+             * ASCENDENTE — a propósito, no es un descuido de dirección.
              *
-             * Conflicto real que queda para Anyerson: mientras el listado
-             * ordene por fecha de creación, el orden manual que alguien arme
-             * arrastrando filas no se ve reflejado la próxima vez que se abre
-             * la pantalla (solo se ve mientras el modo "reordenar" sigue
-             * activo). La alternativa —defaultSort('sort_order')— sí lo haría
-             * persistente a la vista, pero cambia el comportamiento hoy
-             * establecido de "las OT más nuevas arriba", que es lo que el
-             * cliente espera al abrir el listado. Se optó por lo menos
-             * sorprendente (no tocar el orden por defecto existente).
+             * Filament, mientras el modo arrastrar está activo, SIEMPRE ordena
+             * el reorderColumn ascendente (`CanSortRecords::isTableReordering()`),
+             * sin importar qué diga defaultSort. Si acá se dejara `desc` (o
+             * `created_at desc`), la pantalla "saltaría" de orden cada vez que
+             * alguien activa o desactiva el botón de arrastrar, y el orden
+             * recién arrastrado NO sobreviviría a un refresco — que fue
+             * exactamente el defecto reportado.
+             *
+             * Por eso el backfill de la migración 2026_09_01_100400 asigna
+             * sort_order=1 a la OT MÁS NUEVA (no a la más vieja) y
+             * WorkOrder::manualOrderPrepend() hace que una OT nueva nazca en 1,
+             * corriendo el resto. Con las dos cosas, `sort_order` ascendente
+             * se ve IDÉNTICO a `created_at desc` mientras nadie arrastre nada,
+             * y el arrastre persiste al recargar porque no hay ningún otro
+             * criterio de orden compitiendo.
              */
             ->reorderable('sort_order')
             ->authorizeReorder(fn () => Auth::user()?->can('execute_work_order') ?? false)
-            ->defaultSort('created_at', 'desc')
+            ->defaultSort('sort_order')
             ->filters([
                 Tables\Filters\SelectFilter::make('status')->label(__('fleet.status'))->options([
                     'open' => __('wo.open'), 'assigned' => __('wo.assigned'), 'in_progress' => __('wo.in_progress'),
