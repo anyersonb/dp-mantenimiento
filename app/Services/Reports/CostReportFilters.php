@@ -43,7 +43,11 @@ class CostReportFilters
      */
     public const ALLOWED_STATUSES = ['open', 'assigned', 'in_progress', 'completed', 'cancelled'];
 
-    public const ALLOWED_TYPES = ['preventive', 'corrective', 'inspection'];
+    // El orden solo importa para lo que se lista en pantalla (Reports,
+    // WorkOrderResource): array_intersect() en allowList() preserva el orden
+    // del array de ENTRADA, no el de esta constante, así que reordenarla acá
+    // no cambia el resultado de ningún filtro ni export.
+    public const ALLOWED_TYPES = ['inspection', 'preventive', 'corrective'];
 
     /**
      * @param  array<string, mixed>  $data

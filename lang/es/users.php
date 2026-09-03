@@ -8,6 +8,9 @@ return [
     'model_user' => 'Usuario',
     'model_users' => 'Usuarios',
 
+    // Cuenta genérica del sistema (no una persona real) — ver User::getFilamentName().
+    'system_admin_name' => 'Administrador DP',
+
     // Campos del formulario
     'field_name' => 'Nombre',
     'field_email' => 'Usuario',

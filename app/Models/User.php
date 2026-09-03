@@ -62,9 +62,31 @@ class User extends Authenticatable implements FilamentUser, HasName
         return AccessControl::allows($this, 'access_panel');
     }
 
+    /**
+     * Defecto reportado por el cliente: en inglés la tarjeta de bienvenida
+     * seguía diciendo "Administrador DP" porque `name` es un dato sembrado en
+     * español, no algo que Filament traduzca solo. Esa cuenta es genérica del
+     * sistema (no una persona), así que acá SÍ se traduce con el idioma
+     * activo; cualquier otro usuario (persona real) sigue mostrando su
+     * `name` tal cual llegó de la BD.
+     */
     public function getFilamentName(): string
     {
+        if ($this->isSystemAdminAccount()) {
+            return __('users.system_admin_name');
+        }
+
         return $this->name;
+    }
+
+    /**
+     * Ancla al email (config, no cableado acá) en vez de comparar contra el
+     * string "Administrador DP": así no depende de qué texto tenga sembrado
+     * el `name` ni se confunde con una persona real que se llamara igual.
+     */
+    protected function isSystemAdminAccount(): bool
+    {
+        return $this->email === config('accounts.system_admin_email');
     }
 
     public function location(): BelongsTo

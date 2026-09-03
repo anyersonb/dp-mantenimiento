@@ -109,7 +109,7 @@ class WorkOrderResource extends Resource
                 Forms\Components\Select::make('machine_id')->label(__('fleet.machines'))
                     ->relationship('machine', 'id_code')->searchable()->preload()->required(),
                 Forms\Components\Select::make('type')->label(__('wo.type'))->options([
-                    'preventive' => __('wo.preventive'), 'corrective' => __('wo.corrective'), 'inspection' => __('wo.inspection'),
+                    'inspection' => __('wo.inspection'), 'preventive' => __('wo.preventive'), 'corrective' => __('wo.corrective'),
                 ])->default('preventive')->required(),
                 Forms\Components\Select::make('service_tier')->label(__('wo.service_tier'))
                     ->options([500 => '500 h', 1000 => '1000 h', 2000 => '2000 h', 4000 => '4000 h']),
@@ -213,7 +213,7 @@ class WorkOrderResource extends Resource
                     'completed' => __('wo.completed'), 'cancelled' => __('wo.cancelled'),
                 ]),
                 Tables\Filters\SelectFilter::make('type')->label(__('wo.type'))->options([
-                    'preventive' => __('wo.preventive'), 'corrective' => __('wo.corrective'), 'inspection' => __('wo.inspection'),
+                    'inspection' => __('wo.inspection'), 'preventive' => __('wo.preventive'), 'corrective' => __('wo.corrective'),
                 ]),
             ])
             ->actions([

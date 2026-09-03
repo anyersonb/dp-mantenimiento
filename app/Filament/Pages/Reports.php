@@ -191,9 +191,9 @@ class Reports extends Page implements HasForms
                         Forms\Components\CheckboxList::make('types')
                             ->label(__('wo.type'))
                             ->options([
+                                'inspection' => __('wo.inspection'),
                                 'preventive' => __('wo.preventive'),
                                 'corrective' => __('wo.corrective'),
-                                'inspection' => __('wo.inspection'),
                             ])->columns(3)->live(),
                         Forms\Components\CheckboxList::make('statuses')
                             ->label(__('fleet.status'))

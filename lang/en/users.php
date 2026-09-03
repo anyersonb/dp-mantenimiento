@@ -8,6 +8,9 @@ return [
     'model_user' => 'User',
     'model_users' => 'Users',
 
+    // Generic system account (not a real person) — see User::getFilamentName().
+    'system_admin_name' => 'Administrator DP',
+
     // Form fields
     'field_name' => 'Name',
     'field_email' => 'Username',
