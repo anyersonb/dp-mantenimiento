@@ -29,16 +29,16 @@ return new class extends Migration
 {
     public function up(): void
     {
-        $this->migrateModelFiles(Quote::query()->whereNotNull('file_path')->get(), 'file_path', 'Quote');
-        $this->migrateModelFiles(WorkOrderAttachment::query()->whereNotNull('path')->get(), 'path', 'WorkOrderAttachment');
+        $this->migrateModelFiles(Quote::withTrashed()->whereNotNull('file_path')->get(), 'file_path', 'Quote');
+        $this->migrateModelFiles(WorkOrderAttachment::withTrashed()->whereNotNull('path')->get(), 'path', 'WorkOrderAttachment');
     }
 
     public function down(): void
     {
         // Solo borra las copias privadas creadas por esta migracion; el
         // archivo original en disk('public') nunca se toca aqui tampoco.
-        $this->rollbackModelFiles(Quote::query()->whereNotNull('file_path')->get(), 'file_path');
-        $this->rollbackModelFiles(WorkOrderAttachment::query()->whereNotNull('path')->get(), 'path');
+        $this->rollbackModelFiles(Quote::withTrashed()->whereNotNull('file_path')->get(), 'file_path');
+        $this->rollbackModelFiles(WorkOrderAttachment::withTrashed()->whereNotNull('path')->get(), 'path');
     }
 
     /**

@@ -218,7 +218,11 @@ class QaCleanup extends Command
                 Storage::disk('local')->delete($attachment->path);
             }
 
-            $attachment->delete();
+            // Mismo criterio que purge(): un dato de PRUEBA se purga de
+            // verdad (Papelera, Lote A le agregó SoftDeletes a este modelo).
+            // Un soft delete acá dejaría la fila viva con `deleted_at`,
+            // descuadrando el conteo de la próxima corrida.
+            $attachment->forceDelete();
         }
 
         $this->line("  work_order_attachments: {$count} fila(s) + archivo borrados.");
@@ -249,7 +253,12 @@ class QaCleanup extends Command
             // deja la fila huérfana en model_has_roles e infla el conteo de
             // usuarios por rol en el panel (Roles y permisos).
             $user->roles()->detach();
-            $user->delete();
+
+            // Mismo criterio que purge(): un usuario de PRUEBA se purga de
+            // verdad (Papelera, Lote A le agregó SoftDeletes a User). Un
+            // soft delete acá dejaría la cuenta viva en la papelera —y,
+            // sin querer, exigiría luego un force-delete manual aparte—.
+            $user->forceDelete();
         }
 
         $this->line("  users: {$count} usuario(s) + su(s) fila(s) de model_has_roles borrados.");

@@ -37,13 +37,13 @@ return new class extends Migration
         $skipped = 0;
 
         $deleted += $this->deleteVerifiedPublicOriginal(
-            Quote::query()->whereNotNull('file_path')->get(),
+            Quote::withTrashed()->whereNotNull('file_path')->get(),
             'file_path',
             'Quote',
             $skipped
         );
         $deleted += $this->deleteVerifiedPublicOriginal(
-            WorkOrderAttachment::query()->whereNotNull('path')->get(),
+            WorkOrderAttachment::withTrashed()->whereNotNull('path')->get(),
             'path',
             'WorkOrderAttachment',
             $skipped
@@ -59,8 +59,8 @@ return new class extends Migration
 
     public function down(): void
     {
-        $this->restorePublicOriginal(Quote::query()->whereNotNull('file_path')->get(), 'file_path');
-        $this->restorePublicOriginal(WorkOrderAttachment::query()->whereNotNull('path')->get(), 'path');
+        $this->restorePublicOriginal(Quote::withTrashed()->whereNotNull('file_path')->get(), 'file_path');
+        $this->restorePublicOriginal(WorkOrderAttachment::withTrashed()->whereNotNull('path')->get(), 'path');
     }
 
     /**
