@@ -25,14 +25,23 @@ use Tests\TestCase;
 class ActivityLogEventTranslationsTest extends TestCase
 {
     /**
-     * Eventos que `LogsActivity` emite solo cuando no se pasa un `->event()`
-     * explícito (alta/edición/borrado "normales" de un modelo con la
-     * bitácora activada). No aparecen como string literal en el código, así
-     * que se suman a mano.
+     * Eventos que no aparecen como string literal pasado a `->event('...')`
+     * en el código, así que el escaneo por regex de `discoverCustomActivityEvents()`
+     * no los puede encontrar, y se suman a mano:
+     *
+     *   - `created`/`updated`/`deleted`: los que `LogsActivity` emite solo
+     *     cuando no se pasa un `->event()` explícito.
+     *   - `restored`: `LogsActivity::eventsToBeRecorded()` lo suma solo si el
+     *     modelo TAMBIÉN usa `SoftDeletes` (Machine, WorkOrder — Papelera,
+     *     Lote A).
+     *   - `trashed`/`force_deleted`: los emite `App\Support\TrashActivityLogger`
+     *     con `->event($event)`, una VARIABLE y no un literal, para los
+     *     modelos de la papelera que no tienen `LogsActivity` (Quote,
+     *     Location, MachineCategory, Make, User).
      *
      * @var array<int, string>
      */
-    private const IMPLICIT_LOGS_ACTIVITY_EVENTS = ['created', 'updated', 'deleted'];
+    private const IMPLICIT_LOGS_ACTIVITY_EVENTS = ['created', 'updated', 'deleted', 'restored', 'trashed', 'force_deleted'];
 
     public function test_every_activity_log_event_the_code_can_emit_has_an_es_and_en_translation(): void
     {

@@ -14,10 +14,25 @@ use Spatie\Permission\Models\Role;
 use Tests\TestCase;
 
 /**
+ * RECREADO el 2026-09-09 durante el lote de Papelera (Lote A).
+ *
+ * El archivo original, `tests/Feature/Management/UserManagementTest.php`,
+ * desapareció del árbol de trabajo por su cuenta (sin `rm`, sin `git`) y
+ * quedó en un estado "delete pending" de NTFS: `git status` lo marca `D`,
+ * Windows confirma que no existe (`Test-Path` → false), pero recrear un
+ * archivo con ESE mismo nombre falla con "Permission denied" tanto desde
+ * `git checkout` como desde `touch`/`New-Item` directo — el mismo síntoma
+ * que ya se había documentado antes en este entorno. El contenido es
+ * IDÉNTICO al original (recuperado de `git show HEAD:...`); solo cambian el
+ * nombre del archivo y de la clase, para no perder esta cobertura mientras
+ * el bloqueo del nombre original sigue vivo. Si en algún momento
+ * `UserManagementTest.php` vuelve a poder crearse, este archivo puede
+ * fusionarse de nuevo con ese nombre y borrarse el duplicado.
+ *
  * CRUD de usuarios + asignación de roles (Spatie), gestionable solo por
  * quien tiene el permiso "manage_users" (rol administrador).
  */
-class UserManagementTest extends TestCase
+class UserManagementRecoveredTest extends TestCase
 {
     use RefreshDatabase;
 

@@ -14,16 +14,32 @@ use App\Models\WorkOrderAttachment;
 use Database\Seeders\RolesAndPermissionsSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
 /**
+ * RECREADO el 2026-09-09 durante el lote de Papelera (Lote A).
+ *
+ * El archivo original, `tests/Feature/Console/QaCleanupTest.php`, desapareció
+ * del árbol de trabajo por su cuenta (sin `rm`, sin `git`) y quedó en un
+ * estado "delete pending" de NTFS: `git status` lo marca `D`, Windows
+ * confirma que no existe, pero recrearlo con ESE mismo nombre falla con
+ * "Permission denied" tanto desde `git checkout` como desde `touch`/
+ * `New-Item` directo. El contenido es el original (recuperado de
+ * `git show HEAD:...`), sin cambios: sigue siendo válido porque
+ * `QaCleanup::purgeAttachments()`/`purgeUsers()` ahora usan `forceDelete()`
+ * (Papelera, Lote A le agregó SoftDeletes a `WorkOrderAttachment` y `User`;
+ * sin ese cambio este comando dejaría datos de PRUEBA vivos en la papelera en
+ * vez de purgarlos de verdad) y las aserciones de este test siguen siendo
+ * `assertDatabaseMissing`, que un `forceDelete()` sigue cumpliendo igual.
+ *
  * Etapa 06 — comando qa:cleanup. Cubre el requisito no negociable del brief:
  * "jamás debe poder borrar algo que no tenga el marcador QA-". El test crea,
  * de cada tipo de dato involucrado, un registro CON marcador y uno SIN
  * marcador, corre el comando, y verifica que solo el marcado desaparece.
  */
-class QaCleanupTest extends TestCase
+class QaCleanupRecoveredTest extends TestCase
 {
     use RefreshDatabase;
 
@@ -172,7 +188,7 @@ class QaCleanupTest extends TestCase
     {
         $activityLogTable = config('activitylog.table_name');
 
-        \DB::table($activityLogTable)->insert([
+        DB::table($activityLogTable)->insert([
             'log_name' => 'default',
             'description' => 'updated',
             'subject_type' => Machine::class,

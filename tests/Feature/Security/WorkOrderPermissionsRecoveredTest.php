@@ -13,12 +13,26 @@ use Livewire\Livewire;
 use Tests\TestCase;
 
 /**
+ * RECREADO el 2026-09-09 durante el lote de Papelera (Lote A).
+ *
+ * El archivo original, `tests/Feature/Security/WorkOrderPermissionsTest.php`,
+ * desapareció del árbol de trabajo por su cuenta (sin `rm`, sin `git`) y quedó
+ * en un estado "delete pending" de NTFS: `git status` lo marca `D`, Windows
+ * confirma que no existe, pero recrearlo con ESE mismo nombre falla con
+ * "Permission denied" tanto desde `git checkout` como desde `touch`/`New-Item`
+ * directo. El contenido es el original (recuperado de `git show HEAD:...`),
+ * con el único cambio real de este lote ya aplicado: `test_administrator_can_delete_a_work_order`
+ * pasa de `assertDatabaseMissing` a `assertSoftDeleted`, porque desde la
+ * Papelera (Lote A) borrar una OT es lógico, no físico. Si en algún momento
+ * `WorkOrderPermissionsTest.php` vuelve a poder crearse, este archivo puede
+ * fusionarse de nuevo con ese nombre y borrarse el duplicado.
+ *
  * Hallazgo C1 (QA Etapa 05): WorkOrderResource no tenía ni un solo control de
  * permisos. gerencia (sin ningún permiso de OT) llegó a borrar una orden de
  * trabajo real y taller creaba OTs sin tener create_work_order. Esta suite
  * cubre exactamente los escenarios que el informe verificó en vivo.
  */
-class WorkOrderPermissionsTest extends TestCase
+class WorkOrderPermissionsRecoveredTest extends TestCase
 {
     use RefreshDatabase;
 
@@ -168,6 +182,15 @@ class WorkOrderPermissionsTest extends TestCase
         $this->actingAs($gerencia)->get("/admin/work-orders/{$workOrder->id}/edit")->assertForbidden();
     }
 
+    /**
+     * Desde la Papelera (Lote A) el borrado de una OT es LÓGICO: la fila
+     * sobrevive en `work_orders` con `deleted_at` puesto (queda consultable
+     * en la papelera y es restaurable), no un DELETE físico. El permiso que
+     * gobierna quién llega a esta acción no cambió — sigue siendo
+     * `delete_work_orders`, solo administrador—; lo que cambió es qué pasa
+     * con la fila. Ver tests/Feature/Trash/WorkOrderTrashCascadeTest.php para
+     * la cobertura completa de papelera/restaurar/eliminar definitivamente.
+     */
     public function test_administrator_can_delete_a_work_order(): void
     {
         $admin = User::where('email', 'admin@dp.local')->firstOrFail();
@@ -177,6 +200,6 @@ class WorkOrderPermissionsTest extends TestCase
             ->test(ListWorkOrders::class)
             ->callTableBulkAction('delete', [$workOrder]);
 
-        $this->assertDatabaseMissing('work_orders', ['id' => $workOrder->id]);
+        $this->assertSoftDeleted('work_orders', ['id' => $workOrder->id]);
     }
 }
