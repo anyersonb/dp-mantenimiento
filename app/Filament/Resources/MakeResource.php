@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources;
 
+use App\Filament\Concerns\HasPapeleraActions;
 use App\Filament\Resources\MakeResource\Pages;
 use App\Models\Make;
 use App\Rules\UniqueSlugFrom;
@@ -16,6 +17,8 @@ use Illuminate\Support\Str;
 
 class MakeResource extends Resource
 {
+    use HasPapeleraActions;
+
     protected static ?string $model = Make::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-building-office-2';
@@ -73,6 +76,19 @@ class MakeResource extends Resource
         return Auth::user()?->can('manage_machines') ?? false;
     }
 
+    /* --------------------- Papelera (Lote A) --------------------- */
+
+    protected static function papeleraResourceKey(): string
+    {
+        return 'makes';
+    }
+
+    protected static function papeleraRecordLabel(Model $record): string
+    {
+        /** @var Make $record */
+        return (string) $record->name;
+    }
+
     public static function form(Form $form): Form
     {
         return $form->schema([
@@ -100,8 +116,19 @@ class MakeResource extends Resource
             ->defaultSort('sort_order')
             ->reorderable('sort_order')
             ->authorizeReorder(fn () => Auth::user()?->can('manage_machines') ?? false)
-            ->actions([Tables\Actions\EditAction::make()])
-            ->bulkActions([Tables\Actions\BulkActionGroup::make([Tables\Actions\DeleteBulkAction::make()])]);
+            ->filters([
+                static::papeleraTrashedFilter(),
+            ])
+            ->actions([
+                Tables\Actions\EditAction::make(),
+                static::papeleraRestoreAction(),
+                static::papeleraForceDeleteAction(),
+            ])
+            ->bulkActions([Tables\Actions\BulkActionGroup::make([
+                Tables\Actions\DeleteBulkAction::make(),
+                static::papeleraRestoreBulkAction(),
+                static::papeleraForceDeleteBulkAction(),
+            ])]);
     }
 
     public static function getPages(): array

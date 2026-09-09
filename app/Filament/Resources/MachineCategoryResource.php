@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources;
 
+use App\Filament\Concerns\HasPapeleraActions;
 use App\Filament\Resources\MachineCategoryResource\Pages;
 use App\Models\MachineCategory;
 use App\Rules\UniqueSlugFrom;
@@ -16,6 +17,8 @@ use Illuminate\Support\Str;
 
 class MachineCategoryResource extends Resource
 {
+    use HasPapeleraActions;
+
     protected static ?string $model = MachineCategory::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-squares-2x2';
@@ -73,6 +76,19 @@ class MachineCategoryResource extends Resource
         return Auth::user()?->can('manage_machines') ?? false;
     }
 
+    /* --------------------- Papelera (Lote A) --------------------- */
+
+    protected static function papeleraResourceKey(): string
+    {
+        return 'machine_categories';
+    }
+
+    protected static function papeleraRecordLabel(Model $record): string
+    {
+        /** @var MachineCategory $record */
+        return (string) $record->name;
+    }
+
     public static function form(Form $form): Form
     {
         return $form->schema([
@@ -112,8 +128,19 @@ class MachineCategoryResource extends Resource
             ->defaultSort('sort_order')
             ->reorderable('sort_order')
             ->authorizeReorder(fn () => Auth::user()?->can('manage_machines') ?? false)
-            ->actions([Tables\Actions\EditAction::make()])
-            ->bulkActions([Tables\Actions\BulkActionGroup::make([Tables\Actions\DeleteBulkAction::make()])]);
+            ->filters([
+                static::papeleraTrashedFilter(),
+            ])
+            ->actions([
+                Tables\Actions\EditAction::make(),
+                static::papeleraRestoreAction(),
+                static::papeleraForceDeleteAction(),
+            ])
+            ->bulkActions([Tables\Actions\BulkActionGroup::make([
+                Tables\Actions\DeleteBulkAction::make(),
+                static::papeleraRestoreBulkAction(),
+                static::papeleraForceDeleteBulkAction(),
+            ])]);
     }
 
     public static function getPages(): array

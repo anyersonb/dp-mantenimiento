@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources;
 
+use App\Filament\Concerns\HasPapeleraActions;
 use App\Filament\Resources\MachineResource\Pages;
 use App\Filament\Resources\MachineResource\RelationManagers;
 use App\Models\Location;
@@ -23,6 +24,8 @@ use Illuminate\Support\Facades\Auth;
 
 class MachineResource extends Resource
 {
+    use HasPapeleraActions;
+
     protected static ?string $model = Machine::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-truck';
@@ -94,6 +97,19 @@ class MachineResource extends Resource
     public static function canDeleteAny(): bool
     {
         return AccessControl::allows(Auth::user(), 'delete_machines');
+    }
+
+    /* --------------------- Papelera (Lote A) --------------------- */
+
+    protected static function papeleraResourceKey(): string
+    {
+        return 'machines';
+    }
+
+    protected static function papeleraRecordLabel(Model $record): string
+    {
+        /** @var Machine $record */
+        return (string) $record->id_code;
     }
 
     /**
@@ -393,10 +409,13 @@ class MachineResource extends Resource
                         ->whereNotNull('remaining_hours')
                         ->where('remaining_hours', '<=', Machine::ALERT_THRESHOLD)),
                 Tables\Filters\TernaryFilter::make('needs_review')->label(__('fleet.needs_review')),
+                static::papeleraTrashedFilter(),
             ])
             ->actions([
                 Tables\Actions\ViewAction::make(),
                 Tables\Actions\EditAction::make(),
+                static::papeleraRestoreAction(),
+                static::papeleraForceDeleteAction(),
                 Tables\Actions\Action::make('approve')
                     ->label(__('fleet.approve_data'))
                     ->icon('heroicon-o-check-badge')
@@ -518,6 +537,8 @@ class MachineResource extends Resource
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
                     Tables\Actions\DeleteBulkAction::make(),
+                    static::papeleraRestoreBulkAction(),
+                    static::papeleraForceDeleteBulkAction(),
                     Tables\Actions\BulkAction::make('approveBulk')
                         ->label(__('fleet.approve_bulk'))
                         ->icon('heroicon-o-check-badge')

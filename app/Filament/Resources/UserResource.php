@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources;
 
+use App\Filament\Concerns\HasPapeleraActions;
 use App\Filament\Resources\UserResource\Pages;
 use App\Models\Location;
 use App\Models\User;
@@ -29,6 +30,8 @@ use Spatie\Permission\Models\Role;
  */
 class UserResource extends Resource
 {
+    use HasPapeleraActions;
+
     protected static ?string $model = User::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-users';
@@ -90,6 +93,19 @@ class UserResource extends Resource
     public static function canDeleteAny(): bool
     {
         return Auth::user()?->can('manage_users') ?? false;
+    }
+
+    /* --------------------- Papelera (Lote A) --------------------- */
+
+    protected static function papeleraResourceKey(): string
+    {
+        return 'users';
+    }
+
+    protected static function papeleraRecordLabel(Model $record): string
+    {
+        /** @var User $record */
+        return (string) $record->name;
     }
 
     public static function form(Form $form): Form
@@ -256,6 +272,7 @@ class UserResource extends Resource
                     ->preload(),
                 Tables\Filters\TernaryFilter::make('active')
                     ->label(__('users.filter_active')),
+                static::papeleraTrashedFilter(),
             ])
             ->actions([
                 Tables\Actions\EditAction::make(),
@@ -328,6 +345,14 @@ class UserResource extends Resource
                     }),
                 Tables\Actions\DeleteAction::make()
                     ->hidden(fn (User $record) => $record->id === Auth::id()),
+                // No hace falta un guard "contra uno mismo" acá: un usuario
+                // trashed no puede autenticarse (ver User::canAccessPanel), así
+                // que restaurar/eliminar la PROPIA cuenta es imposible de
+                // alcanzar en la práctica —para llegar a verlo en la papelera
+                // primero tendría que haber sido soft-deleteado por otro
+                // administrador, momento en el que ya perdió la sesión—.
+                static::papeleraRestoreAction(),
+                static::papeleraForceDeleteAction(),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
@@ -339,6 +364,8 @@ class UserResource extends Resource
                                 ->reject(fn (User $record) => $record->id === $currentId)
                                 ->each(fn (User $record) => $record->delete());
                         }),
+                    static::papeleraRestoreBulkAction(),
+                    static::papeleraForceDeleteBulkAction(),
                 ]),
             ]);
     }

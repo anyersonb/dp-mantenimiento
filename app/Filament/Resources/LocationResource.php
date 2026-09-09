@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources;
 
+use App\Filament\Concerns\HasPapeleraActions;
 use App\Filament\Resources\LocationResource\Pages;
 use App\Models\Location;
 use App\Rules\UniqueSlugFrom;
@@ -16,6 +17,8 @@ use Illuminate\Support\Str;
 
 class LocationResource extends Resource
 {
+    use HasPapeleraActions;
+
     protected static ?string $model = Location::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-map-pin';
@@ -73,6 +76,19 @@ class LocationResource extends Resource
         return Auth::user()?->can('manage_machines') ?? false;
     }
 
+    /* --------------------- Papelera (Lote A) --------------------- */
+
+    protected static function papeleraResourceKey(): string
+    {
+        return 'locations';
+    }
+
+    protected static function papeleraRecordLabel(Model $record): string
+    {
+        /** @var Location $record */
+        return (string) $record->name;
+    }
+
     public static function form(Form $form): Form
     {
         return $form->schema([
@@ -124,6 +140,7 @@ class LocationResource extends Resource
                 Tables\Filters\Filter::make('sin_job_number')
                     ->label(__('nav.filter_missing_job_number'))
                     ->query(fn ($query) => $query->whereNull('job_number')),
+                static::papeleraTrashedFilter(),
             ])
             // Orden manual (2026-09-01): pasa a mandar sort_order en vez de
             // name, para que el orden guardado sea el que se ve. Mismo
@@ -131,8 +148,16 @@ class LocationResource extends Resource
             ->defaultSort('sort_order')
             ->reorderable('sort_order')
             ->authorizeReorder(fn () => Auth::user()?->can('manage_machines') ?? false)
-            ->actions([Tables\Actions\EditAction::make()])
-            ->bulkActions([Tables\Actions\BulkActionGroup::make([Tables\Actions\DeleteBulkAction::make()])]);
+            ->actions([
+                Tables\Actions\EditAction::make(),
+                static::papeleraRestoreAction(),
+                static::papeleraForceDeleteAction(),
+            ])
+            ->bulkActions([Tables\Actions\BulkActionGroup::make([
+                Tables\Actions\DeleteBulkAction::make(),
+                static::papeleraRestoreBulkAction(),
+                static::papeleraForceDeleteBulkAction(),
+            ])]);
     }
 
     public static function getPages(): array

@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources;
 
+use App\Filament\Concerns\HasPapeleraActions;
 use App\Filament\Resources\WorkOrderResource\Pages;
 use App\Filament\Resources\WorkOrderResource\RelationManagers;
 use App\Models\WorkOrder;
@@ -19,6 +20,8 @@ use Illuminate\Support\Facades\Auth;
 
 class WorkOrderResource extends Resource
 {
+    use HasPapeleraActions;
+
     protected static ?string $model = WorkOrder::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-clipboard-document-list';
@@ -73,6 +76,19 @@ class WorkOrderResource extends Resource
     public static function canDeleteAny(): bool
     {
         return AccessControl::allows(Auth::user(), 'delete_work_orders');
+    }
+
+    /* --------------------- Papelera (Lote A) --------------------- */
+
+    protected static function papeleraResourceKey(): string
+    {
+        return 'work_orders';
+    }
+
+    protected static function papeleraRecordLabel(Model $record): string
+    {
+        /** @var WorkOrder $record */
+        return (string) $record->code;
     }
 
     public static function getNavigationLabel(): string
@@ -215,9 +231,12 @@ class WorkOrderResource extends Resource
                 Tables\Filters\SelectFilter::make('type')->label(__('wo.type'))->options([
                     'inspection' => __('wo.inspection'), 'preventive' => __('wo.preventive'), 'corrective' => __('wo.corrective'),
                 ]),
+                static::papeleraTrashedFilter(),
             ])
             ->actions([
                 Tables\Actions\EditAction::make(),
+                static::papeleraRestoreAction(),
+                static::papeleraForceDeleteAction(),
                 Tables\Actions\Action::make('complete')
                     ->label(__('wo.complete'))
                     ->icon('heroicon-o-check-circle')
@@ -252,7 +271,11 @@ class WorkOrderResource extends Resource
                         WorkOrderCompletionService::complete($record->fresh('machine'));
                     }),
             ])
-            ->bulkActions([Tables\Actions\BulkActionGroup::make([Tables\Actions\DeleteBulkAction::make()])])
+            ->bulkActions([Tables\Actions\BulkActionGroup::make([
+                Tables\Actions\DeleteBulkAction::make(),
+                static::papeleraRestoreBulkAction(),
+                static::papeleraForceDeleteBulkAction(),
+            ])])
             ->emptyStateHeading(__('wo.empty_heading'))
             ->emptyStateDescription(__('wo.empty_desc'));
     }

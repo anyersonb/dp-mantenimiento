@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources;
 
+use App\Filament\Concerns\HasPapeleraActions;
 use App\Filament\Resources\QuoteResource\Pages;
 use App\Models\Quote;
 use App\Rules\RejectsDangerousUploadExtensions;
@@ -30,6 +31,8 @@ use Illuminate\Support\HtmlString;
  */
 class QuoteResource extends Resource
 {
+    use HasPapeleraActions;
+
     protected static ?string $model = Quote::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-document-currency-dollar';
@@ -107,6 +110,45 @@ class QuoteResource extends Resource
         return static::moduleEnabled() && (Auth::user()?->can('manage_quotes') ?? false);
     }
 
+    /* --------------------- Papelera (Lote A) --------------------- */
+
+    protected static function papeleraResourceKey(): string
+    {
+        return 'quotes';
+    }
+
+    protected static function papeleraRecordLabel(Model $record): string
+    {
+        /** @var Quote $record */
+        return (string) $record->title;
+    }
+
+    /**
+     * Con el módulo apagado (`config('features.quotes')`), NINGUNA pantalla de
+     * cotizaciones queda accesible — ni la papelera. Se redeclaran acá (pisan
+     * a las del trait: PHP prioriza el método de la clase sobre el del trait)
+     * para sumar esa condición sin duplicar el resto de HasPapeleraActions.
+     */
+    public static function canRestore(Model $record): bool
+    {
+        return static::moduleEnabled() && (Auth::user()?->can(static::papeleraRestorePermission()) ?? false);
+    }
+
+    public static function canRestoreAny(): bool
+    {
+        return static::moduleEnabled() && (Auth::user()?->can(static::papeleraRestorePermission()) ?? false);
+    }
+
+    public static function canForceDelete(Model $record): bool
+    {
+        return static::moduleEnabled() && (Auth::user()?->can(static::papeleraForceDeletePermission()) ?? false);
+    }
+
+    public static function canForceDeleteAny(): bool
+    {
+        return static::moduleEnabled() && (Auth::user()?->can(static::papeleraForceDeletePermission()) ?? false);
+    }
+
     public static function form(Form $form): Form
     {
         return $form->schema([
@@ -182,6 +224,9 @@ class QuoteResource extends Resource
                     ->label(__('mgmt.date'))->dateTime()->sortable()->toggleable(isToggledHiddenByDefault: true),
             ])
             ->defaultSort('created_at', 'desc')
+            ->filters([
+                static::papeleraTrashedFilter(),
+            ])
             ->actions([
                 Tables\Actions\Action::make('open_link')
                     ->label(__('mgmt.public_view_file'))
@@ -190,10 +235,14 @@ class QuoteResource extends Resource
                     ->openUrlInNewTab(),
                 Tables\Actions\EditAction::make(),
                 Tables\Actions\DeleteAction::make(),
+                static::papeleraRestoreAction(),
+                static::papeleraForceDeleteAction(),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
                     Tables\Actions\DeleteBulkAction::make(),
+                    static::papeleraRestoreBulkAction(),
+                    static::papeleraForceDeleteBulkAction(),
                 ]),
             ]);
     }
