@@ -3,13 +3,21 @@
 namespace App\Models;
 
 use App\Models\Concerns\HasManualOrder;
+use App\Models\Concerns\LogsPapeleraActivity;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Location extends Model
 {
-    use HasManualOrder;
+    /** SoftDeletes (Papelera, Lote A). `machines.current_location_id` es `nullOnDelete`, no cascada: un soft delete acá no altera ninguna máquina. */
+    use HasManualOrder, LogsPapeleraActivity, SoftDeletes;
+
+    public function papeleraLabel(): string
+    {
+        return (string) $this->name;
+    }
 
     protected $guarded = [];
 

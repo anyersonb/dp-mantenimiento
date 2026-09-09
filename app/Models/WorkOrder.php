@@ -3,15 +3,139 @@
 namespace App\Models;
 
 use App\Models\Concerns\HasManualOrder;
+use App\Models\Concerns\LogsPapeleraActivity;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Str;
 use Spatie\Activitylog\LogOptions;
 use Spatie\Activitylog\Traits\LogsActivity;
 
 class WorkOrder extends Model
 {
-    use HasManualOrder, LogsActivity;
+    /**
+     * SoftDeletes (Papelera, Lote A): mandar una OT a la papelera no debe
+     * llevarse sus repuestos, adjuntos ni checklist, que son el respaldo de lo
+     * que se hizo y de lo que se cobró. El FK `cascadeOnDelete()` de esas tres
+     * tablas hacia `work_orders` NO se dispara con un soft delete —no hay
+     * DELETE real—, así que sin la cascada lógica de más abajo esos hijos
+     * quedarían visibles y huérfanos (con su OT dueña en la papelera).
+     */
+    use HasManualOrder, LogsActivity, LogsPapeleraActivity, SoftDeletes;
+
+    public function papeleraLabel(): string
+    {
+        return (string) $this->code;
+    }
+
+    /**
+     * Relaciones hijas que viajan CON la OT al mandarla a la papelera y
+     * vuelven CON ella al restaurarla. `parts`/`attachments`/`checklistResults`
+     * ya existen más abajo; se listan acá para que la cascada y la
+     * restauración lean de una sola fuente.
+     *
+     * @return array<int, string>
+     */
+    public const TRASH_CASCADE_RELATIONS = ['parts', 'attachments', 'checklistResults'];
+
+    /**
+     * Propiedad REAL (no un atributo del modelo): declarada así a propósito
+     * para que la asignación `$workOrder->pendingTrashBatch = ...` no pase
+     * por el `__set` mágico de Eloquent, que la trataría como una columna y
+     * la mandaría al próximo `save()`. Es un marcador de un solo request,
+     * entre `restoring` y `restored`, y nunca se persiste bajo este nombre
+     * (lo que SÍ se persiste es `trash_batch`, ver más abajo).
+     */
+    protected $pendingTrashBatch = null;
+
+    protected static function booted(): void
+    {
+        static::deleted(function (WorkOrder $workOrder) {
+            if ($workOrder->isForceDeleting()) {
+                // La eliminación definitiva se resuelve aparte (ver
+                // ForceDeleteAction en WorkOrderResource): los adjuntos
+                // necesitan que se les borre el archivo físico ANTES de que
+                // la cascada real de la base se lleve la fila.
+                return;
+            }
+
+            /*
+             * Cascada LÓGICA, marcada con un ULID propio (`trash_batch`) y NO
+             * con el `deleted_at` de la OT.
+             *
+             * Primera versión: se comparaba por igualdad de `deleted_at`
+             * entre la OT y sus hijos. Falló en la corrida de control contra
+             * MySQL (invisible en SQLite): las columnas `datetime` de este
+             * proyecto tienen precisión de UN SEGUNDO, así que un repuesto
+             * borrado a mano y la OT borrada dentro del MISMO segundo de
+             * prueba terminaban con el MISMO `deleted_at` — y al restaurar la
+             * OT, ese repuesto que NO debía volver, volvía igual. Un ULID
+             * generado por operación no colisiona nunca por esto.
+             */
+            $batch = (string) Str::ulid();
+
+            $workOrder->newQueryWithoutScopes()
+                ->whereKey($workOrder->getKey())
+                ->update(['trash_batch' => $batch]);
+
+            // El UPDATE de arriba es una consulta aparte (para no reentrar en
+            // saving/deleting): el objeto en memoria no se entera solo. Se
+            // refleja acá para que, DENTRO del mismo request, restore()
+            // sobre esta misma instancia encuentre el batch recién escrito.
+            $workOrder->setRawAttributes(
+                array_merge($workOrder->getAttributes(), ['trash_batch' => $batch]),
+                true
+            );
+
+            foreach (self::TRASH_CASCADE_RELATIONS as $relation) {
+                $workOrder->{$relation}()
+                    ->whereNull('deleted_at')
+                    ->update(['deleted_at' => $workOrder->getAttributes()['deleted_at'] ?? now(), 'trash_batch' => $batch]);
+            }
+        });
+
+        static::restoring(function (WorkOrder $workOrder) {
+            // El marcador hay que leerlo ACÁ: es la última cadena antes de
+            // que la propia OT lo pierda (se sobreescribe en el próximo
+            // borrado, no antes), así que capturarlo en `restoring` es
+            // seguro: todavía es el batch de ESTA baja que se está deshaciendo.
+            $workOrder->pendingTrashBatch = $workOrder->trash_batch;
+        });
+
+        static::restored(function (WorkOrder $workOrder) {
+            $batch = $workOrder->pendingTrashBatch;
+            $workOrder->pendingTrashBatch = null;
+
+            if ($batch === null) {
+                return;
+            }
+
+            // Solo vuelven los hijos marcados con ESE ULID exacto: un
+            // repuesto que ya estaba borrado ANTES de que esta OT se fuera a
+            // la papelera tiene `trash_batch` distinto (o null) y no matchea,
+            // así que sigue en la papelera después de restaurar la OT.
+            foreach (self::TRASH_CASCADE_RELATIONS as $relation) {
+                $workOrder->{$relation}()
+                    ->onlyTrashed()
+                    ->where('trash_batch', $batch)
+                    ->update(['deleted_at' => null, 'trash_batch' => null]);
+            }
+        });
+
+        static::forceDeleting(function (WorkOrder $workOrder) {
+            // Los adjuntos tienen archivo físico: hay que borrarlo ANTES de
+            // que la cascada real de la base (`cascadeOnDelete()`) se lleve la
+            // fila, sea cual sea su estado de papelera hoy.
+            $workOrder->attachments()->withTrashed()->get()->each(
+                fn (WorkOrderAttachment $attachment) => $attachment->forceDelete()
+            );
+
+            // Las líneas de repuestos y los resultados de checklist no tienen
+            // archivo: se dejan a la cascada real de la base (cascadeOnDelete
+            // SÍ se dispara con un DELETE de verdad).
+        });
+    }
 
     /**
      * Estados en los que la OT ya no admite cambios destructivos: el trabajo

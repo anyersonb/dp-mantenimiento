@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\LogsPapeleraActivity;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -18,9 +19,16 @@ class Machine extends Model
      * la cascada de la base no se dispara, porque no hay DELETE.
      *
      * El camino real de baja NO es borrar: es `status = 'inactive'`, o la
-     * acción "descartar" para las máquinas en revisión.
+     * acción "descartar" para las máquinas en revisión. Desde la Papelera
+     * (Lote A) SÍ existe además una vía formal de baja/recuperación completa:
+     * papelera -> restaurar / eliminar definitivamente, solo para administrador.
      */
-    use LogsActivity, SoftDeletes;
+    use LogsActivity, LogsPapeleraActivity, SoftDeletes;
+
+    public function papeleraLabel(): string
+    {
+        return (string) $this->id_code;
+    }
 
     // $guarded = [] ya deja todas las columnas (incluidas oil_capacity/image/gallery)
     // asignables en masa; no se define $fillable aparte para no restringir el resto

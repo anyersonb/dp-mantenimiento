@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\LogsPapeleraActivity;
 use App\Support\AccessControl;
 use Database\Factories\UserFactory;
 use Filament\Models\Contracts\FilamentUser;
@@ -9,6 +10,7 @@ use Filament\Models\Contracts\HasName;
 use Filament\Panel;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Spatie\Permission\Traits\HasRoles;
@@ -16,7 +18,23 @@ use Spatie\Permission\Traits\HasRoles;
 class User extends Authenticatable implements FilamentUser, HasName
 {
     /** @use HasFactory<UserFactory> */
-    use HasFactory, HasRoles, Notifiable;
+
+    /**
+     * SoftDeletes (Papelera, Lote A). Un usuario en papelera no puede
+     * autenticarse: el guard de sesión resuelve `retrieveById`/
+     * `retrieveByCredentials` contra `newModelQuery()`, que respeta el scope
+     * global de SoftDeletes y por lo tanto YA excluye los usuarios borrados
+     * sin tocar nada más (verificado con test, no asumido — ver
+     * tests/Feature/Security/TrashedUserCannotAuthenticateTest.php). El
+     * chequeo explícito en `canAccessPanel()` de más abajo es una segunda
+     * capa, no la única.
+     */
+    use HasFactory, HasRoles, LogsPapeleraActivity, Notifiable, SoftDeletes;
+
+    public function papeleraLabel(): string
+    {
+        return (string) $this->name;
+    }
 
     protected $fillable = [
         'name',
@@ -55,6 +73,10 @@ class User extends Authenticatable implements FilamentUser, HasName
      */
     public function canAccessPanel(Panel $panel): bool
     {
+        if ($this->trashed()) {
+            return false;
+        }
+
         if (! $this->active) {
             return false;
         }

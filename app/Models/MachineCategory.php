@@ -3,14 +3,22 @@
 namespace App\Models;
 
 use App\Models\Concerns\HasManualOrder;
+use App\Models\Concerns\LogsPapeleraActivity;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Str;
 
 class MachineCategory extends Model
 {
-    use HasManualOrder;
+    /** SoftDeletes (Papelera, Lote A). `machines.machine_category_id` es `nullOnDelete`, no cascada. */
+    use HasManualOrder, LogsPapeleraActivity, SoftDeletes;
+
+    public function papeleraLabel(): string
+    {
+        return (string) $this->name;
+    }
 
     protected $guarded = [];
 
