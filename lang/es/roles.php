@@ -70,6 +70,29 @@ return [
     'perm_receive_alerts_digest' => 'Recibir el aviso de alertas',
     'perm_manage_settings' => 'Gestionar configuración',
 
+    // Papelera (Lote A): ver/restaurar/eliminar definitivamente, por recurso.
+    'perm_view_trash_machines' => 'Ver papelera de máquinas',
+    'perm_restore_machines' => 'Restaurar máquinas',
+    'perm_force_delete_machines' => 'Eliminar máquinas definitivamente',
+    'perm_view_trash_work_orders' => 'Ver papelera de órdenes de trabajo',
+    'perm_restore_work_orders' => 'Restaurar órdenes de trabajo',
+    'perm_force_delete_work_orders' => 'Eliminar órdenes de trabajo definitivamente',
+    'perm_view_trash_quotes' => 'Ver papelera de cotizaciones',
+    'perm_restore_quotes' => 'Restaurar cotizaciones',
+    'perm_force_delete_quotes' => 'Eliminar cotizaciones definitivamente',
+    'perm_view_trash_locations' => 'Ver papelera de obras',
+    'perm_restore_locations' => 'Restaurar obras',
+    'perm_force_delete_locations' => 'Eliminar obras definitivamente',
+    'perm_view_trash_machine_categories' => 'Ver papelera de tipos de máquina',
+    'perm_restore_machine_categories' => 'Restaurar tipos de máquina',
+    'perm_force_delete_machine_categories' => 'Eliminar tipos de máquina definitivamente',
+    'perm_view_trash_makes' => 'Ver papelera de marcas',
+    'perm_restore_makes' => 'Restaurar marcas',
+    'perm_force_delete_makes' => 'Eliminar marcas definitivamente',
+    'perm_view_trash_users' => 'Ver papelera de usuarios',
+    'perm_restore_users' => 'Restaurar usuarios',
+    'perm_force_delete_users' => 'Eliminar usuarios definitivamente',
+
     // Qué habilita cada permiso (pedido de la clienta 2026-08-24). Cada texto
     // describe lo que el permiso controla REALMENTE en el código, no lo que su
     // nombre sugiere.
@@ -90,10 +113,33 @@ return [
     'perm_desc_view_audit_log' => 'Ver la bitácora: quién hizo cada cambio y cuándo. Es solo lectura y no se puede borrar.',
     'perm_desc_access_panel' => 'Entrar al panel de escritorio. Sin este permiso la cuenta se autentica pero el panel no abre: es lo que separa a quien trabaja en la computadora de quien usa solo la aplicación de campo del celular.',
     'perm_desc_view_alerts' => 'Ver la pantalla de Alertas —máquinas con el servicio por vencer o vencido— y abrir una orden de trabajo desde ahí.',
-    'perm_desc_delete_machines' => 'Borrar una máquina. Se lleva en cascada sus órdenes, lecturas, alertas y costos históricos, así que el camino normal de baja es marcarla inactiva.',
-    'perm_desc_delete_work_orders' => 'Borrar una orden de trabajo, con todo lo que tenga cargado.',
+    'perm_desc_delete_machines' => 'Mandar una máquina a la papelera (borrado lógico). Se lleva en cascada sus órdenes, lecturas, alertas y costos históricos, así que el camino normal de baja es marcarla inactiva.',
+    'perm_desc_delete_work_orders' => 'Mandar una orden de trabajo a la papelera (borrado lógico), junto con todo lo que tenga cargado.',
     'perm_desc_receive_alerts_digest' => 'Recibir por correo el resumen diario de alertas de servicio. No abre ninguna pantalla: solo decide a quién le llega ese correo.',
     'perm_desc_manage_settings' => 'Editar la Configuración del panel (hoy, la tasa de impuesto de repuestos). Es un permiso nuevo del administrador, sin relación con ninguno de los otros.',
+
+    // Papelera (Lote A)
+    'perm_desc_view_trash_machines' => 'Ver la papelera de máquinas (las que se mandaron a la papelera, no las que están inactivas).',
+    'perm_desc_restore_machines' => 'Restaurar una máquina desde la papelera, con todo lo que se fue con ella.',
+    'perm_desc_force_delete_machines' => 'Eliminar definitivamente una máquina que ya está en la papelera. No se puede deshacer.',
+    'perm_desc_view_trash_work_orders' => 'Ver la papelera de órdenes de trabajo.',
+    'perm_desc_restore_work_orders' => 'Restaurar una orden de trabajo desde la papelera, con sus repuestos, adjuntos y checklist —exactamente los que se fueron con ella, no otros que ya estaban borrados de antes—.',
+    'perm_desc_force_delete_work_orders' => 'Eliminar definitivamente una orden de trabajo que ya está en la papelera, incluidos sus archivos adjuntos. No se puede deshacer.',
+    'perm_desc_view_trash_quotes' => 'Ver la papelera de cotizaciones.',
+    'perm_desc_restore_quotes' => 'Restaurar una cotización desde la papelera.',
+    'perm_desc_force_delete_quotes' => 'Eliminar definitivamente una cotización que ya está en la papelera, incluido su archivo adjunto. No se puede deshacer.',
+    'perm_desc_view_trash_locations' => 'Ver la papelera de obras.',
+    'perm_desc_restore_locations' => 'Restaurar una obra desde la papelera.',
+    'perm_desc_force_delete_locations' => 'Eliminar definitivamente una obra que ya está en la papelera. No se puede deshacer.',
+    'perm_desc_view_trash_machine_categories' => 'Ver la papelera de tipos de máquina.',
+    'perm_desc_restore_machine_categories' => 'Restaurar un tipo de máquina desde la papelera.',
+    'perm_desc_force_delete_machine_categories' => 'Eliminar definitivamente un tipo de máquina que ya está en la papelera. No se puede deshacer.',
+    'perm_desc_view_trash_makes' => 'Ver la papelera de marcas.',
+    'perm_desc_restore_makes' => 'Restaurar una marca desde la papelera.',
+    'perm_desc_force_delete_makes' => 'Eliminar definitivamente una marca que ya está en la papelera. No se puede deshacer.',
+    'perm_desc_view_trash_users' => 'Ver la papelera de usuarios.',
+    'perm_desc_restore_users' => 'Restaurar un usuario desde la papelera (vuelve a poder autenticarse).',
+    'perm_desc_force_delete_users' => 'Eliminar definitivamente un usuario que ya está en la papelera. No se puede deshacer.',
 
     // Para qué es cada rol del sistema (pedido de la clienta 2026-08-24). Los
     // roles que ella cree desde el panel llevan la descripción que escriba en

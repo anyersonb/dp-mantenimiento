@@ -129,4 +129,16 @@ return [
     'import_warn_unreadable_latest_reading' => ':machine (fila :row): última lectura ilegible (":raw"), se conserva el valor actual.',
     'import_warn_unreadable_remaining' => ':machine (fila :row): horas restantes ilegibles (":raw"), se conserva el valor actual.',
     'import_warn_orphan_description' => 'Fila :row: la máquina ":machine" no tiene fila de datos (fin de archivo), se omite.',
+
+    // Papelera (Lote A)
+    'event_trashed' => 'Enviado a la papelera',
+    'event_restored' => 'Restaurado',
+    'event_force_deleted' => 'Eliminado definitivamente',
+    'trash_log_trashed' => 'Enviado a la papelera: :label',
+    'trash_log_restored' => 'Restaurado de la papelera: :label',
+    'trash_log_force_deleted' => 'Eliminado definitivamente: :label',
+    'trash_restored_ok' => 'Se restauró :label.',
+    'trash_restored_bulk_ok' => 'Se restauraron :count registro(s).',
+    'trash_force_deleted_ok' => 'Se eliminó definitivamente :label. Esta acción no se puede deshacer.',
+    'trash_force_deleted_bulk_ok' => 'Se eliminaron definitivamente :count registro(s). Esta acción no se puede deshacer.',
 ];

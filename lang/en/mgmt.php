@@ -127,4 +127,16 @@ return [
     'import_warn_unreadable_latest_reading' => ':machine (row :row): latest reading unreadable (":raw"); the current value is kept.',
     'import_warn_unreadable_remaining' => ':machine (row :row): remaining hours unreadable (":raw"); the current value is kept.',
     'import_warn_orphan_description' => 'Row :row: machine ":machine" has no data row (end of file); skipped.',
+
+    // Trash (Batch A)
+    'event_trashed' => 'Sent to trash',
+    'event_restored' => 'Restored',
+    'event_force_deleted' => 'Permanently deleted',
+    'trash_log_trashed' => 'Sent to trash: :label',
+    'trash_log_restored' => 'Restored from trash: :label',
+    'trash_log_force_deleted' => 'Permanently deleted: :label',
+    'trash_restored_ok' => ':label was restored.',
+    'trash_restored_bulk_ok' => ':count record(s) were restored.',
+    'trash_force_deleted_ok' => ':label was permanently deleted. This cannot be undone.',
+    'trash_force_deleted_bulk_ok' => ':count record(s) were permanently deleted. This cannot be undone.',
 ];

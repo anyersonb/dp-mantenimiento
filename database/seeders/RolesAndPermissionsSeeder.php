@@ -37,6 +37,17 @@ class RolesAndPermissionsSeeder extends Seeder
             'delete_work_orders',    // borrar una orden de trabajo
             'receive_alerts_digest', // recibir por correo el resumen diario de alertas
             'manage_settings',       // editar la Configuración del panel (tasa de impuesto, etc.)
+
+            // Papelera (Lote A) — ver papelera / restaurar / eliminar definitivamente,
+            // granulares por recurso. Solo administrador (ver migración
+            // 2026_09_08_120100_add_papelera_permissions para el detalle de la decisión).
+            'view_trash_machines', 'restore_machines', 'force_delete_machines',
+            'view_trash_work_orders', 'restore_work_orders', 'force_delete_work_orders',
+            'view_trash_quotes', 'restore_quotes', 'force_delete_quotes',
+            'view_trash_locations', 'restore_locations', 'force_delete_locations',
+            'view_trash_machine_categories', 'restore_machine_categories', 'force_delete_machine_categories',
+            'view_trash_makes', 'restore_makes', 'force_delete_makes',
+            'view_trash_users', 'restore_users', 'force_delete_users',
         ];
         foreach ($permissions as $p) {
             Permission::firstOrCreate(['name' => $p]);

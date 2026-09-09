@@ -70,6 +70,29 @@ return [
     'perm_receive_alerts_digest' => 'Receive the alerts email',
     'perm_manage_settings' => 'Manage settings',
 
+    // Trash (Batch A): view/restore/permanently delete, per resource.
+    'perm_view_trash_machines' => 'View machines trash',
+    'perm_restore_machines' => 'Restore machines',
+    'perm_force_delete_machines' => 'Permanently delete machines',
+    'perm_view_trash_work_orders' => 'View work orders trash',
+    'perm_restore_work_orders' => 'Restore work orders',
+    'perm_force_delete_work_orders' => 'Permanently delete work orders',
+    'perm_view_trash_quotes' => 'View quotes trash',
+    'perm_restore_quotes' => 'Restore quotes',
+    'perm_force_delete_quotes' => 'Permanently delete quotes',
+    'perm_view_trash_locations' => 'View job sites trash',
+    'perm_restore_locations' => 'Restore job sites',
+    'perm_force_delete_locations' => 'Permanently delete job sites',
+    'perm_view_trash_machine_categories' => 'View machine types trash',
+    'perm_restore_machine_categories' => 'Restore machine types',
+    'perm_force_delete_machine_categories' => 'Permanently delete machine types',
+    'perm_view_trash_makes' => 'View makes trash',
+    'perm_restore_makes' => 'Restore makes',
+    'perm_force_delete_makes' => 'Permanently delete makes',
+    'perm_view_trash_users' => 'View users trash',
+    'perm_restore_users' => 'Restore users',
+    'perm_force_delete_users' => 'Permanently delete users',
+
     // What each permission actually enables (client request 2026-08-24). Each
     // text describes what the permission REALLY gates in the code, not what its
     // name suggests.
@@ -90,10 +113,33 @@ return [
     'perm_desc_view_audit_log' => 'See the audit log: who changed what, and when. Read only, and it cannot be deleted.',
     'perm_desc_access_panel' => 'Enter the desktop panel. Without this permission the account signs in but the panel does not open: it is what separates whoever works at a computer from whoever only uses the field app on the phone.',
     'perm_desc_view_alerts' => 'See the Alerts screen — machines with service due or overdue — and open a work order from there.',
-    'perm_desc_delete_machines' => 'Delete a machine. It takes its work orders, readings, alerts and historical costs with it, so the normal way to retire one is to mark it inactive.',
-    'perm_desc_delete_work_orders' => 'Delete a work order, along with everything entered on it.',
+    'perm_desc_delete_machines' => 'Send a machine to the trash (soft delete). It takes its work orders, readings, alerts and historical costs with it, so the normal way to retire one is to mark it inactive.',
+    'perm_desc_delete_work_orders' => 'Send a work order to the trash (soft delete), along with everything entered on it.',
     'perm_desc_receive_alerts_digest' => 'Receive the daily service-alert summary by email. It opens no screen: it only decides who gets that email.',
     'perm_desc_manage_settings' => 'Edit the panel Settings (today, the parts tax rate). A new administrator permission, unrelated to any of the others.',
+
+    // Trash (Batch A)
+    'perm_desc_view_trash_machines' => 'View the machines trash (the ones sent to trash, not the ones marked inactive).',
+    'perm_desc_restore_machines' => 'Restore a machine from the trash, along with everything that went with it.',
+    'perm_desc_force_delete_machines' => 'Permanently delete a machine that is already in the trash. This cannot be undone.',
+    'perm_desc_view_trash_work_orders' => 'View the work orders trash.',
+    'perm_desc_restore_work_orders' => 'Restore a work order from the trash, along with its parts, attachments and checklist — exactly the ones that went with it, not others that were already trashed before.',
+    'perm_desc_force_delete_work_orders' => 'Permanently delete a work order that is already in the trash, including its attachments. This cannot be undone.',
+    'perm_desc_view_trash_quotes' => 'View the quotes trash.',
+    'perm_desc_restore_quotes' => 'Restore a quote from the trash.',
+    'perm_desc_force_delete_quotes' => 'Permanently delete a quote that is already in the trash, including its attached file. This cannot be undone.',
+    'perm_desc_view_trash_locations' => 'View the job sites trash.',
+    'perm_desc_restore_locations' => 'Restore a job site from the trash.',
+    'perm_desc_force_delete_locations' => 'Permanently delete a job site that is already in the trash. This cannot be undone.',
+    'perm_desc_view_trash_machine_categories' => 'View the machine types trash.',
+    'perm_desc_restore_machine_categories' => 'Restore a machine type from the trash.',
+    'perm_desc_force_delete_machine_categories' => 'Permanently delete a machine type that is already in the trash. This cannot be undone.',
+    'perm_desc_view_trash_makes' => 'View the makes trash.',
+    'perm_desc_restore_makes' => 'Restore a make from the trash.',
+    'perm_desc_force_delete_makes' => 'Permanently delete a make that is already in the trash. This cannot be undone.',
+    'perm_desc_view_trash_users' => 'View the users trash.',
+    'perm_desc_restore_users' => 'Restore a user from the trash (they can sign in again).',
+    'perm_desc_force_delete_users' => 'Permanently delete a user that is already in the trash. This cannot be undone.',
 
     // What each system role is for (client request 2026-08-24). Roles she
     // creates from the panel carry the description she writes in the form;
