@@ -79,6 +79,10 @@ class Machine extends Model
      * apuntan a `machines` son ON DELETE CASCADE, así que un borrado duro se
      * lleva la historia entera y el diálogo anterior no lo decía.
      *
+     * `field_reports` se sumó después (papelera, borrado definitivo): tiene
+     * el mismo `cascadeOnDelete()` que las otras cuatro tablas y se había
+     * quedado afuera del primer resumen.
+     *
      * @return array<string, int>
      */
     public function destructionSummary(): array
@@ -88,6 +92,7 @@ class Machine extends Model
             'readings' => $this->readings()->count(),
             'alerts' => $this->alerts()->count(),
             'parts' => $this->parts()->count(),
+            'field_reports' => $this->fieldReports()->count(),
         ];
     }
 

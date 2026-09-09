@@ -139,4 +139,15 @@ return [
     'trash_restored_bulk_ok' => ':count record(s) were restored.',
     'trash_force_deleted_ok' => ':label was permanently deleted. This cannot be undone.',
     'trash_force_deleted_bulk_ok' => ':count record(s) were permanently deleted. This cannot be undone.',
+
+    // Trash — impact of a permanent delete (finding E6-05 reopened by the
+    // trash feature): logged BEFORE deleting, because afterwards the
+    // dependents are gone and can't be counted anymore.
+    'event_force_delete_impact' => 'Permanent delete impact',
+    'trash_log_force_delete_impact' => 'Permanent delete of :label — took down :work_orders work order(s), :readings hour meter reading(s), :parts part(s), :alerts alert(s) and :field_reports field report(s).',
+    'trash_force_delete_confirm_label' => 'Type ":value" to confirm',
+    'trash_force_delete_confirm_help' => 'This delete removes history that cannot be recovered. Retype the exact code to enable the delete.',
+    'trash_force_delete_confirm_mismatch' => "The text doesn't match. Nothing was deleted.",
+    'trash_force_delete_bulk_confirm_label' => 'Type :count to confirm',
+    'trash_force_delete_bulk_confirm_help' => 'Type the number of selected records to enable permanently deleting all of them.',
 ];

@@ -141,4 +141,15 @@ return [
     'trash_restored_bulk_ok' => 'Se restauraron :count registro(s).',
     'trash_force_deleted_ok' => 'Se eliminó definitivamente :label. Esta acción no se puede deshacer.',
     'trash_force_deleted_bulk_ok' => 'Se eliminaron definitivamente :count registro(s). Esta acción no se puede deshacer.',
+
+    // Papelera — impacto del borrado definitivo (hallazgo E6-05 reabierto por
+    // la papelera): se registra ANTES de borrar, porque después los
+    // dependientes ya no están para contarlos.
+    'event_force_delete_impact' => 'Impacto del borrado definitivo',
+    'trash_log_force_delete_impact' => 'Eliminación definitiva de :label — se llevó :work_orders orden(es) de trabajo, :readings lectura(s) de horómetro, :parts parte(s), :alerts alerta(s) y :field_reports reporte(s) de campo.',
+    'trash_force_delete_confirm_label' => 'Escribí ":value" para confirmar',
+    'trash_force_delete_confirm_help' => 'Esta eliminación se lleva historial que no se puede recuperar. Volvé a teclear el código exacto para habilitar el borrado.',
+    'trash_force_delete_confirm_mismatch' => 'El texto no coincide. No se eliminó nada.',
+    'trash_force_delete_bulk_confirm_label' => 'Escribí :count para confirmar',
+    'trash_force_delete_bulk_confirm_help' => 'Teclea la cantidad de registros seleccionados para habilitar el borrado definitivo de todos.',
 ];

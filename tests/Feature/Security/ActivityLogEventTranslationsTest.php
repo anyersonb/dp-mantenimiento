@@ -38,10 +38,14 @@ class ActivityLogEventTranslationsTest extends TestCase
      *     con `->event($event)`, una VARIABLE y no un literal, para los
      *     modelos de la papelera que no tienen `LogsActivity` (Quote,
      *     Location, MachineCategory, Make, User).
+     *   - `force_delete_impact`: mismo caso (`TrashActivityLogger::forceDeleteImpact()`,
+     *     también por variable), el asiento CON LOS CONTEOS que se registra
+     *     antes de un borrado definitivo con dependientes (papelera reabre
+     *     el hallazgo E6-05, ver `HasPapeleraActions::papeleraDestructionSummary()`).
      *
      * @var array<int, string>
      */
-    private const IMPLICIT_LOGS_ACTIVITY_EVENTS = ['created', 'updated', 'deleted', 'restored', 'trashed', 'force_deleted'];
+    private const IMPLICIT_LOGS_ACTIVITY_EVENTS = ['created', 'updated', 'deleted', 'restored', 'trashed', 'force_deleted', 'force_delete_impact'];
 
     public function test_every_activity_log_event_the_code_can_emit_has_an_es_and_en_translation(): void
     {

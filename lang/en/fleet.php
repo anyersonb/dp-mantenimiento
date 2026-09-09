@@ -105,8 +105,14 @@ return [
     'discard_reason' => 'Reason for discarding',
     'discarded_ok' => 'Machine discarded. Its history was kept.',
     'delete_heading' => 'Delete machine :machine',
-    'delete_warning' => 'WARNING: this is NOT a retirement. Deleting :machine also removes, in cascade: :work_orders work order(s) with their costs, :readings hour meter reading(s), :alerts alert(s) and :parts catalogue part(s). To retire a machine use the Inactive status, or the Discard action if it is under review.',
+    'delete_warning' => 'WARNING: this is NOT a retirement. Deleting :machine also removes, in cascade: :work_orders work order(s) with their costs, :readings hour meter reading(s), :alerts alert(s), :parts catalogue part(s) and :field_reports field report(s). To retire a machine use the Inactive status, or the Discard action if it is under review.',
     'delete_confirm_button' => 'Yes, delete and lose the history',
+
+    // Trash — PERMANENT deletion (a real hard delete, no way back). Different
+    // from the warning above: that one is the normal soft delete (recoverable
+    // from the trash); this one truly cannot be undone.
+    'force_delete_warning' => 'This machine (:machine) has :work_orders work order(s), :readings hour meter reading(s), :parts part(s), :alerts alert(s) and :field_reports field report(s). Permanently deleting it will remove them forever and cannot be undone.',
+    'force_delete_bulk_warning' => 'These :count machines have a combined :work_orders work order(s), :readings hour meter reading(s), :parts part(s), :alerts alert(s) and :field_reports field report(s). Permanently deleting them will remove them forever and cannot be undone.',
 
     'imported_reading_note' => 'Reading imported from the PM Service Report',
     'imported_reading_from_file_note' => 'Reading imported from the PM Service Report (:file)',

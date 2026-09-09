@@ -126,7 +126,62 @@ class MachineResource extends Resource
             'readings' => $resumen['readings'],
             'alerts' => $resumen['alerts'],
             'parts' => $resumen['parts'],
+            'field_reports' => $resumen['field_reports'],
         ]);
+    }
+
+    /* ------------- Papelera: impacto del borrado DEFINITIVO ------------- */
+
+    /**
+     * Hallazgo "papelera reabre E6-05": `papeleraForceDeleteAction()` llamaba
+     * `forceDelete()` pelado. Las FK que apuntan a `machines` son todas
+     * `cascadeOnDelete()`, así que sin este resumen y sin la confirmación
+     * fuerte de abajo, un solo clic en la papelera destruía el historial
+     * completo sin avisar nada (verificado en la base local: máquina con 1
+     * OT + 1 lectura + 17 partes, las tres tablas quedaron en 0 tras el
+     * force delete).
+     */
+    protected static function papeleraDestructionSummary(Model $record): ?array
+    {
+        /** @var Machine $record */
+        return $record->destructionSummary();
+    }
+
+    protected static function papeleraForceDeleteWarning(Model $record, array $summary): string
+    {
+        /** @var Machine $record */
+        return __('fleet.force_delete_warning', [
+            'machine' => $record->id_code,
+            'work_orders' => $summary['work_orders'] ?? 0,
+            'readings' => $summary['readings'] ?? 0,
+            'parts' => $summary['parts'] ?? 0,
+            'alerts' => $summary['alerts'] ?? 0,
+            'field_reports' => $summary['field_reports'] ?? 0,
+        ]);
+    }
+
+    protected static function papeleraForceDeleteBulkWarning(Collection $records, array $summary): string
+    {
+        return __('fleet.force_delete_bulk_warning', [
+            'count' => $records->count(),
+            'work_orders' => $summary['work_orders'] ?? 0,
+            'readings' => $summary['readings'] ?? 0,
+            'parts' => $summary['parts'] ?? 0,
+            'alerts' => $summary['alerts'] ?? 0,
+            'field_reports' => $summary['field_reports'] ?? 0,
+        ]);
+    }
+
+    /**
+     * El administrador tiene que volver a teclear el código de la máquina
+     * (el mismo que la identifica en el listado, ej. "CR001") para habilitar
+     * el borrado definitivo cuando hay historial de por medio — un
+     * `requiresConfirmation()` normal no alcanza para esto.
+     */
+    protected static function papeleraForceDeleteConfirmationValue(Model $record): ?string
+    {
+        /** @var Machine $record */
+        return (string) $record->id_code;
     }
 
     public static function getNavigationBadge(): ?string

@@ -2,6 +2,8 @@
 
 namespace App\Filament\Concerns;
 
+use App\Support\TrashActivityLogger;
+use Filament\Forms;
 use Filament\Notifications\Notification;
 use Filament\Tables;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
@@ -118,12 +120,156 @@ trait HasPapeleraActions
             });
     }
 
+    /**
+     * Resumen, en {clave => cantidad}, de lo que un borrado DEFINITIVO de
+     * este registro se lleva por delante más allá de la fila misma —
+     * hallazgo "papelera reabre E6-05": las FK con `cascadeOnDelete()` hacia
+     * `machines` (work_orders, horometer_readings, machine_parts, alerts,
+     * field_reports) no se disparan con el soft delete de la papelera, pero
+     * SÍ con `forceDelete()`, y antes de este fix nada avisaba de eso ni
+     * dejaba rastro de cuánto se perdió.
+     *
+     * Devuelve null por defecto: la mayoría de los recursos de la papelera
+     * NO tienen ninguna cascada que destruya algo que el administrador no
+     * esperaría perder —verificado migración por migración, no asumido—:
+     * `locations`/`machine_categories`/`makes`/`users` son referenciados con
+     * `nullOnDelete()` (los hijos sobreviven, solo pierden la referencia), y
+     * los tres hijos de `work_orders` (parts/attachments/checklist_results)
+     * son PROPIOS de la OT —se van con ella igual que se van con cualquier
+     * borrado normal de un padre y sus líneas— y ya tienen su propio manejo
+     * de archivo en `App\Models\WorkOrder::booted()`. Solo `MachineResource`
+     * sobreescribe esto.
+     *
+     * @return array<string, int>|null
+     */
+    protected static function papeleraDestructionSummary(Model $record): ?array
+    {
+        return null;
+    }
+
+    /**
+     * Texto del modal de confirmación cuando SÍ hay dependientes que se
+     * perderían (ver `papeleraDestructionSummary()`). Solo se evalúa cuando
+     * el resumen trae algún conteo mayor a cero.
+     */
+    protected static function papeleraForceDeleteWarning(Model $record, array $summary): string
+    {
+        return '';
+    }
+
+    /**
+     * Texto del modal de confirmación para la variante MASIVA, con el
+     * resumen ya sumado entre todos los registros seleccionados.
+     */
+    protected static function papeleraForceDeleteBulkWarning(EloquentCollection $records, array $summary): string
+    {
+        return '';
+    }
+
+    /**
+     * Valor que el administrador debe volver a teclear para HABILITAR el
+     * borrado definitivo cuando hay dependientes (ej. el `id_code` de la
+     * máquina) — un `requiresConfirmation()` normal no alcanza para una
+     * acción que destruye historial. Null si esta capa extra no aplica.
+     */
+    protected static function papeleraForceDeleteConfirmationValue(Model $record): ?string
+    {
+        return null;
+    }
+
+    /**
+     * true si ESTE registro puntual tiene algo que perder con un borrado
+     * definitivo (resumen no nulo y con algún conteo mayor a cero).
+     */
+    protected static function papeleraHasDestructiveImpact(Model $record): bool
+    {
+        $summary = static::papeleraDestructionSummary($record);
+
+        return $summary !== null && array_sum($summary) > 0;
+    }
+
+    /**
+     * @return array<int, Forms\Components\Component>
+     */
+    protected static function papeleraForceDeleteForm(Model $record): array
+    {
+        if (! static::papeleraHasDestructiveImpact($record)) {
+            return [];
+        }
+
+        $expected = static::papeleraForceDeleteConfirmationValue($record);
+
+        if ($expected === null) {
+            return [];
+        }
+
+        return [
+            Forms\Components\TextInput::make('confirm_value')
+                ->label(__('mgmt.trash_force_delete_confirm_label', ['value' => $expected]))
+                ->helperText(__('mgmt.trash_force_delete_confirm_help'))
+                ->required(),
+        ];
+    }
+
+    protected static function papeleraForceDeleteModalDescription(Model $record): ?string
+    {
+        if (! static::papeleraHasDestructiveImpact($record)) {
+            // null deja el texto por defecto de Filament (registro sin
+            // historial que perder, ej. una máquina recién creada).
+            return null;
+        }
+
+        return static::papeleraForceDeleteWarning($record, static::papeleraDestructionSummary($record));
+    }
+
+    /**
+     * Corta la acción (con aviso, sin borrar nada) si hace falta re-teclear
+     * un valor de confirmación y lo tecleado no coincide. Devuelve true
+     * cuando está OK para seguir.
+     */
+    protected static function papeleraConfirmForceDelete(Model $record, array $data, Tables\Actions\ForceDeleteAction $action): bool
+    {
+        if (! static::papeleraHasDestructiveImpact($record)) {
+            return true;
+        }
+
+        $expected = static::papeleraForceDeleteConfirmationValue($record);
+
+        if ($expected === null || ($data['confirm_value'] ?? null) === $expected) {
+            return true;
+        }
+
+        Notification::make()->danger()
+            ->title(__('mgmt.trash_force_delete_confirm_mismatch'))
+            ->send();
+
+        // halt() y no cancel(): el modal queda abierto para reintentar sin
+        // rearmar todo (mismo patrón que RoleResource/WorkOrderResource).
+        $action->halt();
+
+        return false;
+    }
+
     protected static function papeleraForceDeleteAction(): Tables\Actions\ForceDeleteAction
     {
         return Tables\Actions\ForceDeleteAction::make()
             ->authorize(fn (Model $record): bool => static::canForceDelete($record))
-            ->action(function (Model $record) {
+            ->form(fn (Model $record): array => static::papeleraForceDeleteForm($record))
+            ->modalDescription(fn (Model $record): ?string => static::papeleraForceDeleteModalDescription($record))
+            ->action(function (Model $record, array $data, Tables\Actions\ForceDeleteAction $action) {
+                if (! static::papeleraConfirmForceDelete($record, $data, $action)) {
+                    return;
+                }
+
                 $label = static::papeleraRecordLabel($record);
+                $summary = static::papeleraDestructionSummary($record);
+
+                // Se registra ANTES de borrar: después de forceDelete() los
+                // dependientes ya no están para contarlos.
+                if ($summary !== null) {
+                    TrashActivityLogger::forceDeleteImpact($record, $label, $summary);
+                }
+
                 $record->forceDelete();
 
                 Notification::make()->success()
@@ -132,13 +278,111 @@ trait HasPapeleraActions
             });
     }
 
+    /**
+     * true si CUALQUIERA de los registros seleccionados tiene algo que
+     * perder con el borrado masivo.
+     */
+    protected static function papeleraBulkHasDestructiveImpact(EloquentCollection $records): bool
+    {
+        foreach ($records as $record) {
+            if (static::papeleraHasDestructiveImpact($record)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * @return array<string, int>
+     */
+    protected static function papeleraAggregateDestructionSummary(EloquentCollection $records): array
+    {
+        $totals = [];
+
+        foreach ($records as $record) {
+            foreach (static::papeleraDestructionSummary($record) ?? [] as $key => $value) {
+                $totals[$key] = ($totals[$key] ?? 0) + $value;
+            }
+        }
+
+        return $totals;
+    }
+
+    /**
+     * @return array<int, Forms\Components\Component>
+     */
+    protected static function papeleraForceDeleteBulkForm(EloquentCollection $records): array
+    {
+        if (! static::papeleraBulkHasDestructiveImpact($records)) {
+            return [];
+        }
+
+        return [
+            Forms\Components\TextInput::make('confirm_count')
+                ->label(__('mgmt.trash_force_delete_bulk_confirm_label', ['count' => $records->count()]))
+                ->helperText(__('mgmt.trash_force_delete_bulk_confirm_help'))
+                ->required(),
+        ];
+    }
+
+    protected static function papeleraForceDeleteBulkModalDescription(EloquentCollection $records): ?string
+    {
+        if (! static::papeleraBulkHasDestructiveImpact($records)) {
+            return null;
+        }
+
+        return static::papeleraForceDeleteBulkWarning($records, static::papeleraAggregateDestructionSummary($records));
+    }
+
+    /**
+     * Confirmación fuerte de la variante masiva: como no es práctico
+     * re-teclear el código de N registros distintos, acá se pide teclear la
+     * CANTIDAD exacta de seleccionados — mismo espíritu ("no alcanza con un
+     * click"), adaptado a que son varios registros.
+     */
+    protected static function papeleraConfirmForceDeleteBulk(EloquentCollection $records, array $data, Tables\Actions\ForceDeleteBulkAction $action): bool
+    {
+        if (! static::papeleraBulkHasDestructiveImpact($records)) {
+            return true;
+        }
+
+        if ((string) ($data['confirm_count'] ?? '') === (string) $records->count()) {
+            return true;
+        }
+
+        Notification::make()->danger()
+            ->title(__('mgmt.trash_force_delete_confirm_mismatch'))
+            ->send();
+
+        $action->halt();
+
+        return false;
+    }
+
     protected static function papeleraForceDeleteBulkAction(): Tables\Actions\ForceDeleteBulkAction
     {
         return Tables\Actions\ForceDeleteBulkAction::make()
             ->authorize(fn (): bool => static::canForceDeleteAny())
-            ->action(function (EloquentCollection $records) {
+            ->form(fn (EloquentCollection $records): array => static::papeleraForceDeleteBulkForm($records))
+            ->modalDescription(fn (EloquentCollection $records): ?string => static::papeleraForceDeleteBulkModalDescription($records))
+            ->action(function (EloquentCollection $records, array $data, Tables\Actions\ForceDeleteBulkAction $action) {
+                if (! static::papeleraConfirmForceDeleteBulk($records, $data, $action)) {
+                    return;
+                }
+
                 $count = $records->count();
-                $records->each(fn (Model $record) => $record->forceDelete());
+
+                $records->each(function (Model $record) {
+                    $label = static::papeleraRecordLabel($record);
+                    $summary = static::papeleraDestructionSummary($record);
+
+                    if ($summary !== null) {
+                        TrashActivityLogger::forceDeleteImpact($record, $label, $summary);
+                    }
+
+                    $record->forceDelete();
+                });
 
                 Notification::make()->success()
                     ->title(__('mgmt.trash_force_deleted_bulk_ok', ['count' => $count]))
