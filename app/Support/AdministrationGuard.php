@@ -20,9 +20,20 @@ use Spatie\Permission\Models\Role;
  *   3. desactivar al ultimo usuario que administra,
  *   4. quitarle el rol a esa cuenta desde Usuarios.
  *
+ * Sumada 2026-09-09, auditoria de seguridad del lote de papelera:
+ *
+ *   5. borrar (soft delete) al ultimo usuario que administra, desde las TRES
+ *      puertas que existen para hacerlo (fila y masiva en UserResource, y la
+ *      cabecera de EditUser) — antes cada una traia su propio `hidden()`
+ *      contra uno mismo, escrito por separado, y ninguna consultaba esta
+ *      clase. No era explotable en la practica (un usuario en la papelera no
+ *      se autentica, y `hidden()`/`authorize()` de Filament ya cortan del
+ *      lado del servidor), pero la regla estaba escrita tres veces y la
+ *      cuarta puerta que alguien agregue falla abierta por omision.
+ *
  * Todas terminan igual: el panel cerrado para todo el mundo, en una instancia
  * unica, sin staging, y sin forma de volver desde el panel — se sale por base
- * de datos. Por eso la pregunta se hace en un solo lugar y las cuatro puertas
+ * de datos. Por eso la pregunta se hace en un solo lugar y las cinco puertas
  * la consultan.
  *
  * ---
@@ -130,6 +141,24 @@ class AdministrationGuard
 
     /** Puerta 3: desactivar una cuenta. */
     public static function deactivatingWouldStrand(User $user): bool
+    {
+        return ! self::survives(null, null, $user->getKey());
+    }
+
+    /**
+     * Puerta 5: borrar (soft delete) una cuenta.
+     *
+     * Misma pregunta que la puerta 3 y con el mismo cálculo: `survives()`
+     * consulta `User::where('active', true)`, y el scope global de
+     * `SoftDeletes` de `User` ya excluye de esa consulta a cualquier usuario
+     * archivado —un usuario en la papelera queda fuera del conteo
+     * exactamente igual que uno inactivo—, así que no hace falta tocar
+     * `survives()` para esto: alcanza con nombrar la pregunta desde el lado
+     * del borrado, para que las tres puertas de la papelera (fila y masiva
+     * en `UserResource`, cabecera de `EditUser`) dejen de traer cada una su
+     * propio `hidden()` contra uno mismo sin consultar nada en común.
+     */
+    public static function deletingUserWouldStrand(User $user): bool
     {
         return ! self::survives(null, null, $user->getKey());
     }

@@ -344,7 +344,19 @@ class UserResource extends Resource
                             ->send();
                     }),
                 Tables\Actions\DeleteAction::make()
-                    ->hidden(fn (User $record) => $record->id === Auth::id()),
+                    // Puerta 5 (AdministrationGuard, hallazgo seguridad Medio
+                    // 2026-09-09): ->authorize() alimenta el mismo isHidden()/
+                    // isAuthorized() que Filament vuelve a evaluar del lado
+                    // del servidor al montar la acción, así que esto cierra
+                    // la puerta tanto en la UI como en el request real.
+                    //
+                    // ->hidden() ahora SUMA `|| $record->trashed()`: sin eso
+                    // se pierde el ocultamiento automático que trae
+                    // `DeleteAction::setUp()` (`hidden()` REEMPLAZA, no
+                    // acumula), y "Eliminar" quedaba visible en la papelera
+                    // sobre un usuario ya archivado (hallazgo seguridad Bajo).
+                    ->authorize(fn (User $record): bool => ! AdministrationGuard::deletingUserWouldStrand($record))
+                    ->hidden(fn (User $record) => $record->id === Auth::id() || $record->trashed()),
                 // No hace falta un guard "contra uno mismo" acá: un usuario
                 // trashed no puede autenticarse (ver User::canAccessPanel), así
                 // que restaurar/eliminar la PROPIA cuenta es imposible de
@@ -362,7 +374,20 @@ class UserResource extends Resource
 
                             $records
                                 ->reject(fn (User $record) => $record->id === $currentId)
-                                ->each(fn (User $record) => $record->delete());
+                                ->each(function (User $record) {
+                                    // Puerta 5: se evalúa registro por
+                                    // registro, EN ORDEN — un soft delete
+                                    // sale del scope de `SoftDeletes` de
+                                    // inmediato, así que si el N-ésimo
+                                    // borrado de este mismo lote dejaría al
+                                    // sistema sin nadie que administre, se
+                                    // corta ahí, no antes ni después.
+                                    if (AdministrationGuard::deletingUserWouldStrand($record)) {
+                                        return;
+                                    }
+
+                                    $record->delete();
+                                });
                         }),
                     static::papeleraRestoreBulkAction(),
                     static::papeleraForceDeleteBulkAction(),

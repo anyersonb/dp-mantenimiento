@@ -7,6 +7,7 @@ use App\Filament\Resources\RoleResource\Pages\CreateRole;
 use App\Filament\Resources\RoleResource\Pages\EditRole;
 use App\Filament\Resources\RoleResource\Pages\ListRoles;
 use App\Filament\Resources\UserResource\Pages\EditUser;
+use App\Filament\Resources\UserResource\Pages\ListUsers;
 use App\Models\User;
 use App\Support\AccessControl;
 use App\Support\AdministrationGuard;
@@ -199,6 +200,95 @@ class AdministrationCannotBeStrandedTest extends TestCase
 
         $this->assertTrue($admin->fresh()->hasRole('administrador'));
         $this->assertTrue($this->alguienAdministra());
+    }
+
+    /**
+     * Puerta 5 (auditoría de seguridad del lote de papelera, 2026-09-09):
+     * borrar (soft delete) al último administrador, desde las tres puertas
+     * que existen para hacerlo — fila y masiva en `UserResource`, cabecera
+     * de `EditUser` — ninguna consultaba `AdministrationGuard` antes de este
+     * fix; cada una traía su propio `hidden()`/`reject()` contra uno mismo.
+     *
+     * Para que el escenario sea alcanzable de verdad (y no redundante con el
+     * bloqueo "no sobre uno mismo" que ya existía): el actor de estos tests
+     * tiene `manage_users` —alcanza para llegar a `UserResource`— pero NO
+     * `access_panel`. `AdministrationGuard::REQUIRED` exige los DOS permisos
+     * juntos para "administrar", así que este actor —a diferencia de un
+     * administrador de verdad— NO cuenta en `survives()`. Es el caso real en
+     * el que borrar al único que sí administra (el `$admin` sembrado, con el
+     * rol 'administrador') SÍ dejaría el sistema sin nadie que lo administre.
+     */
+    private function actorWithManageUsersButNoPanelAccess(): User
+    {
+        $rol = Role::create(['name' => 'gestor_sin_panel', 'guard_name' => 'web']);
+        $rol->givePermissionTo('manage_users');
+
+        $actor = User::factory()->create(['email' => 'gestor-sin-panel@dp.local', 'active' => true]);
+        $actor->assignRole($rol);
+        app(PermissionRegistrar::class)->forgetCachedPermissions();
+
+        return $actor;
+    }
+
+    public function test_the_row_delete_action_is_not_authorized_when_it_would_strand_administration(): void
+    {
+        $admin = $this->admin();
+        $actor = $this->actorWithManageUsersButNoPanelAccess();
+
+        $this->assertTrue(
+            AdministrationGuard::deletingUserWouldStrand($admin),
+            'precondición: admin es el único que administra de verdad'
+        );
+
+        Livewire::actingAs($actor)
+            ->test(ListUsers::class)
+            ->assertTableActionHidden('delete', $admin);
+
+        $this->assertNotNull(User::find($admin->getKey()), 'sigue en pie');
+        $this->assertTrue($this->alguienAdministra());
+    }
+
+    /**
+     * La otra mitad: la salvaguarda no se mete cuando no hace falta. Sin
+     * esto, "siempre oculto" pasaría el test de arriba sin ser un arreglo.
+     */
+    public function test_the_row_delete_action_still_works_on_a_deletion_that_would_not_strand_administration(): void
+    {
+        $admin = $this->admin();
+        $taller = Role::where('name', 'taller')->firstOrFail()->users()->firstOrFail();
+
+        Livewire::actingAs($admin)
+            ->test(ListUsers::class)
+            ->callTableAction('delete', $taller);
+
+        $this->assertSoftDeleted('users', ['id' => $taller->id]);
+    }
+
+    public function test_the_bulk_delete_action_skips_only_the_record_that_would_strand_administration(): void
+    {
+        $admin = $this->admin();
+        $taller = Role::where('name', 'taller')->firstOrFail()->users()->firstOrFail();
+        $actor = $this->actorWithManageUsersButNoPanelAccess();
+
+        Livewire::actingAs($actor)
+            ->test(ListUsers::class)
+            ->callTableBulkAction('delete', [$admin, $taller]);
+
+        $this->assertNotNull(User::find($admin->getKey()), 'el administrador se salta, no se borra');
+        $this->assertSoftDeleted('users', ['id' => $taller->id]);
+        $this->assertTrue($this->alguienAdministra());
+    }
+
+    public function test_the_edit_user_header_delete_action_is_not_authorized_when_it_would_strand_administration(): void
+    {
+        $admin = $this->admin();
+        $actor = $this->actorWithManageUsersButNoPanelAccess();
+
+        Livewire::actingAs($actor)
+            ->test(EditUser::class, ['record' => $admin->getKey()])
+            ->assertActionHidden('delete');
+
+        $this->assertNotNull(User::find($admin->getKey()));
     }
 
     /** Hallazgo 6: el nombre liberado no se puede reclamar desde la pantalla. */
