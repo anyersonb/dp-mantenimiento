@@ -20,8 +20,15 @@ class EditUser extends EditRecord
             // `->authorize($resource::canDelete($this->getRecord()))` en
             // EditRecord::configureDeleteAction() — otro ->authorize() en
             // esta cadena lo REEMPLAZARÍA en vez de sumarse.
+            //
+            // ->hidden() SUMA `|| $this->record->trashed()` (el mismo Bajo de
+            // UserResource::table(), corregido ahí desde el commit anterior
+            // pero pendiente en este archivo): sin eso se pierde el
+            // ocultamiento automático de `DeleteAction::setUp()`, y
+            // "Eliminar" quedaba visible en la papelera sobre un usuario ya
+            // archivado.
             Actions\DeleteAction::make()
-                ->hidden(fn () => $this->record->id === Auth::id()),
+                ->hidden(fn () => $this->record->id === Auth::id() || $this->record->trashed()),
         ];
     }
 }
