@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Facades\Storage;
 use Spatie\Activitylog\LogOptions;
 use Spatie\Activitylog\Traits\LogsActivity;
 
@@ -28,6 +29,51 @@ class Machine extends Model
     public function papeleraLabel(): string
     {
         return (string) $this->id_code;
+    }
+
+    /**
+     * Hallazgo seguridad Medio, 2026-09-09: vive acá y no en el hook del
+     * Resource (`MachineResource::papeleraBeforeForceDelete()`, ahora no-op)
+     * por lo mismo que motivó `WorkOrder::forceDeleting()` —el precedente de
+     * este mismo repo—: `App\Console\Commands\QaCleanup` llama
+     * `$record->forceDelete()` DIRECTO sobre máquinas (fuera del panel), y
+     * ese camino se saltea cualquier hook que solo viva en el Resource de
+     * Filament. En el modelo lo hereda cualquier forma de llegar al borrado
+     * definitivo —panel, comando o tinker— sin que nadie tenga que acordarse.
+     */
+    protected static function booted(): void
+    {
+        static::forceDeleting(function (Machine $machine) {
+            // Cascada manual (mismo motivo que en WorkOrder::forceDeleting()):
+            // las OT de esta máquina se van con la cascada REAL de la base
+            // (`cascadeOnDelete()`), que no dispara eventos de Eloquent. Sin
+            // forzarlas una por una ANTES, `WorkOrder::forceDeleting()` —que
+            // borra el archivo físico de cada adjunto— nunca llegaría a
+            // correr y el archivo quedaría huérfano en disco.
+            //
+            // `withTrashed()` a propósito: incluye tanto las OT ya
+            // archivadas (el flujo normal antes de dar de baja el activo)
+            // como las que siguieran vivas.
+            $machine->workOrders()->withTrashed()->get()->each(
+                fn (WorkOrder $workOrder) => $workOrder->forceDelete()
+            );
+
+            // Fotos propias de la máquina: `image` (una ruta) y `gallery`
+            // (un array de rutas) son FileUpload sobre disk('public') y
+            // nadie las borraba nunca —no son una fila con FK, así que
+            // ninguna cascada de la base las alcanza—. Sin esto quedaban
+            // descargables para siempre en /storage/machines/..., sin
+            // ninguna fila que las referencie para poder purgarlas después.
+            if ($machine->image && Storage::disk('public')->exists($machine->image)) {
+                Storage::disk('public')->delete($machine->image);
+            }
+
+            foreach ((array) $machine->gallery as $path) {
+                if ($path && Storage::disk('public')->exists($path)) {
+                    Storage::disk('public')->delete($path);
+                }
+            }
+        });
     }
 
     // $guarded = [] ya deja todas las columnas (incluidas oil_capacity/image/gallery)

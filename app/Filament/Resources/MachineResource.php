@@ -7,7 +7,6 @@ use App\Filament\Resources\MachineResource\Pages;
 use App\Filament\Resources\MachineResource\RelationManagers;
 use App\Models\Location;
 use App\Models\Machine;
-use App\Models\WorkOrder;
 use App\Rules\RejectsDangerousUploadExtensions;
 use App\Services\HourmeterReplacementService;
 use App\Support\AccessControl;
@@ -114,8 +113,21 @@ class MachineResource extends Resource
     }
 
     /**
-     * Texto del diálogo de borrado, con los conteos REALES de lo que se lleva
-     * por delante. Antes decía únicamente "¿Seguro que querés hacer esto?".
+     * Texto del diálogo del borrado SUAVE (papelera), con los conteos REALES
+     * de historial que tiene la máquina hoy. Antes decía únicamente "¿Seguro
+     * que querés hacer esto?".
+     *
+     * Hallazgo seguridad Bajo, 2026-09-09: comparte `destructionSummary()`
+     * con el borrado DEFINITIVO (`papeleraForceDeleteWarning()`), pero el
+     * texto de `fleet.delete_warning` NO puede describir un "borrado en
+     * cascada" — un soft delete de `Machine` no toca a ninguno de estos
+     * hijos (ninguno se archiva ni se pierde con ella; el FK
+     * `cascadeOnDelete()` solo se dispara con un DELETE real). Al sumarle
+     * `withTrashed()` al conteo de `work_orders` (hallazgo Alto de esta misma
+     * auditoría), el modal empezó a contar OT ya archivadas dentro de una
+     * frase que afirmaba perderlas "también, en cascada" — falso siempre,
+     * más visible desde ese fix. `lang/{es,en}/fleet.php` ahora dicen lo que
+     * de verdad pasa: se archiva, es reversible, el historial queda intacto.
      */
     public static function deletionWarning(Machine $record): string
     {
@@ -186,26 +198,14 @@ class MachineResource extends Resource
     }
 
     /**
-     * Hallazgo seguridad Medio, 2026-09-09 (comparte raíz con el Alto de
-     * arriba): `Machine::forceDelete()` se lleva sus OT por la cascada REAL
-     * de la base (`cascadeOnDelete()`), que no dispara eventos de Eloquent.
-     * `WorkOrder::forceDeleting()` es quien borra el archivo físico de cada
-     * adjunto —ver `WorkOrderAttachment::booted()`—, así que sin este paso
-     * los archivos quedaban en disco sin ninguna fila que los referencie.
-     *
-     * `withTrashed()` a propósito: incluye TANTO las OT ya archivadas (las
-     * que el resumen de arriba aprendió a contar) COMO las que siguieran
-     * vivas — las dos formas de llegar hasta acá se llevan igual el archivo
-     * si no se fuerza el borrado uno por uno antes de tocar la máquina.
+     * Hallazgo seguridad Medio, 2026-09-09: la cascada manual (OT + adjuntos
+     * físicos) y el borrado de las fotos propias de la máquina se movieron a
+     * `Machine::forceDeleting()` (mismo patrón que `WorkOrder::forceDeleting()`),
+     * porque `App\Console\Commands\QaCleanup` llama `forceDelete()` DIRECTO
+     * sobre la máquina, fuera del panel, y ese camino se saltea cualquier
+     * hook que viva solo acá. Este método vuelve a ser el no-op por defecto
+     * de `HasPapeleraActions` — no hace falta sobreescribirlo.
      */
-    protected static function papeleraBeforeForceDelete(Model $record): void
-    {
-        /** @var Machine $record */
-        $record->workOrders()->withTrashed()->get()->each(
-            fn (WorkOrder $workOrder) => $workOrder->forceDelete()
-        );
-    }
-
     public static function getNavigationBadge(): ?string
     {
         // muestra cuántas máquinas están próximas a servicio (<=100h)

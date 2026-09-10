@@ -448,4 +448,82 @@ class MachineForceDeleteImpactTest extends TestCase
             'El borrado definitivo de la máquina tiene que arrastrar el archivo físico del adjunto de su OT.'
         );
     }
+
+    /* ------------------------------------------------------------------ *
+     * 9. Hallazgo seguridad Medio: las fotos PROPIAS de la máquina (`image`
+     *    y `gallery`, FileUpload sobre disk('public')) no tenían ningún
+     *    borrado —ni observer ni cascada de base, porque no son una fila con
+     *    FK— y quedaban descargables para siempre tras un borrado
+     *    definitivo. Se escribe contenido real en el disco falso (no
+     *    UploadedFile::fake()->create(), que reporta KB pero escribe 0
+     *    bytes) para que `Storage::exists()` verifique un archivo de verdad,
+     *    no una entrada vacía.
+     * ------------------------------------------------------------------ */
+    public function test_force_deleting_the_machine_also_removes_its_own_image_and_gallery_files(): void
+    {
+        Storage::fake('public');
+
+        $imagePath = 'machines/images/foto-principal.jpg';
+        $galleryPathA = 'machines/gallery/foto-a.jpg';
+        $galleryPathB = 'machines/gallery/foto-b.jpg';
+
+        Storage::disk('public')->put($imagePath, 'contenido real de la foto principal');
+        Storage::disk('public')->put($galleryPathA, 'contenido real de la foto A');
+        Storage::disk('public')->put($galleryPathB, 'contenido real de la foto B');
+
+        $machine = $this->emptyMachine();
+        $machine->forceFill([
+            'image' => $imagePath,
+            'gallery' => [$galleryPathA, $galleryPathB],
+        ])->save();
+
+        $this->assertTrue(Storage::disk('public')->exists($imagePath));
+        $this->assertTrue(Storage::disk('public')->exists($galleryPathA));
+        $this->assertTrue(Storage::disk('public')->exists($galleryPathB));
+
+        $machine = $this->trash($machine);
+
+        Livewire::actingAs($this->admin())
+            ->test(ListMachines::class)
+            ->filterTable('trashed', true)
+            ->callTableAction('forceDelete', $machine, data: ['confirm_value' => $machine->id_code]);
+
+        $this->assertDatabaseMissing('machines', ['id' => $machine->id]);
+
+        $this->assertFalse(
+            Storage::disk('public')->exists($imagePath),
+            'El borrado definitivo de la máquina tiene que borrar su propia foto principal del disco público.'
+        );
+        $this->assertFalse(
+            Storage::disk('public')->exists($galleryPathA),
+            'El borrado definitivo de la máquina tiene que borrar sus propias fotos de galería del disco público.'
+        );
+        $this->assertFalse(Storage::disk('public')->exists($galleryPathB));
+    }
+
+    /**
+     * Prueba de control del test anterior: sin la máquina en la papelera, el
+     * "Force delete" nunca llega a montarse (mismo motivo que
+     * `test_control_without_the_trashed_filter_the_action_never_mounts`), así
+     * que las fotos deben seguir en el disco. Si este test fallara (archivos
+     * borrados igual), significaría que algo más —no la acción de borrado
+     * definitivo— los está tocando.
+     */
+    public function test_control_the_files_survive_a_soft_delete_of_the_machine(): void
+    {
+        Storage::fake('public');
+
+        $imagePath = 'machines/images/foto-control.jpg';
+        Storage::disk('public')->put($imagePath, 'contenido real de control');
+
+        $machine = $this->emptyMachine();
+        $machine->forceFill(['image' => $imagePath])->save();
+
+        $machine->delete();
+
+        $this->assertTrue(
+            Storage::disk('public')->exists($imagePath),
+            'Un borrado SUAVE (papelera) no tiene que tocar el archivo físico.'
+        );
+    }
 }

@@ -193,10 +193,13 @@ trait HasPapeleraActions
      * pero el archivo del adjunto quedaba huérfano en disco, sin ninguna
      * fila que lo referencie para poder purgarlo después.
      *
-     * No-op por defecto: la mayoría de los recursos no tiene hijos con
-     * archivo propio. Solo `MachineResource` lo sobreescribe (fuerza el
-     * borrado de sus OT, incluidas las ya archivadas, ANTES de forzar el
-     * borrado de la máquina).
+     * No-op siempre: la cascada manual con efecto físico (archivo en disco)
+     * vive en el propio modelo (`static::forceDeleting()`), no acá — ver
+     * `WorkOrder::forceDeleting()` y `Machine::forceDeleting()` (este último
+     * desde el 2026-09-09: antes vivía en `MachineResource`, y un
+     * `forceDelete()` disparado fuera del panel —`QaCleanup`, un comando, un
+     * tinker— se lo saltaba entero). Ningún Resource necesita sobreescribir
+     * este método hoy.
      */
     protected static function papeleraBeforeForceDelete(Model $record): void
     {
