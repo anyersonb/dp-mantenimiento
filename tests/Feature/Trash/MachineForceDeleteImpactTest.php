@@ -12,8 +12,10 @@ use App\Models\Machine;
 use App\Models\MachinePart;
 use App\Models\User;
 use App\Models\WorkOrder;
+use App\Models\WorkOrderAttachment;
 use Database\Seeders\RolesAndPermissionsSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Storage;
 use Livewire\Livewire;
 use ReflectionMethod;
 use Spatie\Activitylog\Models\Activity;
@@ -318,5 +320,132 @@ class MachineForceDeleteImpactTest extends TestCase
             ->count();
 
         $this->assertSame(2, $entradas, 'Cada máquina del lote tiene que dejar su propio asiento de impacto.');
+    }
+
+    /* ------------------------------------------------------------------ *
+     * 7. Regresión del hallazgo Alto (seguridad, 2026-09-09): una máquina
+     *    cuyas OT YA están en la papelera —el flujo normal antes de dar de
+     *    baja el activo— y sin ningún otro hijo vivo tenía `summary =
+     *    [0,0,0,0,0]` porque `workOrders()->count()` no traía `withTrashed()`.
+     *    Eso apagaba, en cascada: `papeleraHasDestructiveImpact()` (false),
+     *    el pedido de re-teclear el id_code (vacío), el texto del modal
+     *    (el genérico de Filament) y el asiento de impacto (cortaba por
+     *    `array_sum($summary) === 0`). Un clic se llevaba la OT archivada.
+     * ------------------------------------------------------------------ */
+    public function test_a_machine_with_only_an_already_trashed_work_order_still_has_destructive_impact(): void
+    {
+        $location = Location::create(['name' => 'Sentinel Yard', 'slug' => 'sentinel-yard-'.uniqid()]);
+
+        $machine = Machine::create([
+            'id_code' => 'SENT-'.random_int(100000, 999999),
+            'status' => 'active',
+            'hourmeter_status' => 'ok',
+            'current_location_id' => $location->id,
+        ]);
+
+        $workOrder = WorkOrder::create([
+            'code' => 'WO-SENT-'.random_int(100000, 999999),
+            'machine_id' => $machine->id,
+            'type' => 'corrective',
+            'status' => 'open',
+            'priority' => 'normal',
+            'opened_at' => now()->toDateString(),
+        ]);
+
+        // La OT ya está en la papelera ANTES de tocar la máquina: es el
+        // flujo normal (se limpian las OT antes de dar de baja el activo).
+        $workOrder->delete();
+
+        $resumen = $machine->refresh()->destructionSummary();
+        $this->assertSame(1, $resumen['work_orders'], 'El resumen tiene que contar la OT ya archivada.');
+
+        $machine = $this->trash($machine);
+
+        $impactMethod = new ReflectionMethod(MachineResource::class, 'papeleraHasDestructiveImpact');
+        $impactMethod->setAccessible(true);
+        $this->assertTrue(
+            $impactMethod->invoke(null, $machine),
+            'Con una OT archivada de por medio, la máquina SÍ tiene algo que perder.'
+        );
+
+        // Sin el código exacto, no borra nada.
+        Livewire::actingAs($this->admin())
+            ->test(ListMachines::class)
+            ->filterTable('trashed', true)
+            ->callTableAction('forceDelete', $machine, data: ['confirm_value' => 'codigo-incorrecto']);
+
+        $this->assertDatabaseHas('machines', ['id' => $machine->id]);
+        $this->assertDatabaseHas('work_orders', ['id' => $workOrder->id]);
+
+        // Con el código exacto, sí borra todo y deja el asiento con el
+        // conteo real (1), no con el [0,0,0,0,0] del defecto original.
+        Livewire::actingAs($this->admin())
+            ->test(ListMachines::class)
+            ->filterTable('trashed', true)
+            ->callTableAction('forceDelete', $machine, data: ['confirm_value' => $machine->id_code]);
+
+        $this->assertDatabaseMissing('machines', ['id' => $machine->id]);
+        $this->assertDatabaseMissing('work_orders', ['id' => $workOrder->id]);
+
+        $asiento = Activity::where('subject_type', Machine::class)
+            ->where('subject_id', $machine->id)
+            ->where('event', 'force_delete_impact')
+            ->first();
+
+        $this->assertNotNull($asiento, 'Tiene que quedar un asiento de impacto en la bitácora.');
+        $this->assertSame(1, $asiento->properties['work_orders'] ?? null);
+    }
+
+    /* ------------------------------------------------------------------ *
+     * 8. Hallazgo seguridad Medio: el forceDelete de la MÁQUINA (no el de
+     *    la OT directamente) tiene que seguir borrando el archivo físico
+     *    del adjunto. Antes de este fix, `Machine::forceDelete()` se llevaba
+     *    `work_orders`/`work_order_attachments` por la cascada REAL de la
+     *    base (`cascadeOnDelete()`), que no dispara `forceDeleting()` — el
+     *    archivo quedaba huérfano en `storage/app`, sin ninguna fila que lo
+     *    referencie.
+     * ------------------------------------------------------------------ */
+    public function test_force_deleting_the_machine_also_removes_the_attachment_file_of_its_work_orders(): void
+    {
+        Storage::fake('local');
+
+        $machine = $this->emptyMachine();
+
+        $workOrder = WorkOrder::create([
+            'code' => 'WO-FD-'.random_int(100000, 999999),
+            'machine_id' => $machine->id,
+            'type' => 'corrective',
+            'status' => 'open',
+            'priority' => 'normal',
+            'opened_at' => now()->toDateString(),
+        ]);
+
+        $path = 'work-order-attachments/'.$workOrder->id.'/factura.pdf';
+        Storage::disk('local')->put($path, "%PDF-1.4\nfactura de prueba\n");
+
+        WorkOrderAttachment::create([
+            'work_order_id' => $workOrder->id,
+            'type' => 'invoice',
+            'path' => $path,
+            'original_name' => 'factura.pdf',
+        ]);
+
+        $this->assertTrue(Storage::disk('local')->exists($path));
+
+        $machine = $this->trash($machine);
+
+        Livewire::actingAs($this->admin())
+            ->test(ListMachines::class)
+            ->filterTable('trashed', true)
+            ->callTableAction('forceDelete', $machine, data: ['confirm_value' => $machine->id_code]);
+
+        $this->assertDatabaseMissing('machines', ['id' => $machine->id]);
+        $this->assertDatabaseMissing('work_orders', ['id' => $workOrder->id]);
+        $this->assertDatabaseMissing('work_order_attachments', ['work_order_id' => $workOrder->id]);
+
+        $this->assertFalse(
+            Storage::disk('local')->exists($path),
+            'El borrado definitivo de la máquina tiene que arrastrar el archivo físico del adjunto de su OT.'
+        );
     }
 }

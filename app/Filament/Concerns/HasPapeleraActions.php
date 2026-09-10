@@ -9,6 +9,7 @@ use Filament\Tables;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 
 /**
  * Papelera (Lote A): filtro + restaurar + eliminar definitivamente,
@@ -178,6 +179,31 @@ trait HasPapeleraActions
     }
 
     /**
+     * Punto de extensión: cascada MANUAL, dentro de la misma transacción,
+     * para los hijos que necesitan que se les dispare `forceDeleting()`/
+     * `forceDeleted()` ANTES de que la cascada REAL de la base
+     * (`cascadeOnDelete()`) se lleve la fila del padre.
+     *
+     * Hallazgo seguridad Medio, 2026-09-09: un `DELETE` disparado por una FK
+     * de MySQL no ejecuta eventos de Eloquent. Eso es invisible casi
+     * siempre —los hijos son solo filas—, pero `WorkOrderAttachment` tiene
+     * un archivo físico que solo se borra en su evento `forceDeleted` (ver
+     * el modelo). Sin este hook, un `Machine::forceDelete()` se llevaba las
+     * filas de `work_orders`/`work_order_attachments` por la cascada real,
+     * pero el archivo del adjunto quedaba huérfano en disco, sin ninguna
+     * fila que lo referencie para poder purgarlo después.
+     *
+     * No-op por defecto: la mayoría de los recursos no tiene hijos con
+     * archivo propio. Solo `MachineResource` lo sobreescribe (fuerza el
+     * borrado de sus OT, incluidas las ya archivadas, ANTES de forzar el
+     * borrado de la máquina).
+     */
+    protected static function papeleraBeforeForceDelete(Model $record): void
+    {
+        //
+    }
+
+    /**
      * true si ESTE registro puntual tiene algo que perder con un borrado
      * definitivo (resumen no nulo y con algún conteo mayor a cero).
      */
@@ -264,13 +290,21 @@ trait HasPapeleraActions
                 $label = static::papeleraRecordLabel($record);
                 $summary = static::papeleraDestructionSummary($record);
 
-                // Se registra ANTES de borrar: después de forceDelete() los
-                // dependientes ya no están para contarlos.
-                if ($summary !== null) {
-                    TrashActivityLogger::forceDeleteImpact($record, $label, $summary);
-                }
+                DB::transaction(function () use ($record, $label, $summary) {
+                    // Se registra ANTES de borrar: después de forceDelete()
+                    // los dependientes ya no están para contarlos.
+                    if ($summary !== null) {
+                        TrashActivityLogger::forceDeleteImpact($record, $label, $summary);
+                    }
 
-                $record->forceDelete();
+                    // Cascada manual (ver el docblock del método): tiene que
+                    // correr ANTES del forceDelete() del propio registro,
+                    // porque después la cascada real de la base ya se llevó
+                    // las filas hijas sin disparar sus eventos.
+                    static::papeleraBeforeForceDelete($record);
+
+                    $record->forceDelete();
+                });
 
                 Notification::make()->success()
                     ->title(__('mgmt.trash_force_deleted_ok', ['label' => $label]))
@@ -377,11 +411,15 @@ trait HasPapeleraActions
                     $label = static::papeleraRecordLabel($record);
                     $summary = static::papeleraDestructionSummary($record);
 
-                    if ($summary !== null) {
-                        TrashActivityLogger::forceDeleteImpact($record, $label, $summary);
-                    }
+                    DB::transaction(function () use ($record, $label, $summary) {
+                        if ($summary !== null) {
+                            TrashActivityLogger::forceDeleteImpact($record, $label, $summary);
+                        }
 
-                    $record->forceDelete();
+                        static::papeleraBeforeForceDelete($record);
+
+                        $record->forceDelete();
+                    });
                 });
 
                 Notification::make()->success()

@@ -83,12 +83,25 @@ class Machine extends Model
      * el mismo `cascadeOnDelete()` que las otras cuatro tablas y se había
      * quedado afuera del primer resumen.
      *
+     * `work_orders` se cuenta con `withTrashed()` (hallazgo seguridad Alto,
+     * 2026-09-09): `WorkOrder` usa `SoftDeletes` desde la Papelera (Lote A),
+     * y `workOrders()` —sin `withTrashed()`— es la relación normal que
+     * cualquier otra pantalla necesita, así que el ajuste va ACÁ, en el
+     * resumen, no en la relación. Sin esto, una máquina cuyas OT ya están en
+     * la papelera —el flujo normal antes de dar de baja el activo— daba
+     * `summary = [0,0,0,0,0]`: `papeleraHasDestructiveImpact()` decía false,
+     * el modal no pedía re-teclear el id_code, no quedaba asiento de
+     * impacto, y un clic se llevaba la OT archivada con sus adjuntos,
+     * repuestos y checklist sin ningún aviso. Los otros cuatro hijos
+     * (`HorometerReading`, `Alert`, `MachinePart`, `FieldReport`) NO usan
+     * SoftDeletes, así que sus conteos ya eran completos.
+     *
      * @return array<string, int>
      */
     public function destructionSummary(): array
     {
         return [
-            'work_orders' => $this->workOrders()->count(),
+            'work_orders' => $this->workOrders()->withTrashed()->count(),
             'readings' => $this->readings()->count(),
             'alerts' => $this->alerts()->count(),
             'parts' => $this->parts()->count(),

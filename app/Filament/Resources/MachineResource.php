@@ -7,6 +7,7 @@ use App\Filament\Resources\MachineResource\Pages;
 use App\Filament\Resources\MachineResource\RelationManagers;
 use App\Models\Location;
 use App\Models\Machine;
+use App\Models\WorkOrder;
 use App\Rules\RejectsDangerousUploadExtensions;
 use App\Services\HourmeterReplacementService;
 use App\Support\AccessControl;
@@ -182,6 +183,27 @@ class MachineResource extends Resource
     {
         /** @var Machine $record */
         return (string) $record->id_code;
+    }
+
+    /**
+     * Hallazgo seguridad Medio, 2026-09-09 (comparte raíz con el Alto de
+     * arriba): `Machine::forceDelete()` se lleva sus OT por la cascada REAL
+     * de la base (`cascadeOnDelete()`), que no dispara eventos de Eloquent.
+     * `WorkOrder::forceDeleting()` es quien borra el archivo físico de cada
+     * adjunto —ver `WorkOrderAttachment::booted()`—, así que sin este paso
+     * los archivos quedaban en disco sin ninguna fila que los referencie.
+     *
+     * `withTrashed()` a propósito: incluye TANTO las OT ya archivadas (las
+     * que el resumen de arriba aprendió a contar) COMO las que siguieran
+     * vivas — las dos formas de llegar hasta acá se llevan igual el archivo
+     * si no se fuerza el borrado uno por uno antes de tocar la máquina.
+     */
+    protected static function papeleraBeforeForceDelete(Model $record): void
+    {
+        /** @var Machine $record */
+        $record->workOrders()->withTrashed()->get()->each(
+            fn (WorkOrder $workOrder) => $workOrder->forceDelete()
+        );
     }
 
     public static function getNavigationBadge(): ?string
