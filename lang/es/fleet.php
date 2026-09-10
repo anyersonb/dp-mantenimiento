@@ -105,8 +105,8 @@ return [
     'discard_reason' => 'Motivo del descarte',
     'discarded_ok' => 'Maquina descartada. Su historial se conservo.',
     'delete_heading' => 'Borrar la maquina :machine',
-    'delete_warning' => 'ATENCIÓN: esto NO es dar de baja. Borrar :machine elimina también, en cascada: :work_orders orden(es) de trabajo con sus costos, :readings lectura(s) de horómetro, :alerts alerta(s), :parts parte(s) del catálogo y :field_reports reporte(s) de campo. Para dar de baja una máquina usa el estado Inactiva, o la acción Descartar si está en revisión.',
-    'delete_confirm_button' => 'Si, borrar y perder el historial',
+    'delete_warning' => 'Esto envía :machine a la Papelera: NO es una baja definitiva. La máquina queda oculta y se puede restaurar en cualquier momento, y su historial no se toca ni se pierde ahora —hoy tiene :work_orders orden(es) de trabajo con sus costos, :readings lectura(s) de horómetro, :alerts alerta(s), :parts parte(s) del catálogo y :field_reports reporte(s) de campo, todos intactos—. Ese historial solo se pierde, en cascada y sin vuelta atrás, si más adelante un administrador la elimina DEFINITIVAMENTE desde la Papelera. Para dar de baja una máquina sin pasar por la papelera usa el estado Inactiva, o la acción Descartar si está en revisión.',
+    'delete_confirm_button' => 'Sí, enviar a la papelera',
 
     // Papelera — eliminacion DEFINITIVA (borrado duro real, sin vuelta atras).
     // Distinto del aviso de arriba: ese es el soft-delete normal (recuperable

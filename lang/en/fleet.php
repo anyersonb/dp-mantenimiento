@@ -105,8 +105,8 @@ return [
     'discard_reason' => 'Reason for discarding',
     'discarded_ok' => 'Machine discarded. Its history was kept.',
     'delete_heading' => 'Delete machine :machine',
-    'delete_warning' => 'WARNING: this is NOT a retirement. Deleting :machine also removes, in cascade: :work_orders work order(s) with their costs, :readings hour meter reading(s), :alerts alert(s), :parts catalogue part(s) and :field_reports field report(s). To retire a machine use the Inactive status, or the Discard action if it is under review.',
-    'delete_confirm_button' => 'Yes, delete and lose the history',
+    'delete_warning' => 'This sends :machine to the Trash: it is NOT a permanent retirement. The machine is hidden and can be restored at any time, and its history is not touched or lost now —it currently has :work_orders work order(s) with their costs, :readings hour meter reading(s), :alerts alert(s), :parts catalogue part(s) and :field_reports field report(s), all untouched—. That history is only lost, in cascade and with no way back, if an administrator later permanently deletes it from the Trash. To retire a machine without going through the trash, use the Inactive status, or the Discard action if it is under review.',
+    'delete_confirm_button' => 'Yes, send to trash',
 
     // Trash — PERMANENT deletion (a real hard delete, no way back). Different
     // from the warning above: that one is the normal soft delete (recoverable
