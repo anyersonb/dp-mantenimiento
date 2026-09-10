@@ -87,7 +87,22 @@ class UserResource extends Resource
 
     public static function canDelete(Model $record): bool
     {
-        return Auth::user()?->can('manage_users') ?? false;
+        if (! (Auth::user()?->can('manage_users') ?? false)) {
+            return false;
+        }
+
+        // Puerta 5 (AdministrationGuard, hallazgo seguridad Medio 2026-09-09):
+        // el guard vive ACÁ y no en cada ->authorize() de cada acción. Filament
+        // ya inyecta `->authorize(fn ($record) => static::canDelete($record))`
+        // en la fila (ListRecords::configureDeleteAction) y en la cabecera de
+        // edición (EditRecord::configureDeleteAction) — escribir otro
+        // ->authorize() en esas acciones lo REEMPLAZA en vez de sumarse (la
+        // misma trampa que ->hidden() en CanBeHidden: guarda una sola
+        // propiedad), así que el guard se perdía en silencio ahí. Con el
+        // chequeo acá, cualquier puerta futura que Filament o nosotros
+        // agreguemos lo hereda sin que nadie tenga que acordarse.
+        /** @var User $record */
+        return ! AdministrationGuard::deletingUserWouldStrand($record);
     }
 
     public static function canDeleteAny(): bool
@@ -345,17 +360,20 @@ class UserResource extends Resource
                     }),
                 Tables\Actions\DeleteAction::make()
                     // Puerta 5 (AdministrationGuard, hallazgo seguridad Medio
-                    // 2026-09-09): ->authorize() alimenta el mismo isHidden()/
-                    // isAuthorized() que Filament vuelve a evaluar del lado
-                    // del servidor al montar la acción, así que esto cierra
-                    // la puerta tanto en la UI como en el request real.
+                    // 2026-09-09): el guard vive en UserResource::canDelete(),
+                    // NO en un ->authorize() acá. Filament ya inyecta
+                    // `->authorize(fn ($record) => static::canDelete($record))`
+                    // en ListRecords::configureDeleteAction() — otro
+                    // ->authorize() en esta cadena lo REEMPLAZARÍA (una sola
+                    // propiedad `$authorization` en CanBeHidden), perdiendo la
+                    // puerta en silencio.
                     //
-                    // ->hidden() ahora SUMA `|| $record->trashed()`: sin eso
-                    // se pierde el ocultamiento automático que trae
-                    // `DeleteAction::setUp()` (`hidden()` REEMPLAZA, no
-                    // acumula), y "Eliminar" quedaba visible en la papelera
-                    // sobre un usuario ya archivado (hallazgo seguridad Bajo).
-                    ->authorize(fn (User $record): bool => ! AdministrationGuard::deletingUserWouldStrand($record))
+                    // ->hidden() SÍ hace falta declararlo con
+                    // `|| $record->trashed()`: sin eso se pierde el
+                    // ocultamiento automático que trae `DeleteAction::setUp()`
+                    // (`hidden()` REEMPLAZA, no acumula), y "Eliminar" quedaba
+                    // visible en la papelera sobre un usuario ya archivado
+                    // (hallazgo seguridad Bajo).
                     ->hidden(fn (User $record) => $record->id === Auth::id() || $record->trashed()),
                 // No hace falta un guard "contra uno mismo" acá: un usuario
                 // trashed no puede autenticarse (ver User::canAccessPanel), así
@@ -382,7 +400,16 @@ class UserResource extends Resource
                                     // borrado de este mismo lote dejaría al
                                     // sistema sin nadie que administre, se
                                     // corta ahí, no antes ni después.
-                                    if (AdministrationGuard::deletingUserWouldStrand($record)) {
+                                    //
+                                    // Vía canDelete() (fuente única del guard)
+                                    // y no `AdministrationGuard` directo: esta
+                                    // acción masiva SÍ sigue haciendo falta acá
+                                    // pese al fix de canDelete(), porque
+                                    // Filament autoriza `DeleteBulkAction` con
+                                    // `canDeleteAny()` (permiso, sin registro),
+                                    // no con `canDelete($record)` por fila —
+                                    // ver ListRecords::configureDeleteBulkAction.
+                                    if (! static::canDelete($record)) {
                                         return;
                                     }
 

@@ -3,7 +3,6 @@
 namespace App\Filament\Resources\UserResource\Pages;
 
 use App\Filament\Resources\UserResource;
-use App\Support\AdministrationGuard;
 use Filament\Actions;
 use Filament\Resources\Pages\EditRecord;
 use Illuminate\Support\Facades\Auth;
@@ -15,12 +14,13 @@ class EditUser extends EditRecord
     protected function getHeaderActions(): array
     {
         return [
-            // Puerta 5 (AdministrationGuard): la misma pregunta que la fila
-            // y la masiva de UserResource, montada acá. `->authorize()`
-            // corta también del lado del servidor (ver el comentario en
-            // UserResource::table()).
+            // Puerta 5 (AdministrationGuard, hallazgo seguridad Medio
+            // 2026-09-09): el guard vive en UserResource::canDelete(), NO en
+            // un ->authorize() acá. Filament ya inyecta
+            // `->authorize($resource::canDelete($this->getRecord()))` en
+            // EditRecord::configureDeleteAction() — otro ->authorize() en
+            // esta cadena lo REEMPLAZARÍA en vez de sumarse.
             Actions\DeleteAction::make()
-                ->authorize(fn (): bool => ! AdministrationGuard::deletingUserWouldStrand($this->record))
                 ->hidden(fn () => $this->record->id === Auth::id()),
         ];
     }
