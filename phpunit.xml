@@ -19,6 +19,16 @@
     </source>
     <php>
         <env name="APP_ENV" value="testing"/>
+        <!--
+            Fijado el 2026-09-09: sin esto, la suite compara textos en
+            inglés (ver p.ej. MachineForceDeleteImpactTest) contra lo que
+            sea que traiga el .env de quien la corra. Detectado a mano el
+            mismo día: cambiar APP_LOCALE en el .env local a "es" rompió el
+            test del modal, porque phpunit.xml no declaraba ningún locale
+            propio y la suite heredaba el de afuera en silencio.
+        -->
+        <env name="APP_LOCALE" value="en"/>
+        <env name="APP_FALLBACK_LOCALE" value="en"/>
         <env name="APP_MAINTENANCE_DRIVER" value="file"/>
         <env name="BCRYPT_ROUNDS" value="4"/>
         <env name="CACHE_STORE" value="array"/>
