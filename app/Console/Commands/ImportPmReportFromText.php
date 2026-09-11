@@ -50,15 +50,38 @@ class ImportPmReportFromText extends Command
             return self::FAILURE;
         }
 
-        $registros = $this->parse(file($ruta, FILE_IGNORE_NEW_LINES));
+        $parseado = $this->parse(file($ruta, FILE_IGNORE_NEW_LINES));
+        $registros = $parseado['registros'];
+        $descartes = $parseado['descartes'];
+        $totalEnTexto = $parseado['total'];
 
-        if ($registros === []) {
+        if ($totalEnTexto === 0) {
             $this->error('No encontré ninguna máquina en el archivo. ¿Lo generaste con `pdftotext -table`?');
 
             return self::FAILURE;
         }
 
-        $this->info(count($registros).' fila(s) de máquina leídas del texto.');
+        // Hallazgo: antes esto imprimía count($registros) YA FILTRADO (solo las
+        // filas con algún dato legible) como si fuera "lo que había en el
+        // archivo". Con el informe del 9/04/2026 (80 máquinas) eso mostraba "66
+        // fila(s) leídas" en verde, sin ningún indicio de que 14 se habían
+        // descartado en silencio. Ahora se informan los dos números.
+        $this->info("{$totalEnTexto} máquina(s) en el texto del informe, ".count($registros).' con datos legibles para importar.');
+
+        if ($descartes !== []) {
+            $this->newLine();
+            $this->warn(count($descartes).' descarte(s) — no entran en la importación (ver motivo):');
+            $this->table(
+                ['id', 'motivo', 'renglón crudo'],
+                array_map(fn ($d) => [$d['id'], $d['motivo'], $d['crudo']], $descartes)
+            );
+        }
+
+        if ($registros === []) {
+            $this->error('Ninguna máquina quedó con datos legibles después del descarte.');
+
+            return self::FAILURE;
+        }
 
         $duplicados = [];
         $vistos = [];
@@ -120,21 +143,45 @@ class ImportPmReportFromText extends Command
     }
 
     /**
+     * Par "<horas> Hrs <fecha>", con el kilometraje entre paréntesis como dato
+     * al margen tolerado entre la unidad y la fecha (defecto A: cuatro
+     * volquetes traen "5700 Hrs (79637Mi.) 8/14/26" y el paréntesis rompía el
+     * emparejado; el kilometraje se descarta a propósito, se mide en horas).
+     */
+    private const PAR_HORAS_FECHA = '/([0-9][0-9,]*)\s*(Hrs|Mls)\.?\s*(?:\([^)]*\)\s*)?([0-9]{1,2}\/[0-9]{1,2}\/[0-9]{2,4})/i';
+
+    /** Lectura entera entre paréntesis: "(29959 Mi) 10/29/25" — una estimación declarada, no una medición firme (defecto E). */
+    private const PAR_ESTIMACION_PARENTESIS = '/\(\s*[0-9][0-9,]*\s*(?:Hrs|Mls|Mi)\.?\s*\)\s*[0-9]{1,2}\/[0-9]{1,2}\/[0-9]{2,4}/i';
+
+    /** Número seguido de "Mi"/"Mi." fuera de paréntesis: lectura en millas, no soportada (defecto B). */
+    private const LECTURA_EN_MILLAS = '/[0-9][0-9,]*\s*Mi\.?(?!\w)/i';
+
+    /**
      * Convierte el texto de `pdftotext -table` en filas. Mismo criterio que el
      * parser del xlsx: la cabecera de máquina es la línea cuyo primer token
      * mezcla letras y dígitos, y la siguiente trae ubicación + los pares
      * "<horas> Hrs <fecha>" + las horas restantes.
      *
+     * Defecto C: antes, toda fila sin dato aprovechable se tiraba en
+     * `array_filter` sin dejar rastro. Ahora se devuelve también la lista de
+     * descartes con motivo, para que "N fila(s) leídas" no vuelva a parecer
+     * éxito cuando en realidad hay máquinas que no entraron.
+     *
      * @param  array<int, string>  $lineas
-     * @return array<int, array{id: string, last: string, reading: string, remaining: string}>
+     * @return array{registros: array<int, array{id: string, last: string, reading: string, remaining: string, nota: string}>, descartes: array<int, array{id: string, motivo: string, crudo: string}>, total: int}
      */
     private function parse(array $lineas): array
     {
         $registros = [];
         $indiceActual = null;
+        $fechaInforme = null;
 
         foreach ($lineas as $linea) {
             $trim = trim($linea);
+
+            if ($fechaInforme === null) {
+                $fechaInforme = $this->fechaDelInforme($trim);
+            }
 
             if ($trim === ''
                 || str_contains($trim, 'MACHINE DESCRIPTION')
@@ -148,7 +195,12 @@ class ImportPmReportFromText extends Command
                 && preg_match('/[0-9]\s*(Hrs|Mls)\.?\s+[0-9]{1,2}\//i', $trim) !== 1;
 
             if ($esCabecera) {
-                $registros[] = ['id' => strtoupper($m[1]), 'last' => '', 'reading' => '', 'remaining' => '', 'nota' => ''];
+                $registros[] = [
+                    'id' => strtoupper($m[1]), 'last' => '', 'reading' => '', 'remaining' => '', 'nota' => '',
+                    'crudoDatos' => '', 'fueraDeServicio' => false, 'estimacionParentesis' => false,
+                    'estimacionRaw' => '', 'millas' => false, 'millasRaw' => '',
+                    'tuvoFechaInvalida' => false, 'fechaInvalidaRaw' => '',
+                ];
                 $indiceActual = count($registros) - 1;
 
                 continue;
@@ -160,14 +212,64 @@ class ImportPmReportFromText extends Command
 
             $r = &$registros[$indiceActual];
 
-            preg_match_all('/([0-9][0-9,]*)\s*(Hrs|Mls)\.?\s+([0-9]{1,2}\/[0-9]{1,2}\/[0-9]{2,4})/i', $trim, $pares, PREG_SET_ORDER);
+            if ($r['crudoDatos'] === '') {
+                $r['crudoDatos'] = $trim;
+            }
 
-            if (isset($pares[0]) && $r['last'] === '') {
-                $r['last'] = $this->normalizar($pares[0]);
+            if (preg_match('/not\s*in\s*service/i', $trim) === 1) {
+                $r['fueraDeServicio'] = true;
             }
-            if (isset($pares[1]) && $r['reading'] === '') {
-                $r['reading'] = $this->normalizar($pares[1]);
+
+            preg_match_all(self::PAR_HORAS_FECHA, $trim, $pares, PREG_SET_ORDER);
+
+            // Defecto E antes que defecto B: una lectura enteramente entre
+            // paréntesis ("(29959 Mi) 10/29/25") es una estimación declarada
+            // por el cliente ("Odometer broken"), no una medición en millas
+            // más. Se descuenta del resto ANTES de buscar millas sueltas, para
+            // no reportar el mismo dato dos veces con motivos distintos.
+            $resto = preg_replace(self::PAR_HORAS_FECHA, '', $trim);
+            if (preg_match(self::PAR_ESTIMACION_PARENTESIS, $resto) === 1) {
+                $r['estimacionParentesis'] = true;
+                $r['estimacionRaw'] = $r['estimacionRaw'] !== '' ? $r['estimacionRaw'] : $trim;
+                $resto = preg_replace(self::PAR_ESTIMACION_PARENTESIS, '', $resto);
             }
+
+            // Defecto B. IMPORTANTE: esto NO se agrega a PAR_HORAS_FECHA. Las
+            // celdas del informe dicen "Mi"/"Mi." (nunca "Mls", que solo
+            // aparece en el encabezado de columna); `horometer_readings.hours`
+            // no tiene columna de unidad, así que una lectura en millas que
+            // matcheara ahí se guardaría como si fueran horas. El dato
+            // faltante es preferible al dato falso: se rechaza con motivo
+            // visible en vez de dejarla pasar o perderla en silencio.
+            if (preg_match(self::LECTURA_EN_MILLAS, $resto) === 1) {
+                $r['millas'] = true;
+                $r['millasRaw'] = $r['millasRaw'] !== '' ? $r['millasRaw'] : $trim;
+            }
+
+            foreach ($pares as $indice => $par) {
+                $fecha = $this->fechaDesdeTexto($par[3]);
+
+                if ($fecha !== null && $fechaInforme !== null && ! $this->fechaEsValida($fecha, $fechaInforme)) {
+                    // Defecto A resuelto (el par se emparejó), pero la fecha
+                    // que trae el origen es basura (posterior al informe, o
+                    // más vieja que 3 años — típico error de tipeo, ej. TD007
+                    // con "8/21/22" en vez de "8/21/26"). Se rechaza SOLO este
+                    // par, no la fila entera: los demás campos de la máquina
+                    // pueden seguir siendo válidos.
+                    $r['tuvoFechaInvalida'] = true;
+                    $r['fechaInvalidaRaw'] = $r['fechaInvalidaRaw'] !== '' ? $r['fechaInvalidaRaw'] : $trim;
+
+                    continue;
+                }
+
+                if ($indice === 0 && $r['last'] === '') {
+                    $r['last'] = $this->normalizar($par);
+                }
+                if ($indice === 1 && $r['reading'] === '') {
+                    $r['reading'] = $this->normalizar($par);
+                }
+            }
+
             if ($r['remaining'] === '' && preg_match('/([0-9][0-9,]*)\s*(Hrs|Mls)\.?\s*$/i', $trim, $mm)) {
                 $r['remaining'] = str_replace(',', '', $mm[1]).' '.ucfirst(strtolower($mm[2]));
             }
@@ -181,11 +283,117 @@ class ImportPmReportFromText extends Command
             unset($r);
         }
 
-        // Solo las filas con algún dato aprovechable.
-        return array_values(array_filter(
-            $registros,
-            fn ($r) => $r['reading'] !== '' || $r['last'] !== '' || $r['remaining'] !== ''
-        ));
+        $final = [];
+        $descartes = [];
+
+        foreach ($registros as $r) {
+            // Defecto B/E: si la máquina se mide en millas o su única lectura
+            // es una estimación entre paréntesis, la fila se rechaza ENTERA
+            // (aunque "remaining" haya matcheado en horas, como MOT02: mezclar
+            // un dato no soportado con uno parcial es más confuso que pedirle
+            // a un humano que la revise a mano).
+            $rechazarPorUnidad = $r['millas'] || $r['estimacionParentesis'];
+            $tieneDatos = ! $rechazarPorUnidad
+                && ($r['last'] !== '' || $r['reading'] !== '' || $r['remaining'] !== '');
+
+            if ($tieneDatos) {
+                if ($r['tuvoFechaInvalida']) {
+                    $descartes[] = [
+                        'id' => $r['id'],
+                        'motivo' => 'fecha inválida',
+                        'crudo' => $this->recortar($r['fechaInvalidaRaw']),
+                    ];
+                }
+
+                $final[] = [
+                    'id' => $r['id'], 'last' => $r['last'], 'reading' => $r['reading'],
+                    'remaining' => $r['remaining'], 'nota' => $r['nota'],
+                ];
+
+                continue;
+            }
+
+            $motivo = match (true) {
+                $r['fueraDeServicio'] => 'fuera de servicio',
+                $r['estimacionParentesis'] => 'estimación entre paréntesis (no firme)',
+                $r['millas'] => 'lectura en millas (no soportado)',
+                $r['tuvoFechaInvalida'] => 'fecha inválida',
+                default => 'sin lectura en el informe',
+            };
+
+            $crudo = $r['estimacionRaw'] ?: ($r['millasRaw'] ?: ($r['fechaInvalidaRaw'] ?: $r['crudoDatos']));
+
+            $descartes[] = ['id' => $r['id'], 'motivo' => $motivo, 'crudo' => $this->recortar($crudo)];
+        }
+
+        return ['registros' => $final, 'descartes' => $descartes, 'total' => count($registros)];
+    }
+
+    private function recortar(string $texto, int $max = 90): string
+    {
+        $texto = trim(preg_replace('/\s+/', ' ', $texto) ?? $texto);
+
+        return mb_strlen($texto) > $max ? mb_substr($texto, 0, $max - 1).'…' : $texto;
+    }
+
+    /**
+     * Fecha del encabezado del informe, ej. "MACHINERY PM SERVICE REPORT
+     * Sep/04/2026" -> 2026-09-04. Es la referencia contra la que se valida
+     * toda lectura (defecto D): nada puede ser posterior a esta fecha, ni más
+     * vieja que 3 años.
+     */
+    private function fechaDelInforme(string $linea): ?\DateTimeImmutable
+    {
+        if (preg_match('/\b([A-Za-z]{3})\/([0-9]{1,2})\/([0-9]{4})\b/', $linea, $m) !== 1) {
+            return null;
+        }
+
+        $meses = [
+            'jan' => 1, 'feb' => 2, 'mar' => 3, 'apr' => 4, 'may' => 5, 'jun' => 6,
+            'jul' => 7, 'aug' => 8, 'sep' => 9, 'oct' => 10, 'nov' => 11, 'dec' => 12,
+        ];
+
+        $mes = $meses[strtolower($m[1])] ?? null;
+        if ($mes === null) {
+            return null;
+        }
+
+        $fecha = \DateTimeImmutable::createFromFormat('Y-n-j', $m[3].'-'.$mes.'-'.$m[2]);
+
+        return $fecha !== false ? $fecha->setTime(0, 0) : null;
+    }
+
+    /** Convierte "M/D/YY" o "M/D/YYYY" a fecha. Misma tolerancia que el importador del xlsx. */
+    private function fechaDesdeTexto(string $mdyy): ?\DateTimeImmutable
+    {
+        if (preg_match('#^(\d{1,2})/(\d{1,2})/(\d{2,4})$#', trim($mdyy), $m) !== 1) {
+            return null;
+        }
+
+        $anio = (int) $m[3];
+        if ($anio < 100) {
+            $anio += 2000;
+        }
+        $mes = (int) $m[1];
+        $dia = (int) $m[2];
+
+        if ($mes < 1 || $mes > 12 || $dia < 1 || $dia > 31) {
+            return null;
+        }
+
+        $fecha = \DateTimeImmutable::createFromFormat('Y-n-j', "{$anio}-{$mes}-{$dia}");
+
+        return $fecha !== false ? $fecha->setTime(0, 0) : null;
+    }
+
+    /** Ni posterior al informe, ni más vieja que 3 años (defecto D). */
+    private function fechaEsValida(\DateTimeImmutable $fecha, \DateTimeImmutable $fechaInforme): bool
+    {
+        if ($fecha > $fechaInforme) {
+            return false;
+        }
+
+        return $fecha >= $fechaInforme->modify('-3 years');
     }
 
     /**

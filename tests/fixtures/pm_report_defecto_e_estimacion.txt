@@ -1,0 +1,7 @@
+                                                        MACHINERY PM SERVICE REPORT                                    Sep/04/2026
+
+MACHINE DESCRIPTION                           LAST SERVICE HRS/DATE  LATEST READING HRS/DATE  Remanining Hrs/Mls  for  Serv.  Fuel Added
+
+TW004 2006 MA025 International VIN:1HTMMAAL16H175231 Water Truck
+
+Odometer broken                                 (29959 Mi) 10/29/25          (48323 Mi.) 8/31/26          4500 Mi.

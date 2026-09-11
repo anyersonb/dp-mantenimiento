@@ -1,0 +1,23 @@
+                                                        MACHINERY PM SERVICE REPORT                                    Sep/04/2026
+
+MACHINE DESCRIPTION                           LAST SERVICE HRS/DATE  LATEST READING HRS/DATE  Remanining Hrs/Mls  for  Serv.  Fuel Added
+
+EX010 EXCAVATOR CAT 335FLCR S/N: KNE00310
+
+Broadview yd.                                   9708 Hrs 5/04/26     9867 Hrs 9/03/26         341 Hrs
+
+TD006 2021Mack Pinacle PI64 VIN: 1M2PN4G6MM008752 Dump Truck
+
+                     5700 Hrs (79637Mi.) 8/14/26                    5700 Hrs (79637Mi) 8/14/26    500 Hrs
+
+TD007 2021 Mack Granite GR64B VIN: 1M2GR2GCXMM021450 Dump Truck
+
+                     9892 Hrs (153002Mi) 8/21/26                    9892 Hrs (153002Mi) 8/21/22   500 Hrs
+
+TD008 2020 Mack Granite GR64B VIN: 1M2GR2GC3LM019358 Dump Truck
+
+                     9800 Hrs (167308 Mi) 8/21/26                   9800 Hrs (167308 Mi) 8/21/26  500 Hrs
+
+TD009 2019 Kenworth T880 VIN: 1NKZX4TX8LJ348662 Dump truck
+
+                     8935 Hrs (158353 Mi) 8/03/26                   8935 Hrs (158353 Mi) 8/03/26  500 Hrs
