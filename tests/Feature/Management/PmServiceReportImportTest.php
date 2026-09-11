@@ -158,6 +158,76 @@ class PmServiceReportImportTest extends TestCase
         ]);
     }
 
+    /**
+     * Construye un .xlsx de una sola máquina con las 3 celdas de horas
+     * ("last service", "latest reading", "remaining") escritas con la
+     * grafía de millas indicada.
+     */
+    private function buildMillasFixture(string $idCode, string $grafia): string
+    {
+        $spreadsheet = new Spreadsheet;
+        $sheet = $spreadsheet->getActiveSheet();
+        $sheet->setTitle('Sheet1');
+
+        $sheet->setCellValue('A1', 'MACHINE DESCRIPTION');
+
+        $sheet->setCellValue('A2', "{$idCode} TEST LOADER MODEL VIN: TEST-9000");
+        $sheet->setCellValue('A3', 'Test yd.');
+        $sheet->setCellValue('E3', "146037 {$grafia} 6/20/25");
+        $sheet->setCellValue('G3', "150297 {$grafia} 8/21/26");
+        $sheet->setCellValue('J3', "740 {$grafia}");
+
+        $path = sys_get_temp_dir().'/pm_report_millas_'.uniqid().'.xlsx';
+        (new Xlsx($spreadsheet))->save($path);
+
+        return $path;
+    }
+
+    /**
+     * Hallazgo de seguridad (bloqueante): `parseHoursDate()` y
+     * `parseRemaining()` aceptaban "Mls"/"Ml" —la abreviatura de MILLAS que
+     * usa el propio encabezado del reporte ("Remanining Hrs/Mls")— como si
+     * fueran horas. Una celda "146037 Mls 6/20/25" se guardaba como 146.037
+     * HORAS. Ninguna grafía de millas (Mi, Mi., Mls, Ml, Miles) puede
+     * terminar convertida en `current_hours`/`last_service_hours` (snapshot
+     * del reporte, campos que solo cambian si el reporte trae un dato
+     * legible), ni tampoco en `remaining_hours` como el número crudo en
+     * millas (740). `remaining_hours` SÍ puede recalcularse en vivo cuando
+     * el reporte no trae el dato —eso es una regla de negocio previa a este
+     * fix (`Machine::getComputedRemainingHoursAttribute()`), no algo que
+     * este test deba pisar—; lo que no puede pasar es que termine en 740.
+     */
+    public function test_ninguna_grafia_de_millas_se_convierte_en_horas(): void
+    {
+        foreach (['Mi', 'Mi.', 'Mls', 'Ml', 'Miles'] as $indice => $grafia) {
+            $idCode = 'MG0'.(10 + $indice);
+
+            $machine = Machine::create([
+                'id_code' => $idCode,
+                'status' => 'active',
+                'current_hours' => 100,
+                'last_service_hours' => 50,
+                'remaining_hours' => 900,
+            ]);
+
+            $path = $this->buildMillasFixture($idCode, $grafia);
+
+            $result = app(PmServiceReportImporter::class)->import($path, null, "pm_report_{$grafia}.xlsx");
+            @unlink($path);
+
+            $machine->refresh();
+
+            $this->assertSame(100, $machine->current_hours, "{$grafia}: current_hours no debe tocarse.");
+            $this->assertSame(50, $machine->last_service_hours, "{$grafia}: last_service_hours no debe tocarse.");
+            $this->assertNotSame(740, $machine->remaining_hours, "{$grafia}: el crudo en millas (740) nunca debe terminar como remaining_hours.");
+
+            $this->assertDatabaseMissing('horometer_readings', ['machine_id' => $machine->id]);
+
+            $warnings = implode(' | ', $result['warnings']);
+            $this->assertStringContainsString($idCode, $warnings, "{$grafia}: debe quedar un aviso visible para {$idCode}.");
+        }
+    }
+
     public function test_reimporting_the_same_report_does_not_duplicate_horometer_readings(): void
     {
         Machine::create(['id_code' => 'EX010', 'status' => 'active']);

@@ -27,7 +27,10 @@ use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
  *   Fila par:   columna A = ubicación/nota (puede traer "(Add N to current hrs)")
  *               columna E = "<hrs> Hrs <M/D/YY>"  -> último servicio
  *               columna G = "<hrs> Hrs <M/D/YY>"  -> última lectura
- *               columna J = "<hrs> Hrs" | "Mls" | "DUE" -> horas/millas restantes
+ *               columna J = "<hrs> Hrs" | "DUE" -> horas restantes (una celda en
+ *               millas -- "Mls"/"Ml"/"Miles", la abreviatura que usa el propio
+ *               encabezado del reporte -- se rechaza, nunca se convierte:
+ *               `horometer_readings.hours` no tiene columna de unidad)
  *               columna M = combustible agregado (opcional)
  *
  * El reporte trae encabezados "MACHINE DESCRIPTION" repetidos por cada salto
@@ -525,6 +528,14 @@ class PmServiceReportImporter
      * Available") o con formato inesperado (ej. números crudos de Excel) se
      * marcan como "unparseable" sin lanzar excepción.
      *
+     * IMPORTANTE (hallazgo de seguridad): esta unidad solo acepta horas. Antes
+     * la alternancia también aceptaba "Mls"/"Ml" -- la abreviatura de MILLAS
+     * que usa el propio encabezado del reporte ("Remanining Hrs/Mls") -- y una
+     * celda como "146037 Mls 6/20/25" se guardaba como 146.037 HORAS.
+     * `horometer_readings.hours` no tiene columna de unidad, así que una
+     * celda en millas se marca "unparseable" (se descarta, nunca se
+     * convierte) en vez de aceptarse como si fueran horas.
+     *
      * @return array{hours: ?int, date: ?string, unparseable: bool, raw: string}
      */
     private function parseHoursDate(?string $raw): array
@@ -535,7 +546,7 @@ class PmServiceReportImporter
 
         $raw = trim($raw);
 
-        if (! preg_match('/^([\d,]+)\s*(?:Hrs?|Mls?)\.?\s*(\d{1,2}\/\d{1,2}\/\d{2,4})?$/i', $raw, $m)) {
+        if (! preg_match('/^([\d,]+)\s*Hrs?\.?\s*(\d{1,2}\/\d{1,2}\/\d{2,4})?$/i', $raw, $m)) {
             return ['hours' => null, 'date' => null, 'unparseable' => true, 'raw' => $raw];
         }
 
@@ -547,6 +558,10 @@ class PmServiceReportImporter
 
     /**
      * Parsea la columna "Remaining Hrs/Mls" (ej. "415 Hrs", "DUE", "N/A").
+     *
+     * Mismo hallazgo que `parseHoursDate()`: "Mls"/"Ml" es millas, no horas.
+     * Una celda como "740 Mls" se rechaza (unparseable), nunca se guarda
+     * como 740 horas restantes.
      *
      * @return array{hours: ?int, unparseable: bool, raw: string}
      */
@@ -562,7 +577,7 @@ class PmServiceReportImporter
             return ['hours' => 0, 'unparseable' => false, 'raw' => $raw];
         }
 
-        if (! preg_match('/^([\d,]+)\s*(?:Hrs?|Mls?)\.?$/i', $raw, $m)) {
+        if (! preg_match('/^([\d,]+)\s*Hrs?\.?$/i', $raw, $m)) {
             return ['hours' => null, 'unparseable' => true, 'raw' => $raw];
         }
 

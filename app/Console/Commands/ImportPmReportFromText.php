@@ -8,6 +8,7 @@ use Illuminate\Console\Command;
 use PhpOffice\PhpSpreadsheet\Cell\DataType;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
+use Symfony\Component\Console\Formatter\OutputFormatter;
 
 /**
  * Carga un PM Service Report que llegó en **PDF** en vez de Excel.
@@ -73,7 +74,11 @@ class ImportPmReportFromText extends Command
             $this->warn(count($descartes).' descarte(s) — no entran en la importación (ver motivo):');
             $this->table(
                 ['id', 'motivo', 'renglón crudo'],
-                array_map(fn ($d) => [$d['id'], $d['motivo'], $d['crudo']], $descartes)
+                // El id sale de un regex restringido a [A-Z0-9-], pero se
+                // escapa igual por defensa en profundidad: mismo remedio que
+                // en recortar(), nunca confiar en que un dato de origen no
+                // pueda imitar un tag de color de la consola.
+                array_map(fn ($d) => [OutputFormatter::escape($d['id']), $d['motivo'], $d['crudo']], $descartes)
             );
         }
 
@@ -100,7 +105,7 @@ class ImportPmReportFromText extends Command
         if (! $this->option('apply')) {
             $this->table(
                 ['id', 'último servicio', 'última lectura', 'restantes'],
-                array_map(fn ($r) => [$r['id'], $r['last'], $r['reading'], $r['remaining']], array_slice($registros, 0, 15))
+                array_map(fn ($r) => [OutputFormatter::escape($r['id']), $r['last'], $r['reading'], $r['remaining']], array_slice($registros, 0, 15))
             );
             $this->line('… ('.count($registros).' en total)');
             $this->newLine();
@@ -147,14 +152,34 @@ class ImportPmReportFromText extends Command
      * al margen tolerado entre la unidad y la fecha (defecto A: cuatro
      * volquetes traen "5700 Hrs (79637Mi.) 8/14/26" y el paréntesis rompía el
      * emparejado; el kilometraje se descarta a propósito, se mide en horas).
+     *
+     * SOLO "Hrs". Hallazgo de seguridad: esta alternancia incluía "Mls" —la
+     * abreviatura de MILLAS que usa el propio encabezado del reporte
+     * ("Remanining Hrs/Mls")— y una celda como "146037 Mls 6/20/25" se
+     * emparejaba como si fueran 146.037 HORAS. Una unidad que no sea horas
+     * nunca debe entrar por este par; la maneja PAR_MILLAS_FECHA.
      */
-    private const PAR_HORAS_FECHA = '/([0-9][0-9,]*)\s*(Hrs|Mls)\.?\s*(?:\([^)]*\)\s*)?([0-9]{1,2}\/[0-9]{1,2}\/[0-9]{2,4})/i';
+    private const PAR_HORAS_FECHA = '/([0-9][0-9,]*)\s*(Hrs)\.?\s*(?:\([^)]*\)\s*)?([0-9]{1,2}\/[0-9]{1,2}\/[0-9]{2,4})/i';
+
+    /**
+     * Espejo de PAR_HORAS_FECHA con la lectura PRIMARIA en millas y el margen
+     * (si lo hay) en horas: "17309 Mi (2730 Hrs) 4/15/26" (TW007). Se aplica
+     * ANTES de PAR_ESTIMACION_PARENTESIS para no confundir este caso —hay una
+     * lectura primaria real, solo que en una unidad no soportada— con una
+     * estimación declarada enteramente dentro del paréntesis (TW004).
+     */
+    private const PAR_MILLAS_FECHA = '/([0-9][0-9,]*)\s*(?:Miles|Mls?|Mi)\.?\s*(?:\([^)]*\)\s*)?([0-9]{1,2}\/[0-9]{1,2}\/[0-9]{2,4})/i';
 
     /** Lectura entera entre paréntesis: "(29959 Mi) 10/29/25" — una estimación declarada, no una medición firme (defecto E). */
-    private const PAR_ESTIMACION_PARENTESIS = '/\(\s*[0-9][0-9,]*\s*(?:Hrs|Mls|Mi)\.?\s*\)\s*[0-9]{1,2}\/[0-9]{1,2}\/[0-9]{2,4}/i';
+    private const PAR_ESTIMACION_PARENTESIS = '/\(\s*[0-9][0-9,]*\s*(?:Hrs|Miles|Mls?|Mi)\.?\s*\)\s*[0-9]{1,2}\/[0-9]{1,2}\/[0-9]{2,4}/i';
 
-    /** Número seguido de "Mi"/"Mi." fuera de paréntesis: lectura en millas, no soportada (defecto B). */
-    private const LECTURA_EN_MILLAS = '/[0-9][0-9,]*\s*Mi\.?(?!\w)/i';
+    /**
+     * Número seguido de cualquier grafía de millas ("Mi", "Mi.", "Mls", "Ml",
+     * "Miles") fuera de paréntesis: lectura en millas, no soportada (defecto
+     * B). El orden de la alternancia importa poco (hay backtracking), pero se
+     * lista de más larga a más corta por claridad.
+     */
+    private const LECTURA_EN_MILLAS = '/[0-9][0-9,]*\s*(?:Miles|Mls?|Mi)\.?(?!\w)/i';
 
     /**
      * Convierte el texto de `pdftotext -table` en filas. Mismo criterio que el
@@ -192,7 +217,7 @@ class ImportPmReportFromText extends Command
 
             $esCabecera = preg_match('/^([A-Z][A-Z0-9\-]{2,18})\s+(\S.*)$/', $trim, $m) === 1
                 && preg_match('/[0-9]/', $m[1]) === 1
-                && preg_match('/[0-9]\s*(Hrs|Mls)\.?\s+[0-9]{1,2}\//i', $trim) !== 1;
+                && preg_match('/[0-9]\s*(?:Hrs|Miles|Mls?|Mi)\.?\s+[0-9]{1,2}\//i', $trim) !== 1;
 
             if ($esCabecera) {
                 $registros[] = [
@@ -227,38 +252,83 @@ class ImportPmReportFromText extends Command
             // por el cliente ("Odometer broken"), no una medición en millas
             // más. Se descuenta del resto ANTES de buscar millas sueltas, para
             // no reportar el mismo dato dos veces con motivos distintos.
-            $resto = preg_replace(self::PAR_HORAS_FECHA, '', $trim);
+            //
+            // Si `preg_replace` fallara (null) se conserva $trim tal cual: un
+            // guard que "no corrió" nunca debe traducirse en menos rechazo.
+            $resto = preg_replace(self::PAR_HORAS_FECHA, '', $trim) ?? $trim;
+
+            // TW007 (defecto B revisado): "17309 Mi (2730 Hrs) 4/15/26" es la
+            // imagen espejo de TD006 — acá la lectura PRIMARIA está en millas
+            // y el margen entre paréntesis es el equivalente en horas. Se
+            // descuenta ANTES del chequeo de "estimación entre paréntesis"
+            // para no confundir un margen legítimo (que sí acompaña una
+            // millas-primaria) con una estimación declarada enteramente
+            // dentro del paréntesis (TW004).
+            if (preg_match(self::PAR_MILLAS_FECHA, $resto) === 1) {
+                $r['millas'] = true;
+                $r['millasRaw'] = $r['millasRaw'] !== '' ? $r['millasRaw'] : $trim;
+                $resto = preg_replace(self::PAR_MILLAS_FECHA, '', $resto) ?? $resto;
+            }
+
             if (preg_match(self::PAR_ESTIMACION_PARENTESIS, $resto) === 1) {
                 $r['estimacionParentesis'] = true;
                 $r['estimacionRaw'] = $r['estimacionRaw'] !== '' ? $r['estimacionRaw'] : $trim;
-                $resto = preg_replace(self::PAR_ESTIMACION_PARENTESIS, '', $resto);
+                $resto = preg_replace(self::PAR_ESTIMACION_PARENTESIS, '', $resto) ?? $resto;
             }
 
             // Defecto B. IMPORTANTE: esto NO se agrega a PAR_HORAS_FECHA. Las
-            // celdas del informe dicen "Mi"/"Mi." (nunca "Mls", que solo
-            // aparece en el encabezado de columna); `horometer_readings.hours`
-            // no tiene columna de unidad, así que una lectura en millas que
-            // matcheara ahí se guardaría como si fueran horas. El dato
-            // faltante es preferible al dato falso: se rechaza con motivo
-            // visible en vez de dejarla pasar o perderla en silencio.
+            // celdas del informe suelen decir "Mi"/"Mi.", pero el propio
+            // encabezado del reporte abrevia la columna como "Mls" y al menos
+            // un informe real trajo esa misma grafía en el dato ("146037 Mls
+            // 6/20/25"); `horometer_readings.hours` no tiene columna de
+            // unidad, así que una lectura en millas —cualquiera sea su
+            // grafía: Mi, Mi., Mls, Ml, Miles— nunca puede guardarse como si
+            // fueran horas. El dato faltante es preferible al dato falso: se
+            // rechaza con motivo visible en vez de dejarla pasar o perderla
+            // en silencio.
             if (preg_match(self::LECTURA_EN_MILLAS, $resto) === 1) {
                 $r['millas'] = true;
                 $r['millasRaw'] = $r['millasRaw'] !== '' ? $r['millasRaw'] : $trim;
             }
 
+            // Defecto D (revisado): el piso de "más de 3 años" castigaba el
+            // último servicio LEGÍTIMO de una máquina de poco uso (ej. una
+            // fecha real de hace 4 años, coherente con su propia lectura).
+            // La señal precisa no es la antigüedad en sí, es la coherencia
+            // INTERNA del renglón: la lectura más reciente (índice 1) no
+            // puede ser anterior a su propio último servicio (índice 0) del
+            // MISMO renglón. Eso es justo lo que delata a TD007 ("8/21/22"
+            // en vez de "8/21/26" en la lectura, con el último servicio en
+            // "8/21/26"). Primera pasada: solo se descarta una fecha
+            // individual si es posterior al informe (imposible / typo de
+            // año); segunda pasada: se descarta la lectura si es anterior a
+            // su propio último servicio.
+            $fechasPorIndice = [];
             foreach ($pares as $indice => $par) {
                 $fecha = $this->fechaDesdeTexto($par[3]);
 
                 if ($fecha !== null && $fechaInforme !== null && ! $this->fechaEsValida($fecha, $fechaInforme)) {
-                    // Defecto A resuelto (el par se emparejó), pero la fecha
-                    // que trae el origen es basura (posterior al informe, o
-                    // más vieja que 3 años — típico error de tipeo, ej. TD007
-                    // con "8/21/22" en vez de "8/21/26"). Se rechaza SOLO este
-                    // par, no la fila entera: los demás campos de la máquina
-                    // pueden seguir siendo válidos.
                     $r['tuvoFechaInvalida'] = true;
                     $r['fechaInvalidaRaw'] = $r['fechaInvalidaRaw'] !== '' ? $r['fechaInvalidaRaw'] : $trim;
 
+                    continue;
+                }
+
+                $fechasPorIndice[$indice] = $fecha;
+            }
+
+            if (($fechasPorIndice[0] ?? null) !== null
+                && ($fechasPorIndice[1] ?? null) !== null
+                && $fechasPorIndice[1] < $fechasPorIndice[0]) {
+                $r['tuvoFechaInvalida'] = true;
+                $r['fechaInvalidaRaw'] = $r['fechaInvalidaRaw'] !== '' ? $r['fechaInvalidaRaw'] : $trim;
+                unset($fechasPorIndice[1]);
+            }
+
+            foreach ($pares as $indice => $par) {
+                if (! array_key_exists($indice, $fechasPorIndice)) {
+                    // Fecha posterior al informe: este par se rechaza entero,
+                    // no se usa ni para "last" ni para "reading".
                     continue;
                 }
 
@@ -270,7 +340,7 @@ class ImportPmReportFromText extends Command
                 }
             }
 
-            if ($r['remaining'] === '' && preg_match('/([0-9][0-9,]*)\s*(Hrs|Mls)\.?\s*$/i', $trim, $mm)) {
+            if ($r['remaining'] === '' && preg_match('/([0-9][0-9,]*)\s*(Hrs)\.?\s*$/i', $trim, $mm)) {
                 $r['remaining'] = str_replace(',', '', $mm[1]).' '.ucfirst(strtolower($mm[2]));
             }
             // "PAST DUE" es el 0 del cliente: el servicio ya venció.
@@ -329,11 +399,27 @@ class ImportPmReportFromText extends Command
         return ['registros' => $final, 'descartes' => $descartes, 'total' => count($registros)];
     }
 
+    /**
+     * Sanea el renglón crudo antes de imprimirlo en la tabla de descartes.
+     *
+     * Hallazgo de seguridad: un .txt de origen puede traer códigos de
+     * control C0 incrustados (ESC `\x1b`, BEL, etc.). No son `\s`, así que
+     * sobreviven al collapse de espacios y llegan intactos a la terminal,
+     * donde secuencias como `\x1b[2K`/`\x1b[F` pueden borrar o pisar líneas
+     * YA impresas —incluido el propio conteo de descartes— y simular texto
+     * falso. Se remueven ANTES de recortar (fail-closed: si `preg_replace`
+     * fallara, se prefiere perder detalle a dejarlos pasar) y el resultado
+     * pasa por `OutputFormatter::escape()` para neutralizar además cualquier
+     * tag de color que el dato de origen pudiera imitar.
+     */
     private function recortar(string $texto, int $max = 90): string
     {
-        $texto = trim(preg_replace('/\s+/', ' ', $texto) ?? $texto);
+        $sinControles = preg_replace('/[\x00-\x1F\x7F]/', '', $texto) ?? '';
 
-        return mb_strlen($texto) > $max ? mb_substr($texto, 0, $max - 1).'…' : $texto;
+        $texto = trim(preg_replace('/\s+/', ' ', $sinControles) ?? $sinControles);
+        $texto = mb_strlen($texto) > $max ? mb_substr($texto, 0, $max - 1).'…' : $texto;
+
+        return OutputFormatter::escape($texto);
     }
 
     /**
@@ -386,14 +472,19 @@ class ImportPmReportFromText extends Command
         return $fecha !== false ? $fecha->setTime(0, 0) : null;
     }
 
-    /** Ni posterior al informe, ni más vieja que 3 años (defecto D). */
+    /**
+     * No posterior al informe (defecto D). Físicamente imposible que una
+     * lectura esté fechada después de cuando se generó el reporte — señal
+     * de typo de año, como cualquier otra.
+     *
+     * Ya NO impone un piso de antigüedad ("más de 3 años atrás"): ese piso
+     * castigaba el último servicio LEGÍTIMO de una máquina de poco uso
+     * (defecto D revisado — ver `parse()`, donde la coherencia interna del
+     * renglón hace ese trabajo con más precisión).
+     */
     private function fechaEsValida(\DateTimeImmutable $fecha, \DateTimeImmutable $fechaInforme): bool
     {
-        if ($fecha > $fechaInforme) {
-            return false;
-        }
-
-        return $fecha >= $fechaInforme->modify('-3 years');
+        return $fecha <= $fechaInforme;
     }
 
     /**

@@ -1,0 +1,23 @@
+                                                        MACHINERY PM SERVICE REPORT                                    Sep/04/2026
+
+MACHINE DESCRIPTION                           LAST SERVICE HRS/DATE  LATEST READING HRS/DATE  Remanining Hrs/Mls  for  Serv.  Fuel Added
+
+MG001 2020 TEST LOADER MODEL VIN: TEST-1001 Test Truck
+
+                                                146037 Mi 6/20/25            150297 Mi 8/21/26            740 Mi
+
+MG002 2020 TEST LOADER MODEL VIN: TEST-1002 Test Truck
+
+                                                146037 Mi. 6/20/25           150297 Mi. 8/21/26           740 Mi.
+
+MG003 2020 TEST LOADER MODEL VIN: TEST-1003 Test Truck
+
+                                                146037 Mls 6/20/25           150297 Mls 8/21/26           740 Mls
+
+MG004 2020 TEST LOADER MODEL VIN: TEST-1004 Test Truck
+
+                                                146037 Ml 6/20/25            150297 Ml 8/21/26            740 Ml
+
+MG005 2020 TEST LOADER MODEL VIN: TEST-1005 Test Truck
+
+                                                146037 Miles 6/20/25         150297 Miles 8/21/26         740 Miles

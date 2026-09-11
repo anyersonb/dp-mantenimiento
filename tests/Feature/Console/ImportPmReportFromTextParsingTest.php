@@ -197,8 +197,16 @@ class ImportPmReportFromTextParsingTest extends TestCase
         $this->assertStringContainsString('8/21/22', $descarte['crudo']);
     }
 
-    /** fechaEsValida(): límites exactos (posterior al informe, y 3 años atrás). */
-    public function test_defecto_d_limites_de_fechaesvalida(): void
+    /**
+     * fechaEsValida() (REVISADA): ya no impone un piso de "3 años atrás".
+     * Ese piso castigaba el último servicio LEGÍTIMO de una máquina de poco
+     * uso (LD037, BT002, GR003, RL013 en el informe real: caían por "fecha
+     * inválida" sin que hubiera nada corrupto). Lo único físicamente
+     * imposible es una fecha POSTERIOR al informe; la antigüedad por sí
+     * sola ya no rechaza nada. Ver `test_defecto_d_revisado_*` para la
+     * señal que reemplaza al piso: coherencia interna del renglón.
+     */
+    public function test_defecto_d_revisado_limites_de_fechaesvalida(): void
     {
         $command = new ImportPmReportFromText;
         $method = new \ReflectionMethod($command, 'fechaEsValida');
@@ -208,8 +216,98 @@ class ImportPmReportFromTextParsingTest extends TestCase
 
         $this->assertTrue($method->invoke($command, new \DateTimeImmutable('2026-09-04'), $informe), 'la misma fecha del informe es válida');
         $this->assertFalse($method->invoke($command, new \DateTimeImmutable('2026-09-05'), $informe), 'un día después del informe es inválida');
-        $this->assertTrue($method->invoke($command, new \DateTimeImmutable('2023-09-04'), $informe), 'justo 3 años antes es válida');
-        $this->assertFalse($method->invoke($command, new \DateTimeImmutable('2023-09-03'), $informe), 'más de 3 años antes es inválida');
+        $this->assertTrue($method->invoke($command, new \DateTimeImmutable('2023-09-04'), $informe), 'justo 3 años antes ya es válida (el piso se eliminó)');
+        $this->assertTrue($method->invoke($command, new \DateTimeImmutable('2015-01-01'), $informe), 'una fecha muy vieja, por sí sola, ya no es motivo de rechazo');
+    }
+
+    /**
+     * Defecto D (revisado): un último servicio genuinamente viejo (2022,
+     * más de 3 años antes del informe de 2026) pero COHERENTE con su propia
+     * lectura (la lectura es posterior) ya no debe rechazarse. Antes, el
+     * piso de "3 años" lo tiraba como "fecha inválida" sin que hubiera nada
+     * corrupto — el caso real de LD037/BT002/GR003/RL013.
+     */
+    public function test_defecto_d_revisado_ultimo_servicio_viejo_pero_coherente_no_se_rechaza(): void
+    {
+        $resultado = $this->parse('pm_report_ultimo_servicio_viejo.txt');
+
+        $ld100 = $this->porId($resultado['registros'], 'LD100');
+        $this->assertNotNull($ld100, 'Un último servicio viejo pero coherente con su lectura no debe descartarse.');
+        $this->assertSame('4200 Hrs 6/15/22', $ld100['last']);
+        $this->assertSame('9500 Hrs 9/01/26', $ld100['reading']);
+        $this->assertSame('300 Hrs', $ld100['remaining']);
+
+        $this->assertNull($this->descartePorId($resultado['descartes'], 'LD100'));
+    }
+
+    /**
+     * Defecto B (revisado, 5 grafías): "Mi", "Mi.", "Mls", "Ml" y "Miles"
+     * tienen que rechazarse TODAS con el mismo motivo, sin excepción. El
+     * hallazgo de seguridad fue justamente que "Mls" —la abreviatura que
+     * usa el propio encabezado del reporte ("Remanining Hrs/Mls")— colaba
+     * como horas porque solo "Mi"/"Mi." estaban cubiertas.
+     */
+    public function test_defecto_b_revisado_todas_las_grafias_de_millas_se_rechazan(): void
+    {
+        $resultado = $this->parse('pm_report_grafias_millas.txt');
+
+        $this->assertSame([], $resultado['registros'], 'Ninguna de las 5 grafías de millas debería quedar como importable.');
+        $this->assertSame(5, $resultado['total']);
+
+        foreach (['MG001', 'MG002', 'MG003', 'MG004', 'MG005'] as $id) {
+            $d = $this->descartePorId($resultado['descartes'], $id);
+            $this->assertNotNull($d, "{$id} debería aparecer en la tabla de descartes.");
+            $this->assertSame('lectura en millas (no soportado)', $d['motivo']);
+        }
+
+        // Ningún número que venga acompañado de alguna grafía de millas
+        // puede colarse como si fueran horas en ningún campo importable.
+        $soloImportables = json_encode($resultado['registros']);
+        $this->assertStringNotContainsString('146037', $soloImportables);
+        $this->assertStringNotContainsString('150297', $soloImportables);
+    }
+
+    /**
+     * Defecto B (revisado, TW007): "17309 Mi (2730 Hrs) 4/15/26" es la
+     * imagen espejo de TD006 — la lectura PRIMARIA está en millas y el
+     * paréntesis trae el equivalente en horas como margen. Hoy cae como
+     * "estimación entre paréntesis (no firme)" (el motivo de TW004, que es
+     * un caso distinto: su lectura entera vive DENTRO del paréntesis, sin
+     * primaria). El descarte de TW007 es correcto; el motivo tiene que ser
+     * "lectura en millas (no soportado)".
+     */
+    public function test_defecto_b_revisado_tw007_lectura_primaria_en_millas_con_margen_en_horas(): void
+    {
+        $resultado = $this->parse('pm_report_tw007.txt');
+
+        $this->assertSame([], $resultado['registros']);
+        $this->assertSame(1, $resultado['total']);
+
+        $d = $this->descartePorId($resultado['descartes'], 'TW007');
+        $this->assertNotNull($d);
+        $this->assertSame('lectura en millas (no soportado)', $d['motivo']);
+        $this->assertStringContainsString('17309', $d['crudo']);
+    }
+
+    /**
+     * Hallazgo de seguridad (MEDIO): un .txt de origen puede traer códigos
+     * de control C0 (ESC, BEL) incrustados. No son `\s`, así que sobreviven
+     * al collapse de espacios de `recortar()` y llegaban intactos a la
+     * consola, donde pueden borrar/pisar líneas ya impresas. El renglón
+     * crudo que se guarda para la tabla de descartes no debe contener esos
+     * bytes, pero sí debe conservar el texto legible.
+     */
+    public function test_seguridad_codigos_de_control_no_sobreviven_en_el_renglon_crudo(): void
+    {
+        $resultado = $this->parse('pm_report_control_chars.txt');
+
+        $d = $this->descartePorId($resultado['descartes'], 'RL099');
+        $this->assertNotNull($d);
+        $this->assertSame('fuera de servicio', $d['motivo']);
+
+        $this->assertStringNotContainsString(chr(27), $d['crudo'], 'El byte ESC no debe sobrevivir al recorte.');
+        $this->assertStringNotContainsString(chr(7), $d['crudo'], 'El byte BEL no debe sobrevivir al recorte.');
+        $this->assertStringContainsString('Not in service', $d['crudo'], 'El texto legible debe seguir presente.');
     }
 
     /**
