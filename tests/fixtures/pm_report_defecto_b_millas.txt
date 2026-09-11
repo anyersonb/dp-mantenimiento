@@ -2,18 +2,18 @@
 
 MACHINE DESCRIPTION                           LAST SERVICE HRS/DATE  LATEST READING HRS/DATE  Remanining Hrs/Mls  for  Serv.  Fuel Added
 
-TF005 2019 Chevy Silverado 5500HD/International GM515 VIN: 1HTKHPVK0KH811762 Maintenance Truck
+TF005 2019 Chevy Silverado 5500HD/International GM515 VIN: TEST-0006aintenance Truck
 
                                                 146037 Mi 6/20/25            150297 Mi 8/21/26            740 Mi
 
-VAC001 2018 Peterbilt 567 VIN: 1NPCL70X2JD476828 Vac Truck
+VAC001 2018 Peterbilt 567 VIN: TEST-0007ac Truck
 
                                                 130270 Mi 6/11/26            132125 Mi 8/31/26            3145 Mi.
 
-MOT02 2023 Isuzu E450 VIN: 54DCDW1D3RS214872 MOT TRUCK
+MOT02 2023 Isuzu E450 VIN: TEST-0008
 
                      53401 Mi. 8/07/26                              53401 Mi. 8/07/26             5000 Hrs
 
-TT003 2013 Freightliner Cab VIN: 3AKJGEBG5DSFH1829 Truck Tractor
+TT003 2013 Freightliner Cab VIN: TEST-0009ruck Tractor
 
                      413988 Mi. 4/29/26

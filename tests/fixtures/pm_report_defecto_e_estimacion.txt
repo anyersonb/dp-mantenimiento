@@ -2,6 +2,6 @@
 
 MACHINE DESCRIPTION                           LAST SERVICE HRS/DATE  LATEST READING HRS/DATE  Remanining Hrs/Mls  for  Serv.  Fuel Added
 
-TW004 2006 MA025 International VIN:1HTMMAAL16H175231 Water Truck
+TW004 2006 MA025 International VIN:TEST-0011ater Truck
 
 Odometer broken                                 (29959 Mi) 10/29/25          (48323 Mi.) 8/31/26          4500 Mi.

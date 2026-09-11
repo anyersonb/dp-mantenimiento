@@ -2,11 +2,11 @@
 
 MACHINE DESCRIPTION                           LAST SERVICE HRS/DATE  LATEST READING HRS/DATE  Remanining Hrs/Mls  for  Serv.  Fuel Added
 
-EX010 EXCAVATOR CAT 335FLCR S/N: KNE00310
+EX010 EXCAVATOR CAT 335FLCR S/N: TEST-0001
 
 Broadview yd.                                   9708 Hrs 5/04/26     9867 Hrs 9/03/26         341 Hrs
 
-RL010 WHEEL ROLLER INGRAM 12 TON S/N: 588706 EB14
+RL010 WHEEL ROLLER INGRAM 12 TON S/N: TEST-0010
 
 Not in service - Parked at WPB yd.
 
