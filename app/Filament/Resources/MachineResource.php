@@ -8,6 +8,7 @@ use App\Filament\Resources\MachineResource\RelationManagers;
 use App\Models\Location;
 use App\Models\Machine;
 use App\Rules\RejectsDangerousUploadExtensions;
+use App\Rules\UniqueSlugFrom;
 use App\Services\HourmeterReplacementService;
 use App\Support\AccessControl;
 use App\Support\LocalizedText;
@@ -21,6 +22,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Str;
 
 class MachineResource extends Resource
 {
@@ -245,7 +247,19 @@ class MachineResource extends Resource
                     Forms\Components\Select::make('make_id')
                         ->label(__('fleet.make'))
                         ->relationship('make', 'name')->searchable()->preload()->createOptionForm([
-                            Forms\Components\TextInput::make('name')->required(),
+                            // Hallazgo Alto (QA en navegador): el 500
+                            // "Column 'slug' cannot be null" -- el Hidden
+                            // nunca recibía valor. Mismo patrón ya resuelto
+                            // en MakeResource::form() (hallazgo E6-07):
+                            // ->afterStateUpdated() deriva el slug del
+                            // nombre, y UniqueSlugFrom evita el 500 mudo si
+                            // dos marcas slugifican igual (ver su docblock).
+                            // Preexistente a este lote de Complementos, pero
+                            // se corrige acá porque se despliega junto.
+                            Forms\Components\TextInput::make('name')->required()
+                                ->live(onBlur: true)
+                                ->afterStateUpdated(fn ($state, Forms\Set $set) => $set('slug', Str::slug((string) $state)))
+                                ->rule(new UniqueSlugFrom('makes')),
                             Forms\Components\Hidden::make('slug'),
                         ]),
                     Forms\Components\TextInput::make('model')->label(__('fleet.model')),

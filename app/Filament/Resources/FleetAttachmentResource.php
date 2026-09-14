@@ -7,6 +7,7 @@ use App\Filament\Resources\FleetAttachmentResource\Pages;
 use App\Models\FleetAttachment;
 use App\Models\Location;
 use App\Rules\RejectsDangerousUploadExtensions;
+use App\Rules\UniqueSlugFrom;
 use App\Support\AccessControl;
 use Filament\Forms;
 use Filament\Forms\Form;
@@ -17,6 +18,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\HtmlString;
+use Illuminate\Support\Str;
 
 /**
  * Módulo de Complementos (Attachments) — ver spec-complementos-dp.md.
@@ -132,7 +134,17 @@ class FleetAttachmentResource extends Resource
                     Forms\Components\Select::make('make_id')
                         ->label(__('fleet.make'))
                         ->relationship('make', 'name')->searchable()->preload()->createOptionForm([
-                            Forms\Components\TextInput::make('name')->required(),
+                            // Hallazgo Alto (QA en navegador, post 01e6a24e):
+                            // el 500 "Column 'slug' cannot be null" -- el
+                            // Hidden nunca recibía valor. Mismo patrón ya
+                            // resuelto en MakeResource::form() (hallazgo
+                            // E6-07): ->afterStateUpdated() deriva el slug
+                            // del nombre, y UniqueSlugFrom evita el 500 mudo
+                            // si dos marcas slugifican igual (ver su docblock).
+                            Forms\Components\TextInput::make('name')->required()
+                                ->live(onBlur: true)
+                                ->afterStateUpdated(fn ($state, Forms\Set $set) => $set('slug', Str::slug((string) $state)))
+                                ->rule(new UniqueSlugFrom('makes')),
                             Forms\Components\Hidden::make('slug'),
                         ]),
                     Forms\Components\TextInput::make('model')->label(__('fleet.model')),
