@@ -39,6 +39,16 @@ use Tests\TestCase;
  * `isDisabled()` corta `mountTableAction()` del lado servidor (ver
  * `Filament\Actions\Concerns\InteractsWithActions::mountAction()`), así que
  * el registro tiene que seguir intacto en la base después del intento.
+ *
+ * Seguimiento del mismo reporte (2026-09-14): "explicar el bloqueo no es
+ * darle salida". Se auditó si existe un camino real para reabrir una OT
+ * cerrada -SÍ existe- antes de construir nada nuevo: cualquier usuario con
+ * `execute_work_order` puede editar la OT desde el formulario estándar de
+ * WorkOrderResource y volver `status` a un valor abierto (sin acción
+ * "Reabrir" dedicada, sin permiso nuevo). `test_reopening_a_closed_work_order_*`
+ * prueba ese camino de punta a punta, y
+ * `test_a_role_without_execute_work_order_cannot_reopen_a_closed_work_order`
+ * prueba que quien no llega a editar la OT tampoco tiene ese camino.
  */
 class PartsUsedDeletionTest extends TestCase
 {
@@ -191,5 +201,55 @@ class PartsUsedDeletionTest extends TestCase
                 'pageClass' => EditWorkOrder::class,
             ])
             ->assertCanNotSeeTableRecords([$part]);
+    }
+
+    /**
+     * La salida real para el caso "cerré la OT por error con un repuesto mal
+     * cargado": editar la OT (no hace falta permiso nuevo, ni acción
+     * dedicada) y devolver su estado a uno abierto. Reabrir queda en el log
+     * de actividad porque WorkOrder::getActivitylogOptions() ya audita
+     * `status` con logOnlyDirty().
+     */
+    public function test_reopening_a_closed_work_order_through_its_edit_form_unblocks_the_delete_action(): void
+    {
+        $workOrder = $this->workOrder('completed');
+        $part = $this->part($workOrder);
+        $taller = $this->user('taller@dp.local');
+
+        Livewire::actingAs($taller)
+            ->test(EditWorkOrder::class, ['record' => $workOrder->getKey()])
+            ->fillForm(['status' => 'open'])
+            ->call('save')
+            ->assertHasNoFormErrors();
+
+        $this->assertDatabaseHas('work_orders', ['id' => $workOrder->id, 'status' => 'open']);
+
+        Livewire::actingAs($taller)
+            ->test(PartsRelationManager::class, [
+                'ownerRecord' => $workOrder->fresh(),
+                'pageClass' => EditWorkOrder::class,
+            ])
+            ->assertTableActionVisible('delete', $part)
+            ->assertTableActionEnabled('delete', $part)
+            ->callTableAction('delete', $part)
+            ->assertHasNoTableActionErrors();
+
+        $this->assertSoftDeleted('work_order_parts', ['id' => $part->id]);
+    }
+
+    /**
+     * gerencia no tiene execute_work_order: WorkOrderResource::canEdit()
+     * ya se lo niega (hallazgo C1), así que tampoco tiene el camino de
+     * reapertura por edición. No es una restricción nueva de este fix.
+     */
+    public function test_a_role_without_execute_work_order_cannot_reopen_a_closed_work_order(): void
+    {
+        $workOrder = $this->workOrder('completed');
+
+        $this->actingAs($this->user('gerencia@dp.local'))
+            ->get("/admin/work-orders/{$workOrder->id}/edit")
+            ->assertForbidden();
+
+        $this->assertDatabaseHas('work_orders', ['id' => $workOrder->id, 'status' => 'completed']);
     }
 }

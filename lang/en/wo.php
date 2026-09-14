@@ -78,5 +78,5 @@ return [
     // Blocked deletion (attachments, checklist, parts): reason shown in the
     // tooltip when the delete button is disabled.
     'delete_blocked_no_permission' => 'You do not have permission to execute work orders.',
-    'delete_blocked_closed_order' => 'This work order is already closed: it cannot be deleted.',
+    'delete_blocked_closed_order' => 'This work order is already closed. Edit it and change its status to reopen it before deleting this record.',
 ];

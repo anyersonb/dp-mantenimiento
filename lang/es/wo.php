@@ -81,5 +81,5 @@ return [
     // Borrado bloqueado (adjuntos, checklist, repuestos): motivo mostrado en
     // el tooltip cuando el botón de eliminar está deshabilitado.
     'delete_blocked_no_permission' => 'No tienes permiso para ejecutar órdenes de trabajo.',
-    'delete_blocked_closed_order' => 'Esta orden de trabajo ya está cerrada: no se puede eliminar.',
+    'delete_blocked_closed_order' => 'Esta orden ya está cerrada. Edítala y cambia su estado para reabrirla, y así poder eliminar este registro.',
 ];

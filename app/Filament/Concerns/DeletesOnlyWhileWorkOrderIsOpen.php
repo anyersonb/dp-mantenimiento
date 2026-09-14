@@ -62,6 +62,19 @@ trait DeletesOnlyWhileWorkOrderIsOpen
      * método junto a ->disabled()/->tooltip() en cada RelationManager: la
      * acción ahora se ve siempre, pero deshabilitada con el motivo real
      * cuando corresponde.
+     *
+     * Seguimiento del mismo reporte (2026-09-14): "explicar el bloqueo no es
+     * darle salida". Se verificó que SÍ existe un camino legítimo para
+     * reabrir una OT cerrada: cualquier usuario con execute_work_order puede
+     * editarla desde el formulario estándar de la OT (WorkOrderResource) y
+     * volver `status` a un valor abierto — queda registrado en el log de
+     * actividad porque WorkOrder::getActivitylogOptions() ya audita ese
+     * campo con logOnlyDirty(). No hay una acción "Reabrir" dedicada porque
+     * no hace falta una nueva: el mensaje de wo.delete_blocked_closed_order
+     * apunta a ese mismo camino. Ver
+     * Tests\Feature\WorkOrder\PartsUsedDeletionTest para la prueba de punta a
+     * punta (reabrir + borrar) y de que los roles sin execute_work_order no
+     * llegan ni a la pantalla de edición.
      */
     protected function deletionBlockedReason(Model $record): ?string
     {
