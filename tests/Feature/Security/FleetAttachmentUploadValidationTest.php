@@ -25,6 +25,10 @@ use Tests\TestCase;
  * `UploadedFile::fake()->create($nombre, $kb)` reporta kilobytes pero escribe
  * el archivo VACÍO — no sirve para probar contenido. El test de aceptación
  * usa `createWithContent()` y compara el contenido real guardado en disco.
+ *
+ * `documents` vive en disk('local') desde el fix del hallazgo Alto (auditoría
+ * de seguridad post 01e6a24e) -- antes vivía en 'public' sin ninguna capa de
+ * autorización.
  */
 class FleetAttachmentUploadValidationTest extends TestCase
 {
@@ -35,7 +39,7 @@ class FleetAttachmentUploadValidationTest extends TestCase
         parent::setUp();
 
         $this->seed(RolesAndPermissionsSeeder::class);
-        Storage::fake('public');
+        Storage::fake('local');
     }
 
     private function admin(): User
@@ -61,15 +65,25 @@ class FleetAttachmentUploadValidationTest extends TestCase
         $paths = (array) $attachment->documents;
 
         $this->assertNotEmpty($paths, 'El documento subido debe quedar guardado en la columna documents.');
-        $this->assertTrue(Storage::disk('public')->exists($paths[0]));
+        $this->assertTrue(Storage::disk('local')->exists($paths[0]));
 
         // Comparación de CONTENIDO real, no solo de existencia: si el arnés
         // estuviera escribiendo el archivo vacío (UploadedFile::fake()->create()
         // sin contenido), esta aserción fallaría y delataría el falso positivo.
         $this->assertSame(
             $contenido,
-            Storage::disk('public')->get($paths[0]),
+            Storage::disk('local')->get($paths[0]),
             'El archivo guardado en disco debe tener el mismo contenido que se subió.'
+        );
+
+        // `document_names` (hallazgo Alto): guarda el nombre ORIGINAL del
+        // archivo, porque en disco queda con un nombre generado (ULID). Sin
+        // esto, la ruta de descarga no podría devolver "manual.pdf" al
+        // usuario.
+        $this->assertSame(
+            'manual.pdf',
+            $attachment->document_names[$paths[0]] ?? null,
+            'document_names debe guardar el nombre original del archivo subido.'
         );
     }
 

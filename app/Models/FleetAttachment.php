@@ -35,9 +35,11 @@ class FleetAttachment extends Model
      *
      * A diferencia de Machine, este registro no tiene hijos con FK propia
      * (es independiente, sin OT ni lecturas), así que la única limpieza que
-     * hace falta es la de sus propios archivos: `image` (una ruta),
-     * `gallery` y `documents` (arrays de rutas), todos sobre disk('public').
-     * Sin esto quedarían huérfanos y descargables para siempre.
+     * hace falta es la de sus propios archivos: `image` y `gallery` viven en
+     * disk('public'); `documents` vive en disk('local') (privado) desde el
+     * fix del hallazgo Alto de la auditoría post 01e6a24e — antes vivía
+     * también en 'public' sin ninguna capa de autorización. Sin esta
+     * limpieza quedarían huérfanos y descargables para siempre.
      */
     protected static function booted(): void
     {
@@ -53,8 +55,8 @@ class FleetAttachment extends Model
             }
 
             foreach ((array) $attachment->documents as $path) {
-                if ($path && Storage::disk('public')->exists($path)) {
-                    Storage::disk('public')->delete($path);
+                if ($path && Storage::disk('local')->exists($path)) {
+                    Storage::disk('local')->delete($path);
                 }
             }
         });
@@ -69,6 +71,7 @@ class FleetAttachment extends Model
         'needs_review' => 'boolean',
         'gallery' => 'array',
         'documents' => 'array',
+        'document_names' => 'array',
     ];
 
     /**
@@ -88,8 +91,11 @@ class FleetAttachment extends Model
 
     public function getActivitylogOptions(): LogOptions
     {
+        // `documents` entra a propósito (hallazgo Bajo de la auditoría de
+        // seguridad post 01e6a24e): adjuntar o quitar un documento es lo más
+        // sensible de este módulo y antes no quedaba ningún rastro.
         return LogOptions::defaults()
-            ->logOnly(['id_code', 'status', 'current_location_id'])
+            ->logOnly(['id_code', 'status', 'current_location_id', 'documents'])
             ->logOnlyDirty()
             ->dontSubmitEmptyLogs();
     }

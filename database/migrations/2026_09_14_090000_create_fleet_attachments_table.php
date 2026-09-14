@@ -50,8 +50,14 @@ return new class extends Migration
             $table->string('image')->nullable();
             $table->json('gallery')->nullable();
 
-            // Documentos (propio de este módulo)
+            // Documentos (propio de este módulo). `document_names` guarda el
+            // nombre ORIGINAL de cada archivo (path del disco privado =>
+            // nombre tal como lo subió el cliente), poblado por
+            // ->storeFileNamesIn() en el Resource -- lo usa la ruta de
+            // descarga para no servir el nombre generado (ULID) al usuario
+            // (hallazgo Alto, auditoría post 01e6a24e).
             $table->json('documents')->nullable();
+            $table->json('document_names')->nullable();
 
             // Control de datos
             $table->boolean('needs_review')->default(false);

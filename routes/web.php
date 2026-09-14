@@ -8,6 +8,7 @@ use App\Livewire\Field\FuelLog;
 use App\Livewire\Field\Home as FieldHome;
 use App\Livewire\Field\Login as FieldLogin;
 use App\Livewire\Field\ReportForm;
+use App\Models\FleetAttachment;
 use App\Models\Machine;
 use App\Models\Quote;
 use App\Models\WorkOrderAttachment;
@@ -121,6 +122,47 @@ Route::middleware(['auth', SetLocale::class])->group(function () {
 
         return Storage::disk('local')->response($attachment->path, $downloadName);
     })->name('attachments.download');
+
+    /*
+     * Hallazgo Alto (auditoría de seguridad, módulo Complementos, post
+     * 01e6a24e): los documentos de FleetAttachment (manuales, certificados)
+     * vivían en disk('public'), servidos por Apache vía el symlink
+     * public/storage ANTES de que corriera ningún middleware -> 200 sin
+     * sesión, sobrevivía a que revocaran el permiso y a la papelera (solo
+     * forceDeleting() purga archivos). Ahora viven en disk('local')
+     * (privado) y se sirven solo por acá.
+     *
+     * A diferencia de attachments.download (una fila = un archivo,
+     * resuelto por route model binding directo), `documents` es un único
+     * campo JSON con varios archivos en el propio FleetAttachment. Por eso
+     * la resolución es {fleetAttachment} (route model binding real, jamás
+     * un path del cliente) + {index}, forzado numérico por whereNumber(),
+     * que apunta a una posición del array `documents` DE ESE registro. Un
+     * índice fuera de rango da 403 (no puede resolver un documento de otro
+     * registro ni un path fuera del array); un índice no numérico ni
+     * siquiera matchea la ruta.
+     *
+     * Permiso: view_attachments (no view_costs) -- decisión explícita: son
+     * manuales/certificados, y exigir view_costs dejaría sin acceso al
+     * personal de mantenimiento, que es justo el uso principal. Quien puede
+     * ver la ficha puede ver sus documentos.
+     */
+    Route::get('/fleet-attachments/{fleetAttachment}/documents/{index}', function (FleetAttachment $fleetAttachment, int $index) {
+        abort_unless(Auth::user()?->can('view_attachments'), 403);
+
+        $documents = array_values((array) $fleetAttachment->documents);
+
+        abort_unless(array_key_exists($index, $documents), 403);
+
+        $path = $documents[$index];
+
+        abort_unless(Storage::disk('local')->exists($path), 404);
+
+        $names = (array) $fleetAttachment->document_names;
+        $downloadName = $names[$path] ?? basename($path);
+
+        return Storage::disk('local')->response($path, $downloadName);
+    })->whereNumber('index')->name('fleet-attachments.documents.download');
 
     Route::get('/reports/fleet.pdf', function () {
         abort_unless(Auth::user()?->can('view_reports'), 403);

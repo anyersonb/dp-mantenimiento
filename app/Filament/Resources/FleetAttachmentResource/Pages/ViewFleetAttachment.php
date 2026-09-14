@@ -8,6 +8,7 @@ use Filament\Actions;
 use Filament\Infolists\Components;
 use Filament\Infolists\Infolist;
 use Filament\Resources\Pages\ViewRecord;
+use Illuminate\Support\HtmlString;
 
 class ViewFleetAttachment extends ViewRecord
 {
@@ -69,6 +70,14 @@ class ViewFleetAttachment extends ViewRecord
                     Components\ImageEntry::make('gallery')->label(__('fleet.gallery'))->columnSpanFull(),
                 ]),
 
+            /*
+             * Hallazgo Alto (auditoría de seguridad post 01e6a24e): antes
+             * mostraba solo el nombre de archivo en texto plano (ni siquiera
+             * era un link) y el archivo real vivía en disk('public') sin
+             * autorización. Ahora es un enlace real por documento, con su
+             * nombre ORIGINAL (`document_names`, no el ULID en disco) y
+             * apuntando a la ruta autenticada que valida view_attachments.
+             */
             Components\Section::make(__('fleet.attachment_documents'))
                 ->collapsible()
                 ->visible(fn (FleetAttachment $r) => filled($r->documents))
@@ -76,9 +85,20 @@ class ViewFleetAttachment extends ViewRecord
                     Components\TextEntry::make('documents')
                         ->label(__('fleet.attachment_documents'))
                         ->columnSpanFull()
-                        ->formatStateUsing(fn ($state) => collect((array) $state)
-                            ->map(fn ($path) => basename((string) $path))
-                            ->implode(', ')),
+                        ->html()
+                        ->formatStateUsing(fn ($state, FleetAttachment $record) => new HtmlString(collect((array) $state)
+                            ->values()
+                            ->map(function (string $path, int $index) use ($record) {
+                                // Acceso directo, no data_get(): el path
+                                // trae puntos (la extensión del archivo) y
+                                // data_get() los interpretaría como
+                                // separador de nivel ("dot notation"),
+                                // fallando siempre para esta clave.
+                                $name = ((array) $record->document_names)[$path] ?? basename($path);
+
+                                return '<a href="'.e(route('fleet-attachments.documents.download', [$record, $index])).'" target="_blank" class="text-primary-600 underline">'.e($name).'</a>';
+                            })
+                            ->implode('<br>'))),
                 ]),
 
             Components\Section::make(__('fleet.data_control'))

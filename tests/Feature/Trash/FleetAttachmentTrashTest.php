@@ -140,7 +140,13 @@ class FleetAttachmentTrashTest extends TestCase
 
     public function test_force_deleting_removes_its_image_gallery_and_document_files_from_disk(): void
     {
+        // `documents` vive en disk('local') desde el fix del hallazgo Alto
+        // (auditoría de seguridad post 01e6a24e); `image`/`gallery` se
+        // quedan en disk('public') (decisión ya razonada en
+        // MachineResource: son fotos, moverlas obligaría a un proxy
+        // autenticado por cada miniatura).
         Storage::fake('public');
+        Storage::fake('local');
 
         $imagePath = 'fleet-attachments/images/foto-principal.jpg';
         $galleryPath = 'fleet-attachments/gallery/foto-a.jpg';
@@ -148,7 +154,7 @@ class FleetAttachmentTrashTest extends TestCase
 
         Storage::disk('public')->put($imagePath, 'contenido real de la foto principal');
         Storage::disk('public')->put($galleryPath, 'contenido real de la foto de galeria');
-        Storage::disk('public')->put($documentPath, 'contenido real del manual en pdf');
+        Storage::disk('local')->put($documentPath, 'contenido real del manual en pdf');
 
         $attachment = $this->attachment();
         $attachment->forceFill([
@@ -159,7 +165,7 @@ class FleetAttachmentTrashTest extends TestCase
 
         $this->assertTrue(Storage::disk('public')->exists($imagePath));
         $this->assertTrue(Storage::disk('public')->exists($galleryPath));
-        $this->assertTrue(Storage::disk('public')->exists($documentPath));
+        $this->assertTrue(Storage::disk('local')->exists($documentPath));
 
         $attachment->delete();
         $attachment = $attachment->fresh();
@@ -181,7 +187,7 @@ class FleetAttachmentTrashTest extends TestCase
             'El borrado definitivo tiene que borrar las fotos de galería del disco.'
         );
         $this->assertFalse(
-            Storage::disk('public')->exists($documentPath),
+            Storage::disk('local')->exists($documentPath),
             'El borrado definitivo tiene que borrar los documentos del disco.'
         );
     }

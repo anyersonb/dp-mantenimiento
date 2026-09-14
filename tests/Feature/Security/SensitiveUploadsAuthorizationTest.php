@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Security;
 
+use App\Models\FleetAttachment;
 use App\Models\Location;
 use App\Models\Machine;
 use App\Models\Quote;
@@ -23,6 +24,10 @@ use Tests\TestCase;
  *   "view_costs" cuando el adjunto es type=invoice (evidencia de costos).
  * - quotes.public.file: publica a proposito (link compartible por
  *   share_token, sin cuenta), pero respeta el vencimiento (expires_at).
+ *
+ * Hallazgo Alto (auditoría de seguridad, módulo Complementos, post
+ * 01e6a24e): los `documents` de FleetAttachment vivían en disk('public') sin
+ * ninguna capa de autorización -- mismo patrón que A5, cubierto acá abajo.
  */
 class SensitiveUploadsAuthorizationTest extends TestCase
 {
@@ -166,6 +171,102 @@ class SensitiveUploadsAuthorizationTest extends TestCase
         ]);
 
         $response = $this->get(route('quotes.public.file', $quote->share_token));
+
+        $response->assertNotFound();
+    }
+
+    /* ------------------------------------------------------------------ *
+     * Documentos de FleetAttachment (módulo Complementos, hallazgo Alto)
+     * ------------------------------------------------------------------ */
+
+    protected function attachmentWithDocument(): FleetAttachment
+    {
+        Storage::disk('local')->put('fleet-attachments/documents/01SECPROBE.pdf', 'contenido privado del manual');
+
+        return FleetAttachment::create([
+            'id_code' => 'DOC-SEC-'.random_int(100000, 999999),
+            'status' => 'active',
+            'documents' => ['fleet-attachments/documents/01SECPROBE.pdf'],
+            'document_names' => ['fleet-attachments/documents/01SECPROBE.pdf' => 'manual-original.pdf'],
+        ]);
+    }
+
+    public function test_an_anonymous_visitor_cannot_download_a_fleet_attachment_document(): void
+    {
+        $attachment = $this->attachmentWithDocument();
+
+        $response = $this->get(route('fleet-attachments.documents.download', [$attachment, 0]));
+
+        $response->assertStatus(302); // redirigido al login por el middleware "auth"
+        $this->assertNotEquals(200, $response->getStatusCode());
+    }
+
+    public function test_a_role_without_view_attachments_gets_403_on_a_document(): void
+    {
+        $attachment = $this->attachmentWithDocument();
+        $userWithoutPermissions = User::factory()->create(['active' => true]);
+
+        $response = $this->actingAs($userWithoutPermissions)
+            ->get(route('fleet-attachments.documents.download', [$attachment, 0]));
+
+        $response->assertForbidden();
+    }
+
+    public function test_a_role_with_view_attachments_downloads_the_real_document_with_its_original_name(): void
+    {
+        $attachment = $this->attachmentWithDocument();
+        // foreman: view_attachments, sin manage_attachments ni access_panel --
+        // sirve para probar que view_attachments basta, sin depender de un
+        // permiso de gestión ni de acceso al panel de escritorio.
+        $foreman = User::where('email', 'foreman@dp.local')->firstOrFail();
+
+        $response = $this->actingAs($foreman)
+            ->get(route('fleet-attachments.documents.download', [$attachment, 0]));
+
+        // Storage::disk('local')->response() devuelve un StreamedResponse:
+        // su contenido no queda en $response->getContent() (Symfony lo
+        // produce por callback), así que el contenido real se compara
+        // directo contra el disco, no contra el cuerpo HTTP -- igual que el
+        // resto de la suite (ver AttachmentsDoNotOverwriteEachOtherTest).
+        $response->assertOk();
+        $this->assertStringContainsString('manual-original.pdf', $response->headers->get('content-disposition'));
+        $this->assertSame(
+            'contenido privado del manual',
+            Storage::disk('local')->get('fleet-attachments/documents/01SECPROBE.pdf')
+        );
+    }
+
+    /**
+     * `documents` es UN campo JSON con varios archivos, no una fila por
+     * archivo: la "propiedad" del archivo la da su POSICIÓN en el array de
+     * ESE registro, no un id propio. Pedir un índice fuera de rango es el
+     * equivalente a pedir "el archivo ajeno" -- tiene que dar 403, nunca
+     * resolver por accidente el documento de otro registro ni tirar un
+     * error de servidor.
+     */
+    public function test_an_out_of_range_document_index_returns_403(): void
+    {
+        $attachment = $this->attachmentWithDocument();
+        $admin = User::where('email', 'admin@dp.local')->firstOrFail();
+
+        $response = $this->actingAs($admin)
+            ->get(route('fleet-attachments.documents.download', [$attachment, 99]));
+
+        $response->assertForbidden();
+    }
+
+    /**
+     * El parámetro {index} está forzado a numérico (whereNumber) -- un
+     * intento de path traversal ni siquiera matchea la ruta, así que Laravel
+     * resuelve 404 en el router antes de tocar el modelo o el disco.
+     */
+    public function test_a_non_numeric_index_does_not_match_the_route_at_all(): void
+    {
+        $attachment = $this->attachmentWithDocument();
+        $admin = User::where('email', 'admin@dp.local')->firstOrFail();
+
+        $response = $this->actingAs($admin)
+            ->get('/fleet-attachments/'.$attachment->id.'/documents/..%2F..%2F.env');
 
         $response->assertNotFound();
     }

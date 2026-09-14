@@ -133,6 +133,7 @@ return [
     'attachment_status_section' => 'Estado',
     'attachment_technical' => 'Técnico',
     'attachment_documents' => 'Documentos',
+    'attachment_documents_uploaded' => 'Documentos ya guardados',
     // Etiqueta propia y distinta de "ID" (fleet.id_code, la de Máquinas):
     // es el campo que el cliente pidió explícitamente por nombre.
     'attachment_id_code' => 'ID del complemento',

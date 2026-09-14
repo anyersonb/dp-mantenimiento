@@ -16,6 +16,7 @@ use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\HtmlString;
 
 /**
  * Módulo de Complementos (Attachments) — ver spec-complementos-dp.md.
@@ -208,6 +209,20 @@ class FleetAttachmentResource extends Resource
              * disfrazados. `RejectsDangerousUploadExtensions` es la barrera
              * real: valida la extensión final del nombre de archivo contra
              * una whitelist explícita, independiente del mimetype.
+             *
+             * Hallazgo Alto (auditoría de seguridad post 01e6a24e): estos
+             * archivos vivían en disk('public') sin ninguna capa de
+             * autorización — se servían con un 200 sin sesión, y la URL
+             * sobrevivía a que revocaran el permiso o a la papelera. Mismo
+             * patrón ya usado en AttachmentsRelationManager (OT) y en
+             * QuoteResource: disk('local') (privado) + sin
+             * ->downloadable()/->openable() (esas dos dependen de
+             * Storage::url(), que no existe para un disco privado) +
+             * ->storeFileNamesIn() para conservar el nombre ORIGINAL del
+             * archivo en `document_names` (el nombre que queda en disco es
+             * un ULID generado por Filament). El enlace real para abrir un
+             * documento ya guardado sale del Placeholder de abajo, que
+             * apunta a la ruta autenticada fleet-attachments.documents.download.
              */
             Forms\Components\Section::make(__('fleet.attachment_documents'))
                 ->collapsed()
@@ -216,8 +231,9 @@ class FleetAttachmentResource extends Resource
                         ->label(__('fleet.attachment_documents'))
                         ->multiple()
                         ->reorderable()
-                        ->disk('public')
+                        ->disk('local')
                         ->directory('fleet-attachments/documents')
+                        ->storeFileNamesIn('document_names')
                         ->maxSize(10240)
                         ->acceptedFileTypes([
                             'application/pdf',
@@ -228,11 +244,28 @@ class FleetAttachmentResource extends Resource
                             'image/png',
                             'image/jpeg',
                         ])
-                        ->downloadable()
-                        ->openable()
                         ->rule(new RejectsDangerousUploadExtensions([
                             'pdf', 'doc', 'docx', 'xls', 'xlsx', 'png', 'jpg', 'jpeg',
                         ])),
+                    Forms\Components\Hidden::make('document_names'),
+                    Forms\Components\Placeholder::make('documents_links')
+                        ->label(__('fleet.attachment_documents_uploaded'))
+                        ->visible(fn (?FleetAttachment $record) => $record && filled($record->documents))
+                        ->content(fn (?FleetAttachment $record) => $record
+                            ? new HtmlString(collect((array) $record->documents)
+                                ->values()
+                                ->map(function (string $path, int $index) use ($record) {
+                                    // Acceso directo, no data_get(): el path
+                                    // trae puntos (la extensión del archivo)
+                                    // y data_get() los interpretaría como
+                                    // separador de nivel ("dot notation"),
+                                    // fallando siempre para esta clave.
+                                    $name = ((array) $record->document_names)[$path] ?? basename($path);
+
+                                    return '<a href="'.e(route('fleet-attachments.documents.download', [$record, $index])).'" target="_blank" class="text-primary-600 underline">'.e($name).'</a>';
+                                })
+                                ->implode('<br>'))
+                            : ''),
                 ]),
 
             Forms\Components\Section::make(__('fleet.data_control'))

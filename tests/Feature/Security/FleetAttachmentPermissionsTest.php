@@ -44,6 +44,11 @@ class FleetAttachmentPermissionsTest extends TestCase
         return User::where('email', 'foreman@dp.local')->firstOrFail();
     }
 
+    private function gerencia(): User
+    {
+        return User::where('email', 'gerencia@dp.local')->firstOrFail();
+    }
+
     private function attachment(): FleetAttachment
     {
         return FleetAttachment::create(['id_code' => 'PERM-'.random_int(100000, 999999), 'status' => 'active']);
@@ -165,13 +170,21 @@ class FleetAttachmentPermissionsTest extends TestCase
     /**
      * `manage_attachments` gobierna crear/editar; probar el bypass directo a
      * las URL de creación/edición sin ese permiso, no solo el can*() estático.
+     *
+     * Hallazgo Bajo (auditoría de seguridad post 01e6a24e): este test usaba
+     * `foreman@dp.local`, que NO tiene `access_panel` en absoluto (ver
+     * RolesAndPermissionsSeeder) — el 403 lo devolvía el gate del PANEL
+     * (canAccessPanel), no `canCreate()`/`canEdit()` del Resource. El test
+     * pasaba igual aunque el gate del recurso estuviera roto: un test que no
+     * puede fallar. `gerencia@dp.local` sí entra al panel (`access_panel` +
+     * `view_attachments`) pero no tiene `manage_attachments`, así que con
+     * ese actor el 403 solo puede venir del gate real que se quiere probar.
      */
     public function test_create_and_edit_urls_are_forbidden_without_manage_attachments(): void
     {
         $attachment = $this->attachment();
 
-        // foreman tiene view_attachments pero no manage_attachments.
-        $this->actingAs($this->foreman())->get('/admin/fleet-attachments/create')->assertForbidden();
-        $this->actingAs($this->foreman())->get("/admin/fleet-attachments/{$attachment->id}/edit")->assertForbidden();
+        $this->actingAs($this->gerencia())->get('/admin/fleet-attachments/create')->assertForbidden();
+        $this->actingAs($this->gerencia())->get("/admin/fleet-attachments/{$attachment->id}/edit")->assertForbidden();
     }
 }

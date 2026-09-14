@@ -133,6 +133,7 @@ return [
     'attachment_status_section' => 'Status',
     'attachment_technical' => 'Technical',
     'attachment_documents' => 'Documents',
+    'attachment_documents_uploaded' => 'Already saved documents',
     // Its own label, distinct from "ID" (fleet.id_code, the Machines one):
     // this is the field the client explicitly asked for by name.
     'attachment_id_code' => 'Attachment ID',

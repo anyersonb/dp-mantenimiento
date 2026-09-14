@@ -118,4 +118,30 @@ class FleetAttachmentCrudTest extends TestCase
             ->test(ViewFleetAttachment::class, ['record' => $attachment->getKey()])
             ->assertSuccessful();
     }
+
+    /**
+     * Hallazgo Alto (auditoría de seguridad post 01e6a24e): la sección de
+     * documentos de la ficha mostraba solo el nombre de archivo en texto
+     * plano, sin link. Ahora tiene que ser un enlace real a la ruta
+     * autenticada, con el nombre ORIGINAL (`document_names`), no el ULID
+     * que queda en disco.
+     */
+    public function test_the_view_page_renders_a_real_download_link_with_the_original_document_name(): void
+    {
+        $attachment = FleetAttachment::create([
+            'id_code' => 'BKT-DOC-VIEW',
+            'status' => 'active',
+            'documents' => ['fleet-attachments/documents/01ULIDGENERATED.pdf'],
+            'document_names' => ['fleet-attachments/documents/01ULIDGENERATED.pdf' => 'manual-original.pdf'],
+        ]);
+
+        $expectedUrl = route('fleet-attachments.documents.download', [$attachment, 0]);
+
+        Livewire::actingAs($this->admin())
+            ->test(ViewFleetAttachment::class, ['record' => $attachment->getKey()])
+            ->assertSuccessful()
+            ->assertSee('manual-original.pdf')
+            ->assertDontSee('01ULIDGENERATED.pdf')
+            ->assertSee($expectedUrl, false);
+    }
 }
