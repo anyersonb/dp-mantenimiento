@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Security;
 
+use App\Filament\Resources\FleetAttachmentResource\Pages\CreateFleetAttachment;
 use App\Filament\Resources\LocationResource\Pages\CreateLocation;
 use App\Filament\Resources\MachineCategoryResource\Pages\CreateMachineCategory;
 use App\Filament\Resources\MachineResource\Pages\CreateMachine;
@@ -9,6 +10,7 @@ use App\Filament\Resources\MakeResource\Pages\CreateMake;
 use App\Filament\Resources\RoleResource\Pages\CreateRole;
 use App\Filament\Resources\UserResource\Pages\CreateUser;
 use App\Filament\Resources\WorkOrderResource\Pages\CreateWorkOrder;
+use App\Models\FleetAttachment;
 use App\Models\Location;
 use App\Models\Machine;
 use App\Models\MachineCategory;
@@ -68,6 +70,7 @@ class UniqueColumnSentinelTest extends TestCase
         'makes' => 'makes',
         'users' => 'users',
         'roles' => 'roles',
+        'fleet_attachments' => 'fleet_attachments',
     ];
 
     /**
@@ -276,6 +279,15 @@ class UniqueColumnSentinelTest extends TestCase
                     CreateRole::class,
                     'name',
                     ['name' => 'taller'],
+                ];
+
+            case 'fleet_attachments':
+                FleetAttachment::create(['id_code' => 'DUP-ATT-1', 'status' => 'active']);
+
+                return [
+                    CreateFleetAttachment::class,
+                    'id_code',
+                    ['id_code' => 'DUP-ATT-1', 'status' => 'active'],
                 ];
         }
 

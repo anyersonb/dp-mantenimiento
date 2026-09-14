@@ -120,4 +120,39 @@ return [
     // Machine number filter (client request 2026-08-05)
     'machine_number' => 'Machine number',
     'machine_number_placeholder' => 'e.g. EX010, or just EX',
+
+    // Attachments module — see spec-complementos-dp.md. Standalone record,
+    // no link to machines. Reuses this same file with an `attachment_*`
+    // prefix to keep the ES/EN parity that TranslationParitySentinelTest
+    // watches, and shares the generic keys above (model, serial,
+    // serial_type, year, location, description, status, needs_review,
+    // review_note, notes, spec_sheet, image, gallery, make) because those
+    // are the same fields as in Machines.
+    'attachments' => 'Attachments',
+    'attachment' => 'Attachment',
+    'attachment_status_section' => 'Status',
+    'attachment_technical' => 'Technical',
+    'attachment_documents' => 'Documents',
+    // Its own label, distinct from "ID" (fleet.id_code, the Machines one):
+    // this is the field the client explicitly asked for by name.
+    'attachment_id_code' => 'Attachment ID',
+    'attachment_name' => 'Name',
+    'attachment_type' => 'Type',
+    'attachment_type_bucket' => 'Bucket',
+    'attachment_type_hammer' => 'Hydraulic hammer',
+    'attachment_type_grapple' => 'Grapple',
+    'attachment_type_auger' => 'Auger',
+    'attachment_type_broom' => 'Broom',
+    'attachment_type_ripper' => 'Ripper',
+    'attachment_type_fork' => 'Fork',
+    'attachment_type_blade' => 'Blade',
+    'attachment_type_compactor' => 'Compactor',
+    'attachment_type_other' => 'Other',
+    'attachment_weight' => 'Weight',
+    'attachment_dimensions' => 'Dimensions',
+    'attachment_compatibility' => 'Compatibility',
+    'attachment_acquisition_date' => 'Acquisition date',
+    'attachment_condition_note' => 'Condition note',
+    'attachment_number' => 'Attachment number',
+    'attachment_number_placeholder' => 'e.g. BKT-01, or just BKT',
 ];

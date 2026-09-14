@@ -48,6 +48,12 @@ class RolesAndPermissionsSeeder extends Seeder
             'view_trash_machine_categories', 'restore_machine_categories', 'force_delete_machine_categories',
             'view_trash_makes', 'restore_makes', 'force_delete_makes',
             'view_trash_users', 'restore_users', 'force_delete_users',
+
+            // Módulo de Complementos (Attachments) — ver
+            // 2026_09_14_090100_add_fleet_attachment_permissions para el detalle
+            // de la decisión (mismo reparto que view_fleet/manage_machines/delete_machines).
+            'view_attachments', 'manage_attachments', 'delete_attachments',
+            'view_trash_attachments', 'restore_attachments', 'force_delete_attachments',
         ];
         foreach ($permissions as $p) {
             Permission::firstOrCreate(['name' => $p]);
@@ -60,23 +66,29 @@ class RolesAndPermissionsSeeder extends Seeder
                 'view_fleet', 'manage_machines', 'view_costs', 'create_work_order',
                 'view_reports', 'view_audit_log',
                 'access_panel', 'view_alerts',
+                'view_attachments', 'manage_attachments',
             ],
             'foreman' => [
                 'view_fleet', 'log_horometer', 'field_report', 'confirm_location',
+                'view_attachments',
             ],
             'operador_cisterna' => [
                 'view_fleet', 'log_horometer', 'log_fuel',
+                'view_attachments',
             ],
             'personal_mantenimiento' => [
                 'view_fleet', 'log_horometer', 'field_report',
+                'view_attachments',
             ],
             'taller' => [
                 'view_fleet', 'view_costs', 'execute_work_order', 'log_horometer',
                 'access_panel',
+                'view_attachments',
             ],
             'gerencia' => [
                 'view_fleet', 'view_costs', 'move_fleet', 'view_reports',
                 'access_panel',
+                'view_attachments',
             ],
         ];
 

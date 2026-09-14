@@ -93,6 +93,14 @@ return [
     'perm_restore_users' => 'Restore users',
     'perm_force_delete_users' => 'Permanently delete users',
 
+    // Attachments module
+    'perm_view_attachments' => 'View attachments',
+    'perm_manage_attachments' => 'Manage attachments',
+    'perm_delete_attachments' => 'Delete attachments',
+    'perm_view_trash_attachments' => 'View attachments trash',
+    'perm_restore_attachments' => 'Restore attachments',
+    'perm_force_delete_attachments' => 'Permanently delete attachments',
+
     // What each permission actually enables (client request 2026-08-24). Each
     // text describes what the permission REALLY gates in the code, not what its
     // name suggests.
@@ -140,6 +148,14 @@ return [
     'perm_desc_view_trash_users' => 'View the users trash.',
     'perm_desc_restore_users' => 'Restore a user from the trash (they can sign in again).',
     'perm_desc_force_delete_users' => 'Permanently delete a user that is already in the trash. This cannot be undone.',
+
+    // Attachments module: standalone record (buckets, hammers, etc.), no link to machines.
+    'perm_desc_view_attachments' => 'View the attachments list and each record. Read only, same reach as "View fleet".',
+    'perm_desc_manage_attachments' => 'Create and edit attachments. Deleting one stays with the administrator.',
+    'perm_desc_delete_attachments' => 'Send an attachment to the trash (soft delete). It is an independent record, with no work orders or history riding along with it.',
+    'perm_desc_view_trash_attachments' => 'View the attachments trash.',
+    'perm_desc_restore_attachments' => 'Restore an attachment from the trash.',
+    'perm_desc_force_delete_attachments' => 'Permanently delete an attachment that is already in the trash, including its photos and documents. This cannot be undone.',
 
     // What each system role is for (client request 2026-08-24). Roles she
     // creates from the panel carry the description she writes in the form;

@@ -93,6 +93,14 @@ return [
     'perm_restore_users' => 'Restaurar usuarios',
     'perm_force_delete_users' => 'Eliminar usuarios definitivamente',
 
+    // Módulo de Complementos (Attachments)
+    'perm_view_attachments' => 'Ver complementos',
+    'perm_manage_attachments' => 'Gestionar complementos',
+    'perm_delete_attachments' => 'Borrar complementos',
+    'perm_view_trash_attachments' => 'Ver papelera de complementos',
+    'perm_restore_attachments' => 'Restaurar complementos',
+    'perm_force_delete_attachments' => 'Eliminar complementos definitivamente',
+
     // Qué habilita cada permiso (pedido de la clienta 2026-08-24). Cada texto
     // describe lo que el permiso controla REALMENTE en el código, no lo que su
     // nombre sugiere.
@@ -140,6 +148,15 @@ return [
     'perm_desc_view_trash_users' => 'Ver la papelera de usuarios.',
     'perm_desc_restore_users' => 'Restaurar un usuario desde la papelera (vuelve a poder autenticarse).',
     'perm_desc_force_delete_users' => 'Eliminar definitivamente un usuario que ya está en la papelera. No se puede deshacer.',
+
+    // Módulo de Complementos (Attachments): registro autónomo (cucharones,
+    // martillos, etc.), sin vínculo con máquinas.
+    'perm_desc_view_attachments' => 'Ver el listado de complementos y la ficha de cada uno. Es solo lectura, mismo reparto que "Ver flota".',
+    'perm_desc_manage_attachments' => 'Crear y editar complementos. Borrar uno queda reservado al administrador.',
+    'perm_desc_delete_attachments' => 'Mandar un complemento a la papelera (borrado lógico). Es un registro independiente, sin órdenes de trabajo ni historial que se lleve con él.',
+    'perm_desc_view_trash_attachments' => 'Ver la papelera de complementos.',
+    'perm_desc_restore_attachments' => 'Restaurar un complemento desde la papelera.',
+    'perm_desc_force_delete_attachments' => 'Eliminar definitivamente un complemento que ya está en la papelera, incluidas sus fotos y documentos. No se puede deshacer.',
 
     // Para qué es cada rol del sistema (pedido de la clienta 2026-08-24). Los
     // roles que ella cree desde el panel llevan la descripción que escriba en

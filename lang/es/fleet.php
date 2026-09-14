@@ -120,4 +120,39 @@ return [
     // Filtro por número de máquina (pedido del cliente 2026-08-05)
     'machine_number' => 'N.º de máquina',
     'machine_number_placeholder' => 'Ej.: EX010, o solo EX',
+
+    // Módulo de Complementos (Attachments) — ver spec-complementos-dp.md.
+    // Registro autónomo, sin vínculo con máquinas. Reutiliza este mismo
+    // archivo con prefijo `attachment_*` para no romper la paridad ES/EN
+    // que vigila TranslationParitySentinelTest, y comparte las claves
+    // genéricas de arriba (model, serial, serial_type, year, location,
+    // description, status, needs_review, review_note, notes, spec_sheet,
+    // image, gallery, make) porque son los mismos campos que en Máquinas.
+    'attachments' => 'Complementos',
+    'attachment' => 'Complemento',
+    'attachment_status_section' => 'Estado',
+    'attachment_technical' => 'Técnico',
+    'attachment_documents' => 'Documentos',
+    // Etiqueta propia y distinta de "ID" (fleet.id_code, la de Máquinas):
+    // es el campo que el cliente pidió explícitamente por nombre.
+    'attachment_id_code' => 'ID del complemento',
+    'attachment_name' => 'Nombre',
+    'attachment_type' => 'Tipo',
+    'attachment_type_bucket' => 'Cucharón',
+    'attachment_type_hammer' => 'Martillo hidráulico',
+    'attachment_type_grapple' => 'Garra',
+    'attachment_type_auger' => 'Barrenadora',
+    'attachment_type_broom' => 'Escoba',
+    'attachment_type_ripper' => 'Escarificador',
+    'attachment_type_fork' => 'Horquilla',
+    'attachment_type_blade' => 'Cuchilla',
+    'attachment_type_compactor' => 'Compactador',
+    'attachment_type_other' => 'Otro',
+    'attachment_weight' => 'Peso',
+    'attachment_dimensions' => 'Dimensiones',
+    'attachment_compatibility' => 'Compatibilidad',
+    'attachment_acquisition_date' => 'Fecha de adquisición',
+    'attachment_condition_note' => 'Nota de condición',
+    'attachment_number' => 'N.º de complemento',
+    'attachment_number_placeholder' => 'Ej.: BKT-01, o solo BKT',
 ];
