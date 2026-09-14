@@ -6,6 +6,7 @@ use App\Filament\Resources\FleetAttachmentResource\Pages\CreateFleetAttachment;
 use App\Models\FleetAttachment;
 use App\Models\User;
 use Database\Seeders\RolesAndPermissionsSeeder;
+use Filament\Forms\Components\Section;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
@@ -150,5 +151,76 @@ class FleetAttachmentUploadValidationTest extends TestCase
             ->assertHasFormErrors(['documents']);
 
         $this->assertDatabaseMissing('fleet_attachments', ['id_code' => 'DOC-PHT']);
+    }
+
+    /**
+     * Hallazgo de usabilidad (mismo lote de auditoría, post 01e6a24e):
+     * Filament v3 no auto-expande una `Section` colapsada cuando un campo
+     * de adentro falla la validación (verificado por código, sin ningún
+     * hook de error en Section.php ni en su blade view). Con "Imágenes" y
+     * "Documentos" colapsadas de entrada, un archivo rechazado dejaba su
+     * mensaje de error invisible hasta que el usuario abriera la sección a
+     * mano -- la misma trampa por la que el cliente se quejó en repuestos
+     * ("no puedo eliminarlo y no sé por qué"), ahora en el módulo pensado
+     * justamente para cargar fotos y documentos (el camino principal, no
+     * un caso raro). "Técnico" sí puede seguir colapsada: no tiene ninguna
+     * validación que pueda fallar en silencio ahí.
+     */
+    public function test_the_images_and_documents_sections_do_not_start_collapsed(): void
+    {
+        $form = Livewire::actingAs($this->admin())
+            ->test(CreateFleetAttachment::class)
+            ->instance()
+            ->getForm('form');
+
+        $sections = collect($form->getComponents())
+            ->filter(fn ($component) => $component instanceof Section)
+            ->keyBy(fn (Section $section) => $section->getHeading());
+
+        $this->assertFalse(
+            $sections[__('fleet.images')]->isCollapsed(),
+            'La sección "Imágenes" no debe nacer colapsada.'
+        );
+        $this->assertFalse(
+            $sections[__('fleet.attachment_documents')]->isCollapsed(),
+            'La sección "Documentos" no debe nacer colapsada: un archivo rechazado dejaría su error invisible.'
+        );
+        $this->assertTrue(
+            $sections[__('fleet.attachment_technical')]->isCollapsed(),
+            'La sección "Técnico" sí puede seguir colapsada: ahí no hay validación que pueda fallar.'
+        );
+    }
+
+    /**
+     * Complemento del test de arriba: no basta con que la sección no nazca
+     * colapsada -- el mensaje de error real tiene que llegar al HTML
+     * renderizado. Antes del fix, este mismo escenario (documento
+     * rechazado) ya hacía fallar la validación en el servidor
+     * (`assertHasFormErrors`), pero el texto quedaba dentro de una sección
+     * cerrada, invisible para el usuario sin un clic extra.
+     *
+     * `shell.php.pdf` (no `manual.pdf.php`, como en el test de rechazo de
+     * arriba) a propósito: bajo `runningUnitTests()` el MIME que valida
+     * `->acceptedFileTypes()` sale del NOMBRE del archivo, y con extensión
+     * FINAL ".pdf" ese chequeo pasa igual que uno legítimo -- así el único
+     * error que puede aparecer en el HTML es el de
+     * `RejectsDangerousUploadExtensions` (detecta "php" como segmento
+     * intermedio peligroso), que es el que este test necesita ver
+     * literalmente en el render, no cualquier error del campo.
+     */
+    public function test_a_rejected_document_shows_its_error_message_in_the_rendered_form(): void
+    {
+        Livewire::actingAs($this->admin())
+            ->test(CreateFleetAttachment::class)
+            ->fillForm([
+                'id_code' => 'DOC-VISIBLE-ERROR',
+                'status' => 'active',
+                'documents' => [UploadedFile::fake()->create('shell.php.pdf', 100, 'application/pdf')],
+            ])
+            ->call('create')
+            ->assertHasFormErrors(['documents'])
+            ->assertSee(__('wo.invalid_upload_extension'));
+
+        $this->assertDatabaseMissing('fleet_attachments', ['id_code' => 'DOC-VISIBLE-ERROR']);
     }
 }

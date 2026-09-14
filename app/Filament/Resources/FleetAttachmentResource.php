@@ -180,8 +180,22 @@ class FleetAttachmentResource extends Resource
                         ->label(__('fleet.spec_sheet'))->columnSpanFull()->rows(12),
                 ]),
 
+            /*
+             * SIN ->collapsed() a propósito (hallazgo de usabilidad,
+             * auditoría de seguridad post 01e6a24e): Filament v3 no
+             * auto-expande una Section colapsada cuando un componente
+             * adentro falla la validación (verificado en
+             * vendor/filament/forms/src/Components/Section.php y su blade
+             * view — no hay ningún hook de error ahí). Con la sección
+             * cerrada, un archivo rechazado deja su mensaje de error
+             * invisible hasta que el usuario la abre a mano -- la misma
+             * trampa que "no puedo eliminarlo y no sé por qué" que motivó
+             * esta ronda de auditoría, ahora en el módulo que se pidió
+             * justamente para cargar fotos y documentos (el camino
+             * principal, no un caso raro).
+             */
             Forms\Components\Section::make(__('fleet.images'))
-                ->columns(2)->collapsed()
+                ->columns(2)
                 ->schema([
                     Forms\Components\FileUpload::make('image')
                         ->label(__('fleet.image'))
@@ -223,9 +237,13 @@ class FleetAttachmentResource extends Resource
              * un ULID generado por Filament). El enlace real para abrir un
              * documento ya guardado sale del Placeholder de abajo, que
              * apunta a la ruta autenticada fleet-attachments.documents.download.
+             *
+             * SIN ->collapsed(): mismo motivo que la sección "Imágenes" de
+             * arriba -- un documento rechazado por
+             * RejectsDangerousUploadExtensions/acceptedFileTypes no puede
+             * dejar su error escondido dentro de una sección cerrada.
              */
             Forms\Components\Section::make(__('fleet.attachment_documents'))
-                ->collapsed()
                 ->schema([
                     Forms\Components\FileUpload::make('documents')
                         ->label(__('fleet.attachment_documents'))
