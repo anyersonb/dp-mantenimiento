@@ -224,16 +224,16 @@ class SensitiveUploadsAuthorizationTest extends TestCase
             ->get(route('fleet-attachments.documents.download', [$attachment, 0]));
 
         // Storage::disk('local')->response() devuelve un StreamedResponse:
-        // su contenido no queda en $response->getContent() (Symfony lo
-        // produce por callback), así que el contenido real se compara
-        // directo contra el disco, no contra el cuerpo HTTP -- igual que el
-        // resto de la suite (ver AttachmentsDoNotOverwriteEachOtherTest).
+        // $response->getContent() no sirve (Symfony la produce por
+        // callback, no la deja en un buffer), pero
+        // TestResponse::streamedContent() SÍ ejecuta ese callback y captura
+        // lo que de verdad se mandó por HTTP -- a diferencia de comparar
+        // contra Storage::disk('local')->get(...), que sería el disco
+        // contra sí mismo (no puede fallar y no prueba nada del cuerpo de
+        // la respuesta).
         $response->assertOk();
         $this->assertStringContainsString('manual-original.pdf', $response->headers->get('content-disposition'));
-        $this->assertSame(
-            'contenido privado del manual',
-            Storage::disk('local')->get('fleet-attachments/documents/01SECPROBE.pdf')
-        );
+        $this->assertSame('contenido privado del manual', $response->streamedContent());
     }
 
     /**
