@@ -105,7 +105,14 @@ class PartsRelationManager extends RelationManager
             ->headerActions([Tables\Actions\CreateAction::make()])
             ->actions([
                 Tables\Actions\EditAction::make(),
-                Tables\Actions\DeleteAction::make(),
+                // ->authorize(fn () => true): no se oculta el botón (defecto
+                // reportado por el cliente); canDelete() sigue siendo el
+                // único gate real, movido a ->disabled(), con el motivo en
+                // ->tooltip(). Ver el docblock de deletionBlockedReason().
+                Tables\Actions\DeleteAction::make()
+                    ->authorize(fn (): bool => true)
+                    ->disabled(fn (Model $record): bool => $this->isReadOnly() || ! $this->canDelete($record))
+                    ->tooltip(fn (Model $record): ?string => $this->deletionBlockedReason($record)),
             ])
             ->emptyStateHeading(__('wo.parts_empty_heading'))
             ->emptyStateDescription(__('wo.parts_empty_desc'));

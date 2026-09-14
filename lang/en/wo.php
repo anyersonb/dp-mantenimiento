@@ -74,4 +74,9 @@ return [
     'cannot_complete_no_hours_body' => 'Machine :machine has no hour meter on file and this work order has no hours at open. Completing it would reset the service cycle without recording at what hours the service was done. Enter the hours in the "Hours at open" field or log an hour meter reading for the machine, then try again.',
     'service_reset_note' => 'Service reset on completion of :code',
     'alert_detail_required' => 'The alert detail is required when the checklist result is "Alert".',
+
+    // Blocked deletion (attachments, checklist, parts): reason shown in the
+    // tooltip when the delete button is disabled.
+    'delete_blocked_no_permission' => 'You do not have permission to execute work orders.',
+    'delete_blocked_closed_order' => 'This work order is already closed: it cannot be deleted.',
 ];

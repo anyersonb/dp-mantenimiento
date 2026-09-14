@@ -241,9 +241,15 @@ class RelationManagerWritePermissionTest extends TestCase
                 'pageClass' => EditWorkOrder::class,
             ]);
 
+        // El botón NUNCA se oculta (hallazgo "parts used", 2026-09-14): un
+        // botón que desaparece sin explicación se vive como "está roto". Lo
+        // que cambia es si queda habilitado o deshabilitado con un motivo
+        // legible — ver DeletesOnlyWhileWorkOrderIsOpen::deletionBlockedReason().
+        $component->assertTableActionVisible('delete', $record);
+
         $shouldBeAbleToDelete
-            ? $component->assertTableActionVisible('delete', $record)
-            : $component->assertTableActionHidden('delete', $record);
+            ? $component->assertTableActionEnabled('delete', $record)
+            : $component->assertTableActionDisabled('delete', $record);
     }
 
     /**
@@ -261,7 +267,8 @@ class RelationManagerWritePermissionTest extends TestCase
                 'ownerRecord' => $workOrder,
                 'pageClass' => EditWorkOrder::class,
             ])
-            ->assertTableActionHidden('delete', $attachment)
+            ->assertTableActionVisible('delete', $attachment)
+            ->assertTableActionDisabled('delete', $attachment)
             ->assertSuccessful();
 
         $this->assertDatabaseHas('work_order_attachments', ['id' => $attachment->getKey()]);

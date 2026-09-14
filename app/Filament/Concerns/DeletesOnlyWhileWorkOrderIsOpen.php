@@ -48,4 +48,29 @@ trait DeletesOnlyWhileWorkOrderIsOpen
         // isOpen() vive en el modelo WorkOrder: única definición de "cerrada".
         return method_exists($owner, 'isOpen') ? $owner->isOpen() : false;
     }
+
+    /**
+     * Motivo legible de por qué el borrado está bloqueado para ESTE registro,
+     * o null si sí se puede borrar. `canDelete()` sigue siendo la única
+     * fuente de verdad del booleano (no se toca ni se duplica su chequeo);
+     * esto solo decide QUÉ mensaje mostrar cuando da false.
+     *
+     * Nace del reporte de cliente "en parts used quiero eliminar alguno y no
+     * puedo eliminarlo" (2026-09-14): la acción de borrar, al no estar
+     * autorizada, se OCULTABA sin explicación — el usuario no podía saber si
+     * era por su rol o porque la OT ya había cerrado. Ver el uso de este
+     * método junto a ->disabled()/->tooltip() en cada RelationManager: la
+     * acción ahora se ve siempre, pero deshabilitada con el motivo real
+     * cuando corresponde.
+     */
+    protected function deletionBlockedReason(Model $record): ?string
+    {
+        if ($this->canDelete($record)) {
+            return null;
+        }
+
+        return $this->workOrderIsOpen()
+            ? __('wo.delete_blocked_no_permission')
+            : __('wo.delete_blocked_closed_order');
+    }
 }

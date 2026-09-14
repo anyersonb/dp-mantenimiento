@@ -126,7 +126,14 @@ class AttachmentsRelationManager extends RelationManager
                     ->openUrlInNewTab(),
                 Tables\Actions\EditAction::make()
                     ->mutateFormDataUsing(fn (array $data) => static::withOriginalName($data)),
-                Tables\Actions\DeleteAction::make(),
+                // ->authorize(fn () => true): no se oculta el botón (defecto
+                // reportado por el cliente en "parts used", mismo trait); el
+                // gate real sigue siendo canDelete(), movido a ->disabled(),
+                // con el motivo en ->tooltip().
+                Tables\Actions\DeleteAction::make()
+                    ->authorize(fn (): bool => true)
+                    ->disabled(fn (Model $record): bool => $this->isReadOnly() || ! $this->canDelete($record))
+                    ->tooltip(fn (Model $record): ?string => $this->deletionBlockedReason($record)),
             ])
             ->emptyStateHeading(__('wo.attachments_empty_heading'))
             ->emptyStateDescription(__('wo.attachments_empty_desc'));

@@ -122,7 +122,14 @@ class ChecklistResultsRelationManager extends RelationManager
             ])
             ->actions([
                 Tables\Actions\EditAction::make(),
-                Tables\Actions\DeleteAction::make(),
+                // ->authorize(fn () => true): no se oculta el botón (defecto
+                // reportado por el cliente en "parts used", mismo trait); el
+                // gate real sigue siendo canDelete(), movido a ->disabled(),
+                // con el motivo en ->tooltip().
+                Tables\Actions\DeleteAction::make()
+                    ->authorize(fn (): bool => true)
+                    ->disabled(fn (Model $record): bool => $this->isReadOnly() || ! $this->canDelete($record))
+                    ->tooltip(fn (Model $record): ?string => $this->deletionBlockedReason($record)),
             ])
             ->emptyStateHeading(__('checklist.empty_heading'))
             ->emptyStateDescription(__('checklist.empty_desc'));

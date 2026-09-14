@@ -77,4 +77,9 @@ return [
     'cannot_complete_no_hours_body' => 'La máquina :machine no tiene horómetro cargado y esta OT no tiene horas al abrir. Cerrarla reiniciaría el ciclo de servicio sin registrar a qué horas se hizo. Cargá las horas en el campo "Horas al abrir" o registrá una lectura de horómetro para la máquina, y volvé a intentar.',
     'service_reset_note' => 'Servicio reiniciado al completar :code',
     'alert_detail_required' => 'El detalle de la alerta es obligatorio cuando el resultado del checklist es "Alerta".',
+
+    // Borrado bloqueado (adjuntos, checklist, repuestos): motivo mostrado en
+    // el tooltip cuando el botón de eliminar está deshabilitado.
+    'delete_blocked_no_permission' => 'No tienes permiso para ejecutar órdenes de trabajo.',
+    'delete_blocked_closed_order' => 'Esta orden de trabajo ya está cerrada: no se puede eliminar.',
 ];
