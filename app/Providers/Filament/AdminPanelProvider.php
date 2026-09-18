@@ -39,6 +39,11 @@ class AdminPanelProvider extends PanelProvider
             ])
             ->sidebarCollapsibleOnDesktop()
             ->maxContentWidth('full')
+            // Módulo de notificaciones (canal database, cero correo): la
+            // campanita lee de la misma tabla `notifications` que la bandeja
+            // de /field (ver App\Support\Notifications\NotificationRegistry).
+            ->databaseNotifications()
+            ->databaseNotificationsPolling('30s')
             ->renderHook(
                 PanelsRenderHook::AUTH_LOGIN_FORM_AFTER,
                 fn (): string => view('filament.auth.language-switcher')->render(),

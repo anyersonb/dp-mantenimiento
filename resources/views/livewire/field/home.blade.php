@@ -7,6 +7,16 @@
     {{-- Hallazgo A1 (Etapa 05): el menú se arma por PERMISO, no por nombre de
          rol, para que el editor de roles del panel gobierne también lo que
          se ve acá. --}}
+    {{-- Bandeja propia de /field: lee la misma tabla `notifications` que la
+         campanita de /admin. Visible para cualquiera autenticado acá: quién
+         recibe algo lo decide el registro de notificaciones, no esta pantalla. --}}
+    <a href="{{ route('field.notifications') }}" class="btn btn-outline" style="margin-bottom:.75rem; justify-content:space-between;">
+        <span>🔔 {{ __('field.home_go_notifications') }}</span>
+        @if ($unreadNotificationsCount > 0)
+            <span class="badge badge-danger">{{ $unreadNotificationsCount }}</span>
+        @endif
+    </a>
+
     @if ($user->can('log_fuel'))
         <a href="{{ route('field.fuel') }}" class="btn btn-primary" style="margin-bottom:.75rem;">
             ⛽ {{ __('field.home_go_fuel') }}

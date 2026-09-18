@@ -101,6 +101,15 @@
         }
 
         .error-msg { color:#b91c1c; font-size:.82rem; margin-top:.25rem; }
+
+        /* Estados de geolocalización y aviso de reporte guardado sin ubicación. */
+        .location-msg.is-error { color:#b45309; }
+        .location-msg button.link-retry {
+            background:none; border:none; padding:0; margin-left:.35rem;
+            color:#1d4ed8; font-weight:600; font-size:inherit; text-decoration:underline;
+        }
+        .warning-msg { color:#b45309; font-size:.82rem; margin-top:.5rem; }
+        .success-box.is-warning .check { color:#b45309; }
     </style>
 </head>
 <body>

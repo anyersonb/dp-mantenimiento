@@ -3,12 +3,14 @@
 namespace App\Providers;
 
 use App\Models\ChecklistResult;
+use App\Models\FieldReport;
 use App\Models\HorometerReading;
 use App\Models\Machine;
 use App\Models\Setting;
 use App\Models\WorkOrder;
 use App\Models\WorkOrderPart;
 use App\Observers\ChecklistResultObserver;
+use App\Observers\FieldReportObserver;
 use App\Observers\HorometerReadingObserver;
 use App\Observers\MachineObserver;
 use App\Observers\SettingObserver;
@@ -51,6 +53,13 @@ class AppServiceProvider extends ServiceProvider
         // Impuesto de repuestos (2026-09-01): invalida la caché de Setting::get()
         // en cuanto la tasa (u otro valor) se guarda o se borra.
         Setting::observe(SettingObserver::class);
+
+        // Módulo de notificaciones: un reporte de campo crítico (y, si la
+        // Configuración lo enciende, uno que "requiere atención") notifica a
+        // quien tenga view_field_reports. Ver App\Support\Notifications\
+        // NotificationRegistry para el registro y App\Observers\
+        // FieldReportObserver para la regla de negocio.
+        FieldReport::observe(FieldReportObserver::class);
 
         // PWA: manifest + theme-color + registro del service worker en el <head> del panel
         FilamentView::registerRenderHook(

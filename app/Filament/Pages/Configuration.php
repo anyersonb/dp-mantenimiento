@@ -3,6 +3,7 @@
 namespace App\Filament\Pages;
 
 use App\Models\Setting;
+use App\Observers\FieldReportObserver;
 use App\Services\TaxCalculator;
 use Filament\Forms;
 use Filament\Forms\Concerns\InteractsWithForms;
@@ -62,6 +63,7 @@ class Configuration extends Page implements HasForms
 
         $this->form->fill([
             'tax_rate' => TaxCalculator::rate(),
+            'notify_on_attention' => FieldReportObserver::notifiesOnAttention(),
         ]);
     }
 
@@ -83,6 +85,14 @@ class Configuration extends Page implements HasForms
                             ->step(0.01)
                             ->suffix('%'),
                     ]),
+
+                Forms\Components\Section::make(__('settings.notifications_section'))
+                    ->description(__('settings.notifications_section_help'))
+                    ->schema([
+                        Forms\Components\Toggle::make('notify_on_attention')
+                            ->label(__('settings.notify_on_attention'))
+                            ->helperText(__('settings.notify_on_attention_help')),
+                    ]),
             ]);
     }
 
@@ -103,6 +113,8 @@ class Configuration extends Page implements HasForms
         // ganar nada — el paso ya es 0.01 en el formulario. Hallazgo menor
         // de seguridad, 2026-09-01.
         Setting::set(TaxCalculator::SETTING_KEY, round((float) $state['tax_rate'], 2), TaxCalculator::SETTING_TYPE);
+
+        Setting::set(FieldReportObserver::NOTIFY_ON_ATTENTION_KEY, (bool) ($state['notify_on_attention'] ?? false), 'boolean');
 
         Notification::make()
             ->title(__('settings.saved'))

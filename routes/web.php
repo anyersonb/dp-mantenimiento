@@ -7,6 +7,7 @@ use App\Livewire\Field\ForemanBoard;
 use App\Livewire\Field\FuelLog;
 use App\Livewire\Field\Home as FieldHome;
 use App\Livewire\Field\Login as FieldLogin;
+use App\Livewire\Field\NotificationsInbox;
 use App\Livewire\Field\ReportForm;
 use App\Models\FleetAttachment;
 use App\Models\Machine;
@@ -59,18 +60,18 @@ Route::middleware(SetLocale::class)->group(function () {
         ]);
     })->name('quotes.public');
 
-/*
-|--------------------------------------------------------------------------
-| Public quote file (hallazgo A5)
-|--------------------------------------------------------------------------
-| El archivo vive en disk('local') (privado) desde el fix de A5. Esta ruta
-| es la unica forma de descargarlo sin cuenta: valida el share_token (no un
-| path recibido del cliente -> sin riesgo de path traversal) y respeta el
-| vencimiento. Antes, quotes/show.blade.php enlazaba directo a la URL
-| publica de Storage::disk('public'), asi que una cotizacion vencida se
-| seguia descargando igual; con esta ruta, si expiro no se entrega el
-| archivo (404).
-*/
+    /*
+    |--------------------------------------------------------------------------
+    | Public quote file (hallazgo A5)
+    |--------------------------------------------------------------------------
+    | El archivo vive en disk('local') (privado) desde el fix de A5. Esta ruta
+    | es la unica forma de descargarlo sin cuenta: valida el share_token (no un
+    | path recibido del cliente -> sin riesgo de path traversal) y respeta el
+    | vencimiento. Antes, quotes/show.blade.php enlazaba directo a la URL
+    | publica de Storage::disk('public'), asi que una cotizacion vencida se
+    | seguia descargando igual; con esta ruta, si expiro no se entrega el
+    | archivo (404).
+    */
     Route::get('/quotes/{token}/archivo', function (string $token) {
         abort_unless(config('features.quotes'), 404);
 
@@ -291,6 +292,7 @@ Route::middleware(['auth', SetLocale::class])->prefix('field')->name('field.')->
     Route::get('/fuel', FuelLog::class)->name('fuel');
     Route::get('/report', ReportForm::class)->name('report');
     Route::get('/foreman', ForemanBoard::class)->name('foreman');
+    Route::get('/notifications', NotificationsInbox::class)->name('notifications');
 });
 
 /*

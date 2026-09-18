@@ -37,7 +37,7 @@ use Spatie\Permission\PermissionRegistrar;
 class RolePermissionBaselineSeeder extends Seeder
 {
     /**
-     * Matriz esperada de 41 permisos × 7 roles. Debe coincidir siempre con
+     * Matriz esperada de 50 permisos × 7 roles. Debe coincidir siempre con
      * `RolesAndPermissionsSeeder::run()` — si esa matriz cambia, actualizar
      * también acá.
      *
@@ -60,11 +60,12 @@ class RolePermissionBaselineSeeder extends Seeder
             'view_trash_users', 'restore_users', 'force_delete_users',
             'view_attachments', 'manage_attachments', 'delete_attachments',
             'view_trash_attachments', 'restore_attachments', 'force_delete_attachments',
+            'view_field_reports', 'view_field_report_location',
         ],
         'responsable_mantenimiento' => [
             'view_fleet', 'manage_machines', 'view_costs', 'create_work_order',
             'view_reports', 'view_audit_log',
-            'access_panel', 'view_alerts',
+            'access_panel', 'view_alerts', 'view_field_reports', 'view_field_report_location',
             'view_attachments', 'manage_attachments',
         ],
         'foreman' => [
@@ -81,12 +82,12 @@ class RolePermissionBaselineSeeder extends Seeder
         ],
         'taller' => [
             'view_fleet', 'view_costs', 'execute_work_order', 'log_horometer',
-            'access_panel',
+            'access_panel', 'view_field_reports',
             'view_attachments',
         ],
         'gerencia' => [
             'view_fleet', 'view_costs', 'move_fleet', 'view_reports',
-            'access_panel',
+            'access_panel', 'view_field_reports',
             'view_attachments',
         ],
     ];

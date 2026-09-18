@@ -5,6 +5,7 @@ namespace Database\Seeders;
 use App\Models\User;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
 
@@ -37,6 +38,8 @@ class RolesAndPermissionsSeeder extends Seeder
             'delete_work_orders',    // borrar una orden de trabajo
             'receive_alerts_digest', // recibir por correo el resumen diario de alertas
             'manage_settings',       // editar la Configuración del panel (tasa de impuesto, etc.)
+            'view_field_reports',    // ver la pantalla de Reportes de campo (y recibir sus avisos)
+            'view_field_report_location', // ver la ubicación GPS dentro de un reporte de campo
 
             // Papelera (Lote A) — ver papelera / restaurar / eliminar definitivamente,
             // granulares por recurso. Solo administrador (ver migración
@@ -65,7 +68,7 @@ class RolesAndPermissionsSeeder extends Seeder
             'responsable_mantenimiento' => [
                 'view_fleet', 'manage_machines', 'view_costs', 'create_work_order',
                 'view_reports', 'view_audit_log',
-                'access_panel', 'view_alerts',
+                'access_panel', 'view_alerts', 'view_field_reports', 'view_field_report_location',
                 'view_attachments', 'manage_attachments',
             ],
             'foreman' => [
@@ -82,12 +85,12 @@ class RolesAndPermissionsSeeder extends Seeder
             ],
             'taller' => [
                 'view_fleet', 'view_costs', 'execute_work_order', 'log_horometer',
-                'access_panel',
+                'access_panel', 'view_field_reports',
                 'view_attachments',
             ],
             'gerencia' => [
                 'view_fleet', 'view_costs', 'move_fleet', 'view_reports',
-                'access_panel',
+                'access_panel', 'view_field_reports',
                 'view_attachments',
             ],
         ];
@@ -98,7 +101,53 @@ class RolesAndPermissionsSeeder extends Seeder
         }
 
         // -------- Usuarios demo (uno por rol) --------
-        // NOTA: credenciales de demostración — cambiar antes de producción.
+        //
+        // Hallazgo 4 (auditoría 2026-09-18) — CRÍTICO: este seeder corrió en
+        // producción con la clave literal 'password' cableada, y el
+        // repositorio fue público con este archivo adentro. Dos redes
+        // permanentes, no un parche puntual:
+        //
+        //   1. Fail-closed por entorno, por LISTA BLANCA: esta sección SOLO
+        //      siembra usuarios si app()->environment(['local', 'testing']).
+        //      Corrección (re-auditoría 2026-09-18): la versión anterior era
+        //      lista NEGRA (`app()->isProduction()`) — cortaba producción,
+        //      pero cualquier otro valor de APP_ENV (staging, homolog, un
+        //      typo) caía del lado de "sí siembra". Con lista blanca, un
+        //      APP_ENV mal puesto en el servidor deja de ser POR SÍ SOLO
+        //      suficiente para sembrar cuentas: haría falta además que
+        //      alguien declare DEMO_SEED_PASSWORD ahí (el segundo guard, más
+        //      abajo, se mantiene intacto). Roles y permisos SÍ siguen
+        //      corriendo arriba en cualquier entorno — eso no tiene el mismo
+        //      riesgo.
+        //   2. Sin clave cableada: sale de accounts.demo_seed_password, que a
+        //      su vez sale de DEMO_SEED_PASSWORD (.env). Esa config solo trae
+        //      un default ('password') cuando app()->environment('testing'),
+        //      así la suite no cambia de comportamiento; en local hay que
+        //      declarar la variable a propósito.
+        if (! app()->environment(['local', 'testing'])) {
+            $environment = app()->environment();
+
+            $this->command?->warn(
+                "RolesAndPermissionsSeeder: entorno '{$environment}' fuera de la lista blanca "
+                .'(local, testing) — no se sembraron usuarios demo (incidente admin@dp.local, '
+                .'ver auditoría 2026-09-18). Roles y permisos sí se aplicaron.'
+            );
+            Log::warning("roles_seeder.demo_users_skipped_outside_whitelist (environment={$environment})");
+
+            return;
+        }
+
+        $demoPassword = config('accounts.demo_seed_password');
+
+        if (blank($demoPassword)) {
+            $this->command?->warn(
+                'RolesAndPermissionsSeeder: falta configurar DEMO_SEED_PASSWORD — '
+                .'no se sembraron usuarios demo.'
+            );
+
+            return;
+        }
+
         $users = [
             ['name' => 'Administrador DP',        'email' => 'admin@dp.local',        'role' => 'administrador',            'locale' => 'en'],
             ['name' => 'Responsable Mtto',        'email' => 'responsable@dp.local',  'role' => 'responsable_mantenimiento', 'locale' => 'en'],
@@ -114,7 +163,7 @@ class RolesAndPermissionsSeeder extends Seeder
                 ['email' => $u['email']],
                 [
                     'name' => $u['name'],
-                    'password' => Hash::make('password'),
+                    'password' => Hash::make($demoPassword),
                     'locale' => $u['locale'],
                     'active' => true,
                 ]

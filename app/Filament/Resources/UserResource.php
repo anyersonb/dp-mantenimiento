@@ -10,6 +10,7 @@ use App\Support\AdministrationGuard;
 use App\Support\LocalizedText;
 use App\Support\ReadablePassword;
 use App\Support\RoleCatalog;
+use Filament\Facades\Filament;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Notifications\Notification;
@@ -351,11 +352,33 @@ class UserResource extends Resource
                             ->event('password_generated')
                             ->log(LocalizedText::of('mgmt.user_password_generated_log', ['user' => $record->name])->encode());
 
+                        /*
+                         * Hallazgo 2026-09-17: un administrador generó la clave
+                         * de un usuario sin `access_panel`, probó en /admin y
+                         * Filament respondió "credenciales incorrectas" —el
+                         * MISMO mensaje que usa para clave equivocada (ver
+                         * vendor/filament/filament/src/Pages/Auth/Login.php).
+                         * La clave era correcta; la puerta era otra. El aviso
+                         * ahora dice explícitamente por dónde entra esta
+                         * persona, con el mismo criterio que usa el login de
+                         * campo (App\Livewire\Field\Login::targetUrl()):
+                         * canAccessPanel(), no el nombre del rol.
+                         */
+                        $entraPorElPanel = $record->canAccessPanel(Filament::getDefaultPanel());
+
                         Notification::make()
                             ->success()
                             ->persistent()
                             ->title(__('users.generate_password_done', ['name' => $record->name]))
-                            ->body(__('users.generate_password_body', ['password' => $nueva]))
+                            ->body(__(
+                                $entraPorElPanel
+                                    ? 'users.generate_password_body_panel'
+                                    : 'users.generate_password_body_field',
+                                [
+                                    'password' => $nueva,
+                                    'url' => $entraPorElPanel ? url('/admin') : url('/field/login'),
+                                ]
+                            ))
                             ->send();
                     }),
                 Tables\Actions\DeleteAction::make()

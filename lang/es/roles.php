@@ -69,6 +69,8 @@ return [
     'perm_delete_work_orders' => 'Borrar órdenes de trabajo',
     'perm_receive_alerts_digest' => 'Recibir el aviso de alertas',
     'perm_manage_settings' => 'Gestionar configuración',
+    'perm_view_field_reports' => 'Ver reportes de campo',
+    'perm_view_field_report_location' => 'Ver ubicación en reportes de campo',
 
     // Papelera (Lote A): ver/restaurar/eliminar definitivamente, por recurso.
     'perm_view_trash_machines' => 'Ver papelera de máquinas',
@@ -125,6 +127,8 @@ return [
     'perm_desc_delete_work_orders' => 'Mandar una orden de trabajo a la papelera (borrado lógico), junto con todo lo que tenga cargado.',
     'perm_desc_receive_alerts_digest' => 'Recibir por correo el resumen diario de alertas de servicio. No abre ninguna pantalla: solo decide a quién le llega ese correo.',
     'perm_desc_manage_settings' => 'Editar la Configuración del panel (hoy, la tasa de impuesto de repuestos). Es un permiso nuevo del administrador, sin relación con ninguno de los otros.',
+    'perm_desc_view_field_reports' => 'Ver la pantalla de Reportes de campo (lo que envía el personal desde el celular) y recibir el aviso cuando llega uno crítico.',
+    'perm_desc_view_field_report_location' => 'Ver la ubicación GPS exacta dentro de un reporte de campo (coordenadas y enlace al mapa) y quién la reportó. Sin este permiso el reporte se ve completo —máquina, estado, notas, horómetro, reportero— pero sin esa sección: es la posición física del operario, no un dato de mantenimiento.',
 
     // Papelera (Lote A)
     'perm_desc_view_trash_machines' => 'Ver la papelera de máquinas (las que se mandaron a la papelera, no las que están inactivas).',

@@ -5,6 +5,7 @@ namespace Tests\Feature\Field;
 use App\Livewire\Field\ForemanBoard;
 use App\Livewire\Field\FuelLog;
 use App\Livewire\Field\ReportForm;
+use App\Models\FieldReport;
 use App\Models\HorometerReading;
 use App\Models\Location;
 use App\Models\Machine;
@@ -107,6 +108,72 @@ class FieldScreensTest extends TestCase
             ->assertHasErrors(['machineId', 'gallons', 'hours']);
     }
 
+    /**
+     * Mismo tratamiento que ReportForm (cabo suelto del lote anterior): antes
+     * de enviar sin ubicación el operario tiene que verlo escrito, no
+     * adivinarlo. El aviso desaparece apenas la ubicación queda capturada.
+     */
+    public function test_fuel_log_warns_before_sending_without_a_captured_location(): void
+    {
+        $operator = User::where('email', 'combustible@dp.local')->firstOrFail();
+        $machine = $this->machine();
+
+        Livewire::actingAs($operator)
+            ->test(FuelLog::class)
+            ->call('selectMachine', $machine->id)
+            ->assertSee(__('field.fuel_will_submit_without_location'))
+            ->call('setLocation', 26.1, -80.1)
+            ->assertDontSee(__('field.fuel_will_submit_without_location'));
+    }
+
+    /**
+     * La ubicación NO es obligatoria (obra sin señal), pero el aviso de éxito
+     * tiene que distinguir un registro completo de uno guardado sin ella, en
+     * vez de mostrar el mismo "✅ Registrado ✓" para los dos casos.
+     */
+    public function test_fuel_log_shows_a_clean_success_notice_when_location_was_captured(): void
+    {
+        $operator = User::where('email', 'combustible@dp.local')->firstOrFail();
+        $machine = $this->machine();
+
+        Livewire::actingAs($operator)
+            ->test(FuelLog::class)
+            ->call('selectMachine', $machine->id)
+            ->set('gallons', '20')
+            ->set('hours', '120')
+            ->call('setLocation', 26.123456, -80.123456)
+            ->call('save')
+            ->assertSet('submitted', true)
+            ->assertSet('submittedWithoutLocation', false)
+            ->assertSee(__('field.fuel_success'))
+            ->assertDontSee(__('field.fuel_success_no_location'));
+
+        $reading = HorometerReading::where('machine_id', $machine->id)->firstOrFail();
+        $this->assertNotNull($reading->latitude);
+    }
+
+    public function test_fuel_log_warns_instead_of_celebrating_when_no_location_was_captured(): void
+    {
+        $operator = User::where('email', 'combustible@dp.local')->firstOrFail();
+        $machine = $this->machine();
+
+        Livewire::actingAs($operator)
+            ->test(FuelLog::class)
+            ->call('selectMachine', $machine->id)
+            ->set('gallons', '20')
+            ->set('hours', '120')
+            // Nunca llega a setLocation(): sin señal, permiso denegado, o el
+            // operario envía antes de que la geolocalización responda.
+            ->call('save')
+            ->assertSet('submitted', true)
+            ->assertSet('submittedWithoutLocation', true)
+            ->assertSee(__('field.fuel_success_no_location'))
+            ->assertDontSee(__('field.fuel_success'));
+
+        $reading = HorometerReading::where('machine_id', $machine->id)->firstOrFail();
+        $this->assertNull($reading->latitude);
+    }
+
     public function test_report_form_creates_a_field_report_and_optional_reading(): void
     {
         $worker = User::where('email', 'campo@dp.local')->firstOrFail();
@@ -132,6 +199,73 @@ class FieldScreensTest extends TestCase
             'source' => 'maintenance',
             'hours' => 160,
         ]);
+    }
+
+    /**
+     * Antes de enviar sin ubicación el operario tiene que verlo escrito, no
+     * adivinarlo. El aviso desaparece apenas la ubicación queda capturada.
+     */
+    public function test_report_form_warns_before_sending_without_a_captured_location(): void
+    {
+        $worker = User::where('email', 'campo@dp.local')->firstOrFail();
+        $machine = $this->machine();
+
+        Livewire::actingAs($worker)
+            ->test(ReportForm::class)
+            ->call('selectMachine', $machine->id)
+            ->assertSee(__('field.report_will_submit_without_location'))
+            ->call('setLocation', 26.1, -80.1)
+            ->assertDontSee(__('field.report_will_submit_without_location'));
+    }
+
+    /**
+     * DEFECTO 3: un reporte guardado sin coordenadas mostraba el mismo
+     * "✅ Reporte enviado ✓" que uno completo. La decisión del negocio es que
+     * la ubicación NO es obligatoria (un operario sin señal debe poder
+     * reportar igual), pero el aviso de éxito tiene que distinguir los dos
+     * casos en vez de fingir que salió todo perfecto.
+     */
+    public function test_report_form_shows_a_clean_success_notice_when_location_was_captured(): void
+    {
+        $worker = User::where('email', 'campo@dp.local')->firstOrFail();
+        $machine = $this->machine();
+
+        Livewire::actingAs($worker)
+            ->test(ReportForm::class)
+            ->call('selectMachine', $machine->id)
+            ->set('condition', 'ok')
+            ->call('setLocation', 26.123456, -80.123456)
+            ->call('save')
+            ->assertSet('submitted', true)
+            ->assertSet('submittedWithoutLocation', false)
+            ->assertSee(__('field.report_success'))
+            ->assertDontSee(__('field.report_success_no_location'));
+
+        $report = FieldReport::where('machine_id', $machine->id)->firstOrFail();
+        $this->assertNotNull($report->latitude);
+        $this->assertNotNull($report->longitude);
+    }
+
+    public function test_report_form_warns_instead_of_celebrating_when_no_location_was_captured(): void
+    {
+        $worker = User::where('email', 'campo@dp.local')->firstOrFail();
+        $machine = $this->machine();
+
+        Livewire::actingAs($worker)
+            ->test(ReportForm::class)
+            ->call('selectMachine', $machine->id)
+            ->set('condition', 'attention')
+            // Nunca llega a setLocation(): navegador sin GPS, permiso denegado,
+            // o el operario envía antes de que la geolocalización responda.
+            ->call('save')
+            ->assertSet('submitted', true)
+            ->assertSet('submittedWithoutLocation', true)
+            ->assertSee(__('field.report_success_no_location'))
+            ->assertDontSee(__('field.report_success'));
+
+        $report = FieldReport::where('machine_id', $machine->id)->firstOrFail();
+        $this->assertNull($report->latitude);
+        $this->assertNull($report->longitude);
     }
 
     /**

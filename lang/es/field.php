@@ -7,6 +7,7 @@ return [
     'login_password' => 'Contraseña',
     'login_submit' => 'Entrar',
     'login_error' => 'Correo o contraseña incorrectos.',
+    'login_throttled' => 'Demasiados intentos. Espera :seconds segundos antes de volver a intentar.',
 
     // Nav
     'nav_home' => 'Inicio',
@@ -20,7 +21,14 @@ return [
     'home_go_report' => 'Reporte de campo',
     'home_go_foreman' => 'Mi obra',
     'home_go_admin' => 'Ir al panel administrativo',
+    'home_go_notifications' => 'Notificaciones',
     'home_no_access' => 'Aún no tienes una pantalla asignada. Contacta a tu supervisor.',
+
+    // Notificaciones (bandeja de /field; misma tabla que la campanita del panel)
+    'notifications_title' => 'Notificaciones',
+    'notifications_empty' => 'No tienes notificaciones.',
+    'notifications_mark_read' => 'Marcar como leída',
+    'notifications_mark_all_read' => 'Marcar todas como leídas',
 
     // Selector de máquina (compartido)
     'machine_search_label' => 'Máquina',
@@ -33,6 +41,10 @@ return [
     // Geolocalización
     'geolocation_capturing' => 'Obteniendo tu ubicación…',
     'geolocation_ok' => 'Ubicación capturada',
+    'geolocation_error_denied' => 'No autorizaste el acceso a tu ubicación. Actívalo en los permisos del navegador para que se capture.',
+    'geolocation_error_unavailable' => 'No se pudo obtener tu ubicación. Puede ser la señal en este lugar: intenta de nuevo.',
+    'geolocation_error_unsupported' => 'Este dispositivo no puede obtener tu ubicación. Igual puedes enviar el reporte, pero quedará sin ubicación.',
+    'geolocation_retry' => 'Reintentar',
 
     // Combustible
     'fuel_title' => 'Registrar combustible',
@@ -43,6 +55,8 @@ return [
     'fuel_submit' => 'Guardar',
     'fuel_success' => 'Registrado ✓',
     'fuel_success_detail' => 'El registro de combustible se guardó correctamente.',
+    'fuel_success_no_location' => 'Registrado, pero sin ubicación',
+    'fuel_will_submit_without_location' => 'Aún no se capturó tu ubicación: si envías ahora, el registro quedará guardado sin ella.',
     'fuel_new' => 'Registrar otro',
 
     // Reporte de campo
@@ -55,6 +69,8 @@ return [
     'report_notes' => 'Notas',
     'report_submit' => 'Enviar reporte',
     'report_success' => 'Reporte enviado ✓',
+    'report_success_no_location' => 'Reporte enviado, pero sin ubicación',
+    'report_will_submit_without_location' => 'Aún no se capturó tu ubicación: si envías ahora, el reporte quedará guardado sin ella.',
     'report_new' => 'Enviar otro',
 
     // Foreman

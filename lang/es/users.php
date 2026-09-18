@@ -43,7 +43,8 @@ return [
     'generate_password_confirm' => 'La clave que esta persona tiene puesta no se puede leer: el sistema la guarda cifrada y nadie, ni el administrador, puede recuperarla. Lo que sí se puede es darle una nueva ahora mismo. Al continuar, la clave anterior deja de funcionar y la nueva aparece en pantalla para dictársela.',
     'generate_password_submit' => 'Generar y mostrar la clave',
     'generate_password_done' => 'Clave nueva de :name',
-    'generate_password_body' => 'La clave nueva es: :password — anotala o pasásela ahora, porque este aviso no vuelve a mostrarla. Si se pierde, generá otra.',
+    'generate_password_body_panel' => 'La clave nueva es: :password — anotala o pasásela ahora, porque este aviso no vuelve a mostrarla. Si se pierde, generá otra. Esta persona entra por el panel de administración: :url',
+    'generate_password_body_field' => 'La clave nueva es: :password — anotala o pasásela ahora, porque este aviso no vuelve a mostrarla. Si se pierde, generá otra. Esta persona NO entra por el panel de administración: entra por la app de campo, en :url',
 
     // Etiquetas amigables de roles (Spatie)
     'role_administrador' => 'Administrador',

@@ -2,10 +2,11 @@
 
 namespace App\Livewire\Field;
 
+use App\Livewire\Field\Concerns\RejectsIncoherentReadings;
 use App\Models\HorometerReading;
 use App\Models\Machine;
 use Illuminate\Support\Facades\Auth;
-use App\Livewire\Field\Concerns\RejectsIncoherentReadings;
+use Illuminate\Validation\Rule;
 use Livewire\Component;
 
 class FuelLog extends Component
@@ -32,7 +33,21 @@ class FuelLog extends Component
 
     public bool $locationCaptured = false;
 
+    /**
+     * null = todavía obteniendo o ya capturada; si no, 'denied' | 'unavailable' | 'unsupported'.
+     * Ver resources/views/livewire/field/partials/geolocation-script.blade.php.
+     */
+    public ?string $locationError = null;
+
     public bool $submitted = false;
+
+    /**
+     * Si el registro que se acaba de guardar quedó sin coordenadas. Mismo
+     * tratamiento que ReportForm::$submittedWithoutLocation: un registro sin
+     * ubicación mostraba el mismo "✅ Registrado ✓" que uno completo, y nadie
+     * se enteraba nunca de que faltaba la coordenada.
+     */
+    public bool $submittedWithoutLocation = false;
 
     public function mount(): void
     {
@@ -81,12 +96,41 @@ class FuelLog extends Component
         $this->latitude = is_numeric($lat) ? (float) $lat : null;
         $this->longitude = is_numeric($lng) ? (float) $lng : null;
         $this->locationCaptured = true;
+        $this->locationError = null;
+    }
+
+    /**
+     * Llamado por el JS del parcial compartido cuando getCurrentPosition
+     * falla o el navegador no soporta geolocalización. $reason llega en
+     * lenguaje de máquina (denied/unavailable/unsupported); la vista lo
+     * traduce a lenguaje llano, nunca "POSITION_UNAVAILABLE".
+     */
+    public function setLocationError(string $reason): void
+    {
+        $this->locationError = in_array($reason, ['denied', 'unavailable', 'unsupported'], true)
+            ? $reason
+            : 'unavailable';
+        $this->locationCaptured = false;
+    }
+
+    /**
+     * El botón "Reintentar" vuelve la pantalla a "obteniendo" y avisa al JS
+     * del parcial para que llame getCurrentPosition() de nuevo.
+     */
+    public function retryLocation(): void
+    {
+        $this->locationError = null;
+        $this->locationCaptured = false;
+        $this->dispatch('geolocation-retry');
     }
 
     protected function rules(): array
     {
         return [
-            'machineId' => ['required', 'integer', 'exists:machines,id'],
+            // Mismo patrón que ReportForm (hallazgo 5, auditoría 2026-09-18):
+            // sin el scope de SoftDeletes se podía registrar combustible
+            // contra una máquina en la papelera.
+            'machineId' => ['required', 'integer', Rule::exists('machines', 'id')->whereNull('deleted_at')],
             'gallons' => ['required', 'numeric', 'min:0.01'],
             'hours' => ['required', 'numeric', 'min:0'],
             'note' => ['nullable', 'string', 'max:255'],
@@ -113,6 +157,8 @@ class FuelLog extends Component
             'longitude' => $this->longitude,
         ]);
 
+        $this->submittedWithoutLocation = $this->latitude === null || $this->longitude === null;
+
         $this->submitted = true;
     }
 
@@ -120,10 +166,9 @@ class FuelLog extends Component
     {
         $this->reset([
             'machineId', 'machineLabel', 'gallons', 'hours', 'note',
-            'submitted', 'search', 'machineResults',
+            'submitted', 'submittedWithoutLocation', 'search', 'machineResults',
         ]);
     }
-
 
     public function render()
     {

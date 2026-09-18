@@ -69,6 +69,8 @@ return [
     'perm_delete_work_orders' => 'Delete work orders',
     'perm_receive_alerts_digest' => 'Receive the alerts email',
     'perm_manage_settings' => 'Manage settings',
+    'perm_view_field_reports' => 'View field reports',
+    'perm_view_field_report_location' => 'View location in field reports',
 
     // Trash (Batch A): view/restore/permanently delete, per resource.
     'perm_view_trash_machines' => 'View machines trash',
@@ -125,6 +127,8 @@ return [
     'perm_desc_delete_work_orders' => 'Send a work order to the trash (soft delete), along with everything entered on it.',
     'perm_desc_receive_alerts_digest' => 'Receive the daily service-alert summary by email. It opens no screen: it only decides who gets that email.',
     'perm_desc_manage_settings' => 'Edit the panel Settings (today, the parts tax rate). A new administrator permission, unrelated to any of the others.',
+    'perm_desc_view_field_reports' => 'View the Field reports screen (what staff send from their phone) and get notified when a critical one comes in.',
+    'perm_desc_view_field_report_location' => 'See the exact GPS location inside a field report (coordinates and map link) and who reported it. Without this permission the report still shows in full — machine, condition, notes, hour meter, reporter — just without that section: it is the operator\'s physical position, not a maintenance data point.',
 
     // Trash (Batch A)
     'perm_desc_view_trash_machines' => 'View the machines trash (the ones sent to trash, not the ones marked inactive).',

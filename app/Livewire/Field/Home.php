@@ -15,6 +15,7 @@ class Home extends Component
         return view('livewire.field.home', [
             'user' => $user,
             'canAccessAdmin' => $user->canAccessPanel(Filament::getDefaultPanel()),
+            'unreadNotificationsCount' => $user->unreadNotifications()->count(),
         ])->layout('components.layouts.field', ['title' => __('field.home_title')]);
     }
 }

@@ -20,13 +20,16 @@ use Spatie\Permission\PermissionRegistrar;
  * caprichoso: era la consecuencia. Se quita moviendo esos cinco chequeos a
  * permisos, que es lo que la propia pantalla de Roles ya sabe editar.
  *
- * Los cinco:
+ * Los seis (el sexto, `view_field_reports`, se sumó después: mismo mecanismo,
+ * no un incidente nuevo):
  *
  *   - `access_panel`        quién entra al panel de escritorio (User::canAccessPanel)
  *   - `view_alerts`         quién ve la pantalla de Alertas y recibe sus avisos
  *   - `delete_machines`     quién borra una máquina (se lleva su historial)
  *   - `delete_work_orders`  quién borra una orden de trabajo
  *   - `receive_alerts_digest` a quien le llega por correo el resumen diario de alertas
+ *   - `view_field_reports`  quién ve la pantalla de Reportes de campo y recibe sus avisos
+ *   - `view_field_report_location` quién ve la ubicación GPS dentro de un reporte de campo
  *
  * ---
  *
@@ -64,6 +67,12 @@ class AccessControl
         'delete_machines' => ['administrador'],
         'delete_work_orders' => ['administrador'],
         'receive_alerts_digest' => ['administrador'],
+        'view_field_reports' => ['administrador', 'responsable_mantenimiento', 'taller', 'gerencia'],
+        // Hallazgo 2 (auditoría 2026-09-18): la posición GPS del operario es
+        // seguimiento de personal, no mantenimiento de flota. Reparto MÁS
+        // ANGOSTO que view_field_reports a propósito: taller y gerencia ven el
+        // reporte completo pero no la ubicación.
+        'view_field_report_location' => ['administrador', 'responsable_mantenimiento'],
     ];
 
     /**
@@ -109,7 +118,7 @@ class AccessControl
     /**
      * ¿La red legado esta activa?
      *
-     * Solo cuando NO existe NINGUNO de los cinco permisos, que es la firma
+     * Solo cuando NO existe NINGUNO de los permisos de la lista, que es la firma
      * exacta de la unica situacion para la que la red existe: los archivos
      * ya subieron por FTP y la migracion todavia no corrio.
      *
@@ -118,7 +127,7 @@ class AccessControl
      * faltara UN permiso, el nombre de rol volvia a valer por si solo, asi
      * que un rol vacio llamado `administrador` --creado despues de borrar el
      * original, que ahora se puede borrar-- concedia acceso. Exigiendo que
-     * falten los cinco, ningun estado de datos alcanzable desde el panel
+     * falten todos, ningun estado de datos alcanzable desde el panel
      * puede reactivar la resolucion por nombre: los permisos no se pueden
      * borrar desde ninguna pantalla (no hay recurso de permisos, y el
      * CheckboxList de roles solo sincroniza el pivote).
@@ -140,7 +149,7 @@ class AccessControl
     /**
      * ¿Este usuario puede hacer esto?
      *
-     * Es el único punto por el que deberían pasar los cinco permisos de
+     * Es el único punto por el que deberían pasar los permisos de
      * arriba: concentra la red de la ventana de despliegue en un solo lugar en
      * vez de repetir el `if` en cada Resource.
      */

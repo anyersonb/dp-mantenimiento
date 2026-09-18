@@ -1,9 +1,11 @@
 <div>
     @if ($submitted)
-        <div class="field-card success-box">
-            <div class="check">✅</div>
-            <h2>{{ __('field.fuel_success') }}</h2>
-            <p class="muted">{{ __('field.fuel_success_detail') }}</p>
+        <div class="field-card success-box {{ $submittedWithoutLocation ? 'is-warning' : '' }}">
+            <div class="check">{{ $submittedWithoutLocation ? '⚠️' : '✅' }}</div>
+            <h2>{{ $submittedWithoutLocation ? __('field.fuel_success_no_location') : __('field.fuel_success') }}</h2>
+            @unless ($submittedWithoutLocation)
+                <p class="muted">{{ __('field.fuel_success_detail') }}</p>
+            @endunless
             <button type="button" class="btn btn-primary" wire:click="startNew">
                 {{ __('field.fuel_new') }}
             </button>
@@ -41,9 +43,20 @@
             <label for="note">{{ __('field.fuel_note') }}</label>
             <textarea id="note" rows="2" wire:model="note" placeholder="{{ __('field.fuel_note_placeholder') }}"></textarea>
 
-            <p class="muted" style="margin-top:.75rem;">
-                📍 {{ $locationCaptured ? __('field.geolocation_ok') : __('field.geolocation_capturing') }}
+            <p class="muted location-msg {{ $locationError ? 'is-error' : '' }}" style="margin-top:.75rem;">
+                @if ($locationError)
+                    ⚠️ {{ __('field.geolocation_error_'.$locationError) }}
+                    <button type="button" class="link-retry" wire:click="retryLocation">{{ __('field.geolocation_retry') }}</button>
+                @elseif ($locationCaptured)
+                    📍 {{ __('field.geolocation_ok') }}
+                @else
+                    📍 {{ __('field.geolocation_capturing') }}
+                @endif
             </p>
+
+            @unless ($locationCaptured)
+                <p class="warning-msg">⚠️ {{ __('field.fuel_will_submit_without_location') }}</p>
+            @endunless
 
             <button type="submit" class="btn btn-primary" style="margin-top:1rem;">
                 {{ __('field.fuel_submit') }}
@@ -51,14 +64,5 @@
         </form>
     @endif
 
-    <script>
-        document.addEventListener('livewire:init', () => {
-            if (!navigator.geolocation) return;
-            navigator.geolocation.getCurrentPosition(
-                (pos) => { @this.call('setLocation', pos.coords.latitude, pos.coords.longitude); },
-                () => {},
-                { enableHighAccuracy: false, timeout: 8000 }
-            );
-        });
-    </script>
+    @include('livewire.field.partials.geolocation-script')
 </div>

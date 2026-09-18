@@ -3,6 +3,7 @@
 namespace Tests\Feature\Management;
 
 use App\Filament\Resources\UserResource\Pages\ListUsers;
+use App\Models\ActivityLog;
 use App\Models\User;
 use App\Support\ReadablePassword;
 use Database\Seeders\RolesAndPermissionsSeeder;
@@ -98,7 +99,7 @@ class UserPasswordResetTest extends TestCase
         $mostrada = $this->passwordShownOnScreen();
         $this->assertNotNull($mostrada);
 
-        $asiento = \App\Models\ActivityLog::query()->latest('id')->firstOrFail();
+        $asiento = ActivityLog::query()->latest('id')->firstOrFail();
 
         $this->assertSame('password_generated', $asiento->event);
         $this->assertSame($this->admin()->id, $asiento->causer_id);
@@ -125,6 +126,51 @@ class UserPasswordResetTest extends TestCase
             ->test(ListUsers::class)
             ->assertTableActionHidden('generate_password', $admin)
             ->assertTableActionVisible('generate_password', $otro);
+    }
+
+    /**
+     * Hallazgo 2026-09-17: un administrador generó la clave de un usuario sin
+     * `access_panel`, probó en /admin y recibió "credenciales incorrectas"
+     * —el MISMO mensaje que da Filament para clave equivocada— porque ese
+     * rol entra por la app de campo, no por el panel. La clave estaba bien;
+     * la puerta era otra. El aviso ahora debe decir explícitamente por dónde
+     * entra la persona, usando el mismo criterio que el login de campo
+     * (canAccessPanel()), no el nombre del rol.
+     */
+    public function test_the_notice_points_to_the_admin_panel_when_the_person_can_access_it(): void
+    {
+        $objetivo = User::where('email', 'responsable@dp.local')->firstOrFail();
+
+        Livewire::actingAs($this->admin())
+            ->test(ListUsers::class)
+            ->callTableAction('generate_password', $objetivo);
+
+        $aviso = json_encode(session('filament.notifications', []), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+
+        $this->assertStringContainsString(
+            url('/admin'),
+            (string) $aviso,
+            'El aviso no menciona el panel de administración para alguien que sí entra por ahí.',
+        );
+        $this->assertStringNotContainsString(url('/field/login'), (string) $aviso);
+    }
+
+    public function test_the_notice_points_to_the_field_app_when_the_person_cannot_access_the_panel(): void
+    {
+        $objetivo = User::where('email', 'foreman@dp.local')->firstOrFail();
+
+        Livewire::actingAs($this->admin())
+            ->test(ListUsers::class)
+            ->callTableAction('generate_password', $objetivo);
+
+        $aviso = json_encode(session('filament.notifications', []), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+
+        $this->assertStringContainsString(
+            url('/field/login'),
+            (string) $aviso,
+            'El aviso no menciona la app de campo para alguien sin acceso al panel: seguiría probando en /admin sin resultado.',
+        );
+        $this->assertStringNotContainsString(url('/admin'), (string) $aviso);
     }
 
     public function test_the_generated_password_can_be_dictated_out_loud_without_ambiguity(): void
