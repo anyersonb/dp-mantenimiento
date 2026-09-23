@@ -28,6 +28,8 @@ return [
     'detail_no_notes' => 'No notes',
     'detail_location' => 'Location',
     'detail_map_link' => 'View on map',
+    // Read-only section (2026-09-22): work orders opened from this report.
+    'detail_work_orders' => 'Associated work orders',
 
     'empty_heading' => 'No field reports',
     'empty_desc' => 'Reports sent by field staff from the field app will show up here.',

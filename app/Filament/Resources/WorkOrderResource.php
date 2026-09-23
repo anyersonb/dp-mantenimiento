@@ -5,6 +5,7 @@ namespace App\Filament\Resources;
 use App\Filament\Concerns\HasPapeleraActions;
 use App\Filament\Resources\WorkOrderResource\Pages;
 use App\Filament\Resources\WorkOrderResource\RelationManagers;
+use App\Models\FieldReport;
 use App\Models\WorkOrder;
 use App\Services\WorkOrderCompletionService;
 use App\Support\AccessControl;
@@ -17,6 +18,7 @@ use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Validation\Rules\Exists;
 
 class WorkOrderResource extends Resource
 {
@@ -111,6 +113,20 @@ class WorkOrderResource extends Resource
         return __('fleet.group_operations');
     }
 
+    /**
+     * Etiqueta del selector de reporte de campo: fecha + condición + quién lo
+     * hizo, para que se pueda elegir entre varios reportes de la misma
+     * máquina sin adivinar cuál es cuál.
+     */
+    protected static function fieldReportOptionLabel(FieldReport $report): string
+    {
+        $date = $report->created_at?->format('Y-m-d') ?? '—';
+        $condition = __('field_reports.condition_'.$report->condition);
+        $reporter = $report->reporter?->name ?? __('field_reports.unknown_reporter');
+
+        return "{$date} — {$condition} — {$reporter}";
+    }
+
     public static function form(Form $form): Form
     {
         return $form->schema([
@@ -123,12 +139,64 @@ class WorkOrderResource extends Resource
                     ->required()->maxLength(50)
                     ->unique(ignoreRecord: true),
                 Forms\Components\Select::make('machine_id')->label(__('fleet.machines'))
-                    ->relationship('machine', 'id_code')->searchable()->preload()->required(),
+                    ->relationship('machine', 'id_code')->searchable()->preload()->required()
+                    // Pedido del cliente (2026-09-22): el selector de reporte de
+                    // campo solo ofrece los reportes de ESTA máquina. Si la
+                    // máquina cambia, el reporte elegido deja de pertenecerle,
+                    // así que se limpia acá mismo (ver field_report_id abajo).
+                    ->live()
+                    ->afterStateUpdated(fn (Forms\Set $set) => $set('field_report_id', null)),
                 Forms\Components\Select::make('type')->label(__('wo.type'))->options([
                     'inspection' => __('wo.inspection'), 'preventive' => __('wo.preventive'), 'corrective' => __('wo.corrective'),
                 ])->default('preventive')->required(),
+                // Pedido del cliente (2026-09-22): el número de orden no es
+                // mantenimiento por horómetro, es reparación correctiva o
+                // upgrade. Se suman esas dos opciones a las cuatro que ya
+                // existían; en una OT nueva creada a mano el default es
+                // "repair". ->in() valida en el servidor que el valor
+                // enviado sea una de las seis opciones — ver el docblock de
+                // WorkOrder::serviceTierOptions() sobre por qué esto NO se
+                // repite como restricción en el Observer.
                 Forms\Components\Select::make('service_tier')->label(__('wo.service_tier'))
-                    ->options([500 => '500 h', 1000 => '1000 h', 2000 => '2000 h', 4000 => '4000 h']),
+                    ->options(WorkOrder::serviceTierOptions())
+                    ->default(WorkOrder::SERVICE_TIER_DEFAULT)
+                    ->in(array_keys(WorkOrder::serviceTierOptions())),
+                // Pedido del cliente (2026-09-22): la OT puede quedar asociada a
+                // un reporte de campo, nunca de forma obligatoria. El desplegable
+                // solo ofrece los reportes DE LA MÁQUINA elegida arriba, del más
+                // reciente al más viejo, y se vacía si la máquina cambia.
+                //
+                // Gate por permiso: hoy los únicos roles que llegan a esta página
+                // (create_work_order o execute_work_order) tienen TODOS
+                // view_field_reports (ver RolesAndPermissionsSeeder::MATRIX), así
+                // que no hay ningún caso real donde esto oculte el campo. Se deja
+                // igual como cinturón de seguridad: si el día de mañana la matriz
+                // de permisos se separa, quien no pueda ver reportes de campo no
+                // debe poder enumerarlos a través de este selector.
+                Forms\Components\Select::make('field_report_id')->label(__('wo.field_report'))
+                    ->helperText(__('wo.field_report_help'))
+                    ->visible(fn () => Auth::user()?->can('view_field_reports') ?? false)
+                    ->searchable()
+                    ->options(function (Forms\Get $get) {
+                        $machineId = $get('machine_id');
+
+                        if (blank($machineId)) {
+                            return [];
+                        }
+
+                        return FieldReport::query()
+                            ->where('machine_id', $machineId)
+                            ->with('reporter')
+                            ->orderByDesc('created_at')
+                            ->get()
+                            ->mapWithKeys(fn (FieldReport $report) => [
+                                $report->id => static::fieldReportOptionLabel($report),
+                            ])
+                            ->all();
+                    })
+                    ->exists('field_reports', 'id', modifyRuleUsing: function (Exists $rule, Forms\Get $get) {
+                        return $rule->where('machine_id', $get('machine_id'));
+                    }),
                 Forms\Components\Select::make('status')->label(__('fleet.status'))->options([
                     'open' => __('wo.open'), 'assigned' => __('wo.assigned'), 'in_progress' => __('wo.in_progress'),
                     'completed' => __('wo.completed'), 'cancelled' => __('wo.cancelled'),
@@ -183,6 +251,10 @@ class WorkOrderResource extends Resource
                 Tables\Columns\TextColumn::make('machine.id_code')->label(__('fleet.machines'))->badge()->searchable(),
                 Tables\Columns\TextColumn::make('type')->label(__('wo.type'))->badge()
                     ->formatStateUsing(fn ($state) => __('wo.'.$state)),
+                Tables\Columns\TextColumn::make('service_tier')->label(__('wo.service_tier'))
+                    ->formatStateUsing(fn (?string $state) => WorkOrder::serviceTierLabel($state))
+                    ->placeholder('—')
+                    ->toggleable(isToggledHiddenByDefault: true),
                 Tables\Columns\TextColumn::make('status')->label(__('fleet.status'))->badge()
                     ->formatStateUsing(fn ($state) => __('wo.'.$state))
                     ->color(fn ($state) => match ($state) {

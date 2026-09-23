@@ -9,6 +9,10 @@ return [
     'corrective' => 'Corrective',
     'inspection' => 'Inspection',
     'service_tier' => 'Service tier',
+    // The order number is not hourmeter preventive maintenance: it is a
+    // corrective repair or an upgrade (client request 2026-09-22).
+    'service_tier_repair' => 'Repair',
+    'service_tier_upgrade' => 'Upgrade',
     'open' => 'Open',
     'assigned' => 'Assigned',
     'in_progress' => 'In progress',
@@ -66,6 +70,8 @@ return [
     'complete' => 'Complete',
     'complete_confirm' => 'This closes the work order. If it is preventive, the machine\'s service cycle will reset and its open service alert will be resolved.',
     'assigned_to_help' => 'Only users who can execute work orders are listed.',
+    'field_report' => 'Associated field report',
+    'field_report_help' => 'Optional. Only reports for the machine selected above are listed, newest first.',
     'hours_at_open' => 'Hours at open',
     'hours_at_open_help' => 'Hour meter reading when the work order was opened. If left empty, the machine current hours are used. It is the only value that can close the service of a machine with no hour meter on file.',
     'cannot_complete_no_hours' => 'Cannot complete without service hours',

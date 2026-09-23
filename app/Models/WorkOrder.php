@@ -170,8 +170,66 @@ class WorkOrder extends Model
     public function getActivitylogOptions(): LogOptions
     {
         return LogOptions::defaults()
-            ->logOnly(['code', 'status', 'assigned_to', 'completed_by', 'parts_cost'])
+            ->logOnly(['code', 'status', 'assigned_to', 'completed_by', 'parts_cost', 'service_tier', 'field_report_id'])
             ->logOnlyDirty();
+    }
+
+    /**
+     * Pedido del cliente (2026-09-22): el número de orden no es mantenimiento
+     * por horómetro, es reparación correctiva o upgrade. Se suman estas dos
+     * opciones a las cuatro que ya existían (horas de intervalo).
+     *
+     * Únicos dos valores no numéricos de la columna: `service_tier` sigue
+     * siendo `string nullable` y sigue recibiendo horas libres desde
+     * `AlertResource` (una OT nacida de una alerta lleva
+     * `machine->service_interval_hours`, que es un número LIBRE — no está
+     * restringido a 500/1000/2000/4000, ver `MachineResource::form()`). Por
+     * eso la lista de abajo es la fuente de las OPCIONES DEL FORM MANUAL, no
+     * una restricción del dato en la base: validar contra ella en
+     * `WorkOrderObserver` rompería una OT real creada desde una alerta sobre
+     * una máquina con intervalo de servicio no estándar. El blindaje de
+     * "solo estos valores" vive en el `Select` del form (`->in()`), que es el
+     * único camino donde tiene sentido — el humano tecleando a mano.
+     */
+    public const SERVICE_TIER_REPAIR = 'repair';
+
+    public const SERVICE_TIER_UPGRADE = 'upgrade';
+
+    public const SERVICE_TIER_DEFAULT = self::SERVICE_TIER_REPAIR;
+
+    /**
+     * Única fuente de las opciones de `service_tier`, para que el form, la
+     * tabla, el reporte de costos (pantalla, PDF y Excel) y cualquier otro
+     * consumidor futuro muestren la misma etiqueta traducida. Antes de esto
+     * el reporte de costos formateaba "({{ tier }} h)" a ciegas, y con
+     * `service_tier = 'repair'` eso imprimía literalmente "(repair h)".
+     *
+     * @return array<string, string>
+     */
+    public static function serviceTierOptions(): array
+    {
+        return [
+            '500' => '500 h',
+            '1000' => '1000 h',
+            '2000' => '2000 h',
+            '4000' => '4000 h',
+            self::SERVICE_TIER_REPAIR => __('wo.service_tier_repair'),
+            self::SERVICE_TIER_UPGRADE => __('wo.service_tier_upgrade'),
+        ];
+    }
+
+    /**
+     * Etiqueta lista para mostrar. Un tier que no está en la lista de arriba
+     * (una OT vieja creada desde una alerta, con horas libres tipo "750") se
+     * muestra tal cual viene, sin inventarle un "h" que no pidió.
+     */
+    public static function serviceTierLabel(?string $tier): ?string
+    {
+        if ($tier === null || $tier === '') {
+            return null;
+        }
+
+        return self::serviceTierOptions()[$tier] ?? $tier;
     }
 
     /**
@@ -278,5 +336,15 @@ class WorkOrder extends Model
     public function attachments(): HasMany
     {
         return $this->hasMany(WorkOrderAttachment::class);
+    }
+
+    /**
+     * Reporte de campo del que nació esta OT, si nació de uno. Nunca
+     * obligatorio (pedido del cliente 2026-09-22): un preventivo por
+     * horómetro no tiene ningún reporte detrás.
+     */
+    public function fieldReport(): BelongsTo
+    {
+        return $this->belongsTo(FieldReport::class);
     }
 }

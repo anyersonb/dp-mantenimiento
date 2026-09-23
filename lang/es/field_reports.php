@@ -28,6 +28,8 @@ return [
     'detail_no_notes' => 'Sin notas',
     'detail_location' => 'Ubicación',
     'detail_map_link' => 'Ver en el mapa',
+    // Sección de solo lectura (2026-09-22): OT abiertas a partir de este reporte.
+    'detail_work_orders' => 'Órdenes de trabajo asociadas',
 
     'empty_heading' => 'No hay reportes de campo',
     'empty_desc' => 'Los reportes que envíe el personal desde la aplicación de campo van a aparecer acá.',

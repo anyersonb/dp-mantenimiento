@@ -9,6 +9,10 @@ return [
     'corrective' => 'Correctiva',
     'inspection' => 'Inspección',
     'service_tier' => 'Nivel de servicio',
+    // El número de orden no es mantenimiento preventivo por horómetro: es
+    // reparación correctiva o upgrade (pedido del cliente 2026-09-22).
+    'service_tier_repair' => 'Reparación',
+    'service_tier_upgrade' => 'Mejora / Upgrade',
     'open' => 'Abierta',
     'assigned' => 'Asignada',
     'in_progress' => 'En proceso',
@@ -69,6 +73,8 @@ return [
     'complete' => 'Completar',
     'complete_confirm' => 'Esto cierra la orden de trabajo. Si es preventiva, se reiniciará el ciclo de servicio de la máquina y se resolverá su alerta de servicio abierta.',
     'assigned_to_help' => 'Solo aparecen los usuarios que pueden ejecutar órdenes de trabajo.',
+    'field_report' => 'Reporte de campo asociado',
+    'field_report_help' => 'Opcional. Solo se listan los reportes de la máquina elegida arriba, del más reciente al más viejo.',
     'hours_at_open' => 'Horas al abrir',
     'hours_at_open_help' => 'Horas del horómetro al abrir la OT. Si se deja vacío se toman las horas actuales de la máquina. Es el único dato con el que se puede cerrar el servicio de una máquina sin horómetro cargado.',
     'cannot_complete_no_hours' => 'No se puede completar sin horas de servicio',

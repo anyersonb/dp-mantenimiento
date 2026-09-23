@@ -171,7 +171,11 @@
                 <div class="wo">
                     <div class="wo-title">
                         {{ $wo['code'] }} — {{ __('wo.'.$wo['type']) }}
-                        @if($wo['service_tier']) ({{ $wo['service_tier'] }} h) @endif
+                        {{-- Hallazgo 2026-09-22: esto imprimía "(repair h)" a ciegas.
+                             \App\Models\WorkOrder::serviceTierLabel() es la única fuente
+                             de la etiqueta (form, tabla, PDF y Excel la comparten) y ya
+                             trae el " h" adentro solo cuando el tier es numérico. --}}
+                        @if($tierLabel = \App\Models\WorkOrder::serviceTierLabel($wo['service_tier'])) ({{ $tierLabel }}) @endif
                         · {{ __('wo.'.$wo['status']) }}
                     </div>
                     <div class="wo-meta">

@@ -2,6 +2,7 @@
 
 namespace App\Observers;
 
+use App\Models\FieldReport;
 use App\Models\WorkOrder;
 use Illuminate\Support\Facades\Auth;
 
@@ -51,6 +52,8 @@ class WorkOrderObserver
      */
     public function saving(WorkOrder $workOrder): void
     {
+        $this->guardFieldReportBelongsToMachine($workOrder);
+
         if ($workOrder->status !== 'completed' || ! $workOrder->isDirty('status')) {
             return;
         }
@@ -74,6 +77,36 @@ class WorkOrderObserver
         // formulario permite dejar el campo vacío, así que el piso va acá.
         if ($workOrder->completed_at === null) {
             $workOrder->completed_at = now()->toDateString();
+        }
+    }
+
+    /**
+     * Blindaje de integridad para `field_report_id`, independiente del
+     * permiso o del formulario. El Select de `WorkOrderResource` ya rechaza
+     * un reporte que no es de la máquina elegida con una regla `exists(...)
+     * ->where('machine_id', ...)`, pero `WorkOrder` usa `$guarded = []`
+     * (igual que `Machine`, ver `MachineObserver`) así que esa regla NO
+     * alcanza a un `create()`/`update()` directo (tinker, un job, un payload
+     * manipulado). Acá es la única barrera que cubre TODOS los caminos.
+     *
+     * A diferencia de `MachineObserver::needs_review`, acá no hay "valor
+     * anterior correcto" al que volver: un `field_report_id` que no
+     * pertenece a la máquina es un dato roto sin importar de dónde vino, así
+     * que se limpia a null en vez de revertirse.
+     */
+    private function guardFieldReportBelongsToMachine(WorkOrder $workOrder): void
+    {
+        if ($workOrder->field_report_id === null) {
+            return;
+        }
+
+        $belongs = FieldReport::query()
+            ->whereKey($workOrder->field_report_id)
+            ->where('machine_id', $workOrder->machine_id)
+            ->exists();
+
+        if (! $belongs) {
+            $workOrder->field_report_id = null;
         }
     }
 }

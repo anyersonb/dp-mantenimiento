@@ -250,6 +250,32 @@ class FieldReportResource extends Resource
                                     ->color('primary')
                                     ->visible(fn (FieldReport $record) => $record->latitude !== null && $record->longitude !== null),
                             ]),
+                        // Pedido del cliente (2026-09-22): OT abiertas a partir de
+                        // este reporte. Solo lectura a propósito —FieldReportResource
+                        // entero lo es (ver el docblock de la clase)—, sin ningún link
+                        // de edición: no hace falta abrir escritura en un recurso de
+                        // solo lectura para que sea útil saber qué OT salió de acá.
+                        // Sin gate propio: quien llega a esta pantalla ya tiene
+                        // view_field_reports, y hoy los cuatro roles que lo tienen
+                        // (administrador, responsable_mantenimiento, taller,
+                        // gerencia) tienen TAMBIÉN view_fleet — ver
+                        // RolesAndPermissionsSeeder::MATRIX.
+                        InfolistComponents\Section::make(__('field_reports.detail_work_orders'))
+                            ->visible(fn (FieldReport $record) => $record->workOrders()->exists())
+                            ->schema([
+                                InfolistComponents\RepeatableEntry::make('workOrders')
+                                    ->hiddenLabel()
+                                    ->columns(2)
+                                    ->schema([
+                                        InfolistComponents\TextEntry::make('code')->hiddenLabel(),
+                                        InfolistComponents\TextEntry::make('status')->hiddenLabel()->badge()
+                                            ->formatStateUsing(fn (?string $state) => $state !== null ? __('wo.'.$state) : '—')
+                                            ->color(fn (?string $state) => match ($state) {
+                                                'completed' => 'success', 'cancelled' => 'gray', 'in_progress' => 'info',
+                                                'assigned' => 'warning', default => 'primary',
+                                            }),
+                                    ]),
+                            ]),
                     ]),
             ])
             ->bulkActions([])
