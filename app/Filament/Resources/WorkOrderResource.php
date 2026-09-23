@@ -18,6 +18,7 @@ use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rules\Exists;
 
 class WorkOrderResource extends Resource
@@ -114,17 +115,47 @@ class WorkOrderResource extends Resource
     }
 
     /**
-     * Etiqueta del selector de reporte de campo: fecha + condición + quién lo
-     * hizo, para que se pueda elegir entre varios reportes de la misma
-     * máquina sin adivinar cuál es cuál.
+     * Etiqueta del selector de reporte de campo: fecha CON hora + condición +
+     * horómetro + extracto de la nota, para que se pueda elegir entre varios
+     * reportes de la misma máquina sin adivinar cuál es cuál.
+     *
+     * Hallazgo de producción (2026-09-22, máquina EX010): la etiqueta solo
+     * llevaba la fecha sin hora, así que dos reportes reales del MISMO día,
+     * la MISMA condición y el MISMO reportero (ids 6 y 7) se veían como una
+     * sola opción duplicada en el Select. La hora, el horómetro y la nota
+     * son los datos que de verdad distinguen dos reportes del mismo día; el
+     * reportero SALE de la etiqueta a propósito: en el caso real que disparó
+     * el bug era idéntico en los dos reportes, así que no aportaba nada a la
+     * desambiguación y solo sumaba largo a una lista que ya puede tener
+     * varias entradas por máquina.
+     *
+     * Huso horario: NO se aplica ninguna conversión propia acá. `created_at`
+     * se usa tal cual lo entrega Eloquent (mismo `config('app.timezone')`
+     * que usa Filament para cualquier columna ->dateTime()/->date() sin
+     * ->timezone() explícito) — ver
+     * ServiceTierAndFieldReportTest::test_the_field_report_option_label_matches_the_same_calendar_day_the_rest_of_the_panel_shows().
+     * El desfase de huso (E6-16) es sistémico y queda fuera de este fix.
      */
     protected static function fieldReportOptionLabel(FieldReport $report): string
     {
-        $date = $report->created_at?->format('Y-m-d') ?? '—';
+        $date = $report->created_at?->format('Y-m-d H:i') ?? '—';
         $condition = __('field_reports.condition_'.$report->condition);
-        $reporter = $report->reporter?->name ?? __('field_reports.unknown_reporter');
 
-        return "{$date} — {$condition} — {$reporter}";
+        $parts = [$date, $condition];
+
+        if ($report->hours !== null) {
+            $parts[] = number_format($report->hours).' h';
+        }
+
+        // La nota es texto libre de usuario. Filament renderiza las opciones
+        // del Select como texto plano (no se usa ->allowHtml()), así que
+        // cualquier `<script>` u otro marcado llega escapado al HTML — no
+        // hace falta sanear acá, solo recortar para que quepa en la lista.
+        if (filled($report->notes)) {
+            $parts[] = Str::limit($report->notes, 40, '…');
+        }
+
+        return implode(' — ', $parts);
     }
 
     public static function form(Form $form): Form
@@ -225,9 +256,11 @@ class WorkOrderResource extends Resource
                             return [];
                         }
 
+                        // Ya no se carga 'reporter': fieldReportOptionLabel()
+                        // dejó de mostrarlo (ver su docblock), así que el
+                        // eager load solo sumaba una consulta sin uso.
                         return FieldReport::query()
                             ->where('machine_id', $machineId)
-                            ->with('reporter')
                             ->orderByDesc('created_at')
                             ->get()
                             ->mapWithKeys(fn (FieldReport $report) => [

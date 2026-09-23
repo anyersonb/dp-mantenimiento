@@ -16,9 +16,11 @@ use App\Services\Reports\CostReportBuilder;
 use App\Services\Reports\CostReportFilters;
 use App\Services\WorkOrderCompletionService;
 use Database\Seeders\RolesAndPermissionsSeeder;
+use Filament\Tables\Table;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 use Livewire\Livewire;
 use Spatie\Permission\Models\Role;
 use Tests\TestCase;
@@ -583,7 +585,7 @@ class ServiceTierAndFieldReportTest extends TestCase
             // formato ISO que la UI no usa.
             $fechaEsperadaEnTabla = $report->created_at->clone()
                 ->setTimezone(config('app.timezone'))
-                ->translatedFormat(\Filament\Tables\Table::$defaultDateTimeDisplayFormat);
+                ->translatedFormat(Table::$defaultDateTimeDisplayFormat);
 
             Livewire::actingAs($admin)
                 ->test(ListFieldReports::class)
@@ -688,5 +690,100 @@ class ServiceTierAndFieldReportTest extends TestCase
         $this->workOrder($machine, ['field_report_id' => $report->id]);
 
         Log::shouldNotHaveReceived('warning');
+    }
+
+    /* ------------------------------------------------------------------ *
+     * Fix de producción (2026-09-22, máquina EX010): dos reportes reales de
+     * la misma máquina, el mismo día, la misma condición y el mismo
+     * reportero se veían como una sola opción duplicada en el Select
+     * porque `fieldReportOptionLabel()` solo llevaba la fecha sin hora. Se
+     * agregan hora, horómetro y extracto de la nota; el reportero sale de
+     * la etiqueta (ver el docblock del método).
+     * ------------------------------------------------------------------ */
+
+    public function test_two_field_reports_of_the_same_day_get_distinct_option_labels(): void
+    {
+        $machine = $this->machine();
+
+        // Reproduce el caso real de producción: mismo día calendario, misma
+        // condición y mismo reportero (el helper `fieldReport()` siempre usa
+        // el mismo `campo@dp.local`) — solo cambian hora, horómetro y nota.
+        $reportWithHours = $this->fieldReport($machine, [
+            'created_at' => Carbon::parse('2026-09-22 16:20:25'),
+            'hours' => 9920,
+            'notes' => null,
+        ]);
+        $reportWithNote = $this->fieldReport($machine, [
+            'created_at' => Carbon::parse('2026-09-22 16:59:37'),
+            'hours' => null,
+            'notes' => 'THE AC DOESNT WORK',
+        ]);
+
+        $admin = User::where('email', 'admin@dp.local')->firstOrFail();
+
+        $opciones = Livewire::actingAs($admin)
+            ->test(CreateWorkOrder::class)
+            ->fillForm(['machine_id' => $machine->id])
+            ->instance()
+            ->form->getFlatFields()['field_report_id']->getOptions();
+
+        $this->assertNotSame($opciones[$reportWithHours->id], $opciones[$reportWithNote->id]);
+        $this->assertSame('2026-09-22 16:20 — Needs attention — 9,920 h', $opciones[$reportWithHours->id]);
+        $this->assertSame('2026-09-22 16:59 — Needs attention — THE AC DOESNT WORK', $opciones[$reportWithNote->id]);
+    }
+
+    public function test_a_long_note_is_truncated_with_an_ellipsis_in_the_option_label(): void
+    {
+        $machine = $this->machine();
+        $longNote = 'This note is definitely longer than forty characters and keeps going on';
+        $report = $this->fieldReport($machine, ['notes' => $longNote]);
+
+        $admin = User::where('email', 'admin@dp.local')->firstOrFail();
+
+        $opciones = Livewire::actingAs($admin)
+            ->test(CreateWorkOrder::class)
+            ->fillForm(['machine_id' => $machine->id])
+            ->instance()
+            ->form->getFlatFields()['field_report_id']->getOptions();
+
+        $etiqueta = $opciones[$report->id];
+
+        $this->assertStringContainsString(Str::limit($longNote, 40, '…'), $etiqueta);
+        $this->assertStringNotContainsString($longNote, $etiqueta);
+        $this->assertStringEndsWith('…', $etiqueta);
+    }
+
+    /**
+     * La nota es texto libre de usuario. El Select no usa ->allowHtml(), asi
+     * que Filament la trata como texto: en la vista buscable
+     * (vendor/filament/forms/.../select.blade.php) las opciones viajan
+     * dentro de `options: @js($getOptionsForJs())`, y Blade's `@js()`
+     * (`Illuminate\Support\Js::from()`) fuerza `JSON_HEX_TAG`: un tag de
+     * script en la nota nunca llega tal cual al HTML, sino unicode-escapado
+     * dentro del JSON embebido. Se confirma la salida real (que el
+     * contenido SI llega, pero jamas como '<'/'>' literal), no solo que
+     * el metodo no use `allowHtml()`.
+     */
+    public function test_a_script_tag_in_the_note_is_not_rendered_unescaped_in_the_select_options(): void
+    {
+        $machine = $this->machine();
+        $report = $this->fieldReport($machine, ['notes' => '<script>alert(1)</script>']);
+
+        $admin = User::where('email', 'admin@dp.local')->firstOrFail();
+
+        $html = Livewire::actingAs($admin)
+            ->test(CreateWorkOrder::class)
+            ->fillForm(['machine_id' => $machine->id])
+            ->html();
+
+        // Nunca llega el tag crudo, capaz de ejecutar en el DOM.
+        $this->assertStringNotContainsString('<script>alert(1)</script>', $html);
+        $this->assertStringNotContainsString('<script>', $html);
+
+        // El contenido SI llega (no se pierde ni se filtra en silencio),
+        // pero como secuencia unicode-escapada ('u003C'/'u003E'), nunca
+        // como el caracter '<' o '>' literal.
+        $this->assertStringContainsString('u003Cscript', $html);
+        $this->assertStringContainsString('alert(1)', $html);
     }
 }
