@@ -220,8 +220,18 @@ class WorkOrder extends Model
 
     /**
      * Etiqueta lista para mostrar. Un tier que no está en la lista de arriba
-     * (una OT vieja creada desde una alerta, con horas libres tipo "750") se
-     * muestra tal cual viene, sin inventarle un "h" que no pidió.
+     * (una OT vieja creada desde una alerta, con horas libres tipo "750" —
+     * cualquier entero que un administrador haya puesto en
+     * `machines.service_interval_hours`, que es un TextInput numérico libre,
+     * no acotado a las 4 horas fijas) se muestra con el mismo formato "N h"
+     * que las opciones fijas, en vez del número pelado. Un tier no numérico
+     * y fuera de la lista (no debería poder llegar por el form, ver
+     * WorkOrderObserver) se muestra tal cual, sin inventarle una unidad.
+     *
+     * Vuelta 2 (2026-09-22): antes esto devolvía el número pelado
+     * (`"750"`, sin " h"), que es justo la inconsistencia que el pedido
+     * original vino a corregir para 'repair'/'upgrade' — la tabla y el
+     * reporte de costos mostraban "750" mientras "500" mostraba "500 h".
      */
     public static function serviceTierLabel(?string $tier): ?string
     {
@@ -229,7 +239,13 @@ class WorkOrder extends Model
             return null;
         }
 
-        return self::serviceTierOptions()[$tier] ?? $tier;
+        $options = self::serviceTierOptions();
+
+        if (array_key_exists($tier, $options)) {
+            return $options[$tier];
+        }
+
+        return is_numeric($tier) ? "{$tier} h" : $tier;
     }
 
     /**

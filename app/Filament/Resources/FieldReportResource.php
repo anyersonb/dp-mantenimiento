@@ -255,13 +255,17 @@ class FieldReportResource extends Resource
                         // entero lo es (ver el docblock de la clase)—, sin ningún link
                         // de edición: no hace falta abrir escritura en un recurso de
                         // solo lectura para que sea útil saber qué OT salió de acá.
-                        // Sin gate propio: quien llega a esta pantalla ya tiene
-                        // view_field_reports, y hoy los cuatro roles que lo tienen
-                        // (administrador, responsable_mantenimiento, taller,
-                        // gerencia) tienen TAMBIÉN view_fleet — ver
-                        // RolesAndPermissionsSeeder::MATRIX.
+                        //
+                        // Vuelta 2 (2026-09-22), hallazgo Bajo 2 de seguridad: la
+                        // matriz de HOY hace que quien tiene view_field_reports
+                        // tenga también view_fleet, pero los roles se editan desde
+                        // el panel — un rol a medida con el primero y sin el
+                        // segundo vería código y estado de OT ajenos a su alcance.
+                        // Gate propio explícito en vez de confiar en la
+                        // coincidencia de la matriz actual.
                         InfolistComponents\Section::make(__('field_reports.detail_work_orders'))
-                            ->visible(fn (FieldReport $record) => $record->workOrders()->exists())
+                            ->visible(fn (FieldReport $record) => AccessControl::allows(Auth::user(), 'view_fleet')
+                                && $record->workOrders()->exists())
                             ->schema([
                                 InfolistComponents\RepeatableEntry::make('workOrders')
                                     ->hiddenLabel()

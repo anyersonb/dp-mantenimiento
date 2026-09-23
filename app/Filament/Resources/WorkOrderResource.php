@@ -157,10 +157,46 @@ class WorkOrderResource extends Resource
                 // enviado sea una de las seis opciones — ver el docblock de
                 // WorkOrder::serviceTierOptions() sobre por qué esto NO se
                 // repite como restricción en el Observer.
+                //
+                // Vuelta 2 (2026-09-22), regresión ALTA encontrada por
+                // seguridad: una OT nacida de una alerta guarda el intervalo
+                // LIBRE de la máquina (`service_interval_hours`, un TextInput
+                // numérico sin restricción — ver MachineResource::form()),
+                // así que en producción ya hay OTs con `service_tier` fuera
+                // de las 6 opciones (p. ej. "750"). El ->in() original las
+                // dejaba sin poder editarse aunque nadie tocara el campo: al
+                // guardar, Filament revalida TODAS las opciones del form
+                // contra la regla, incluida esta. Acá se agrega el valor
+                // ACTUAL del registro (si existe y no está ya en la lista) a
+                // las opciones —mostrado como "750 h" vía
+                // WorkOrder::serviceTierLabel()— y a la lista permitida, SOLO
+                // para ESE registro. Un valor NUEVO fuera de lista sigue
+                // rechazado, y crear sigue ofreciendo solo las 6 opciones
+                // fijas (no hay registro todavía).
                 Forms\Components\Select::make('service_tier')->label(__('wo.service_tier'))
-                    ->options(WorkOrder::serviceTierOptions())
+                    ->options(function (?Model $record) {
+                        $options = WorkOrder::serviceTierOptions();
+
+                        if ($record !== null
+                            && filled($record->service_tier)
+                            && ! array_key_exists($record->service_tier, $options)) {
+                            $options[$record->service_tier] = WorkOrder::serviceTierLabel($record->service_tier);
+                        }
+
+                        return $options;
+                    })
                     ->default(WorkOrder::SERVICE_TIER_DEFAULT)
-                    ->in(array_keys(WorkOrder::serviceTierOptions())),
+                    ->in(function (?Model $record) {
+                        $allowed = array_keys(WorkOrder::serviceTierOptions());
+
+                        if ($record !== null
+                            && filled($record->service_tier)
+                            && ! in_array($record->service_tier, $allowed, true)) {
+                            $allowed[] = $record->service_tier;
+                        }
+
+                        return $allowed;
+                    }),
                 // Pedido del cliente (2026-09-22): la OT puede quedar asociada a
                 // un reporte de campo, nunca de forma obligatoria. El desplegable
                 // solo ofrece los reportes DE LA MÁQUINA elegida arriba, del más
@@ -175,7 +211,12 @@ class WorkOrderResource extends Resource
                 // debe poder enumerarlos a través de este selector.
                 Forms\Components\Select::make('field_report_id')->label(__('wo.field_report'))
                     ->helperText(__('wo.field_report_help'))
-                    ->visible(fn () => Auth::user()?->can('view_field_reports') ?? false)
+                    // Vuelta 2 (2026-09-22), hallazgo Bajo 1 de seguridad: usar
+                    // el mismo mecanismo que el resto del proyecto
+                    // (AccessControl::allows()), no un Auth::user()?->can()
+                    // suelto — así el campo respeta la red de despliegue
+                    // (LEGACY_ROLE_FALLBACK) igual que FieldReportResource.
+                    ->visible(fn () => AccessControl::allows(Auth::user(), 'view_field_reports'))
                     ->searchable()
                     ->options(function (Forms\Get $get) {
                         $machineId = $get('machine_id');

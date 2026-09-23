@@ -5,6 +5,7 @@ namespace App\Observers;
 use App\Models\FieldReport;
 use App\Models\WorkOrder;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 
 /**
  * Hallazgo E6-08: el formulario del panel creaba órdenes de trabajo con
@@ -106,6 +107,25 @@ class WorkOrderObserver
             ->exists();
 
         if (! $belongs) {
+            // Vuelta 2 (2026-09-22), hallazgo Bajo 3 de seguridad: antes esto
+            // anulaba en silencio. Si alguien manipula el payload no quedaba
+            // ningún rastro. El id que se rechaza va en el log ANTES de
+            // limpiarlo — después de la línea siguiente ya se perdió.
+            //
+            // `work_order_id` sale null en una OT que todavía se está
+            // creando (saving() corre ANTES del INSERT, antes de que la
+            // base asigne el id): se suma `work_order_code`, que sí está
+            // disponible en ese momento (el form siempre lo manda, ver
+            // WorkOrder::nextCode()), para no perder la referencia en ese
+            // caso.
+            Log::warning('work_order.field_report_mismatch_cleared', [
+                'work_order_id' => $workOrder->getKey(),
+                'work_order_code' => $workOrder->code,
+                'machine_id' => $workOrder->machine_id,
+                'rejected_field_report_id' => $workOrder->field_report_id,
+                'user_id' => Auth::id(),
+            ]);
+
             $workOrder->field_report_id = null;
         }
     }
