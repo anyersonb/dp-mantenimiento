@@ -22,3 +22,7 @@
 Homestead.json
 Homestead.yaml
 Thumbs.db
+
+# Respaldos y dumps de produccion: nunca al repo
+/docs/lotes/backup-prod-*/
+*.sql
